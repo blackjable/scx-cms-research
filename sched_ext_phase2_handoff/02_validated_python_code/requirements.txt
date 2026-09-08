@@ -1,0 +1,15 @@
+# Dependencies for cms-prototype/*.py
+#
+# Verified against actual imports across every script (not assumed) —
+# see the audit that produced this file: numpy was previously listed
+# as a dependency but never actually used by any script; scipy was
+# actually required (savage_audit.py's statistical significance test)
+# but was missing. Both fixed here.
+
+matplotlib   # experiment.py, sweep_experiment.py, expanded_findings_experiment.py — chart generation
+scipy        # savage_audit.py — Welch's t-test (scipy.stats.ttest_ind)
+pytest       # test_sketch_lib.py — regression suite guarding sketch_lib.py before the BPF port
+
+# Everything else used (hashlib, heapq, random, statistics, subprocess,
+# sys, time, dataclasses, enum) is Python standard library — no
+# installation needed.
