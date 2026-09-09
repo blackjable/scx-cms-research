@@ -536,6 +536,70 @@ Phase 1's one-shot-then-silent variant. The light/heavy boundary was not
 swept, so "how much load before rotation stops fully working" is known
 only as "between 160 and 12,800 events/s," not pinned down.
 
+## 9.7 A real concurrency bug found in the counters, partially fixed
+
+Found while checking `--mechanism boost`'s behavior under `hackbench`
+(originally a quick loose-end check, not a planned investigation): the
+never-undercount guarantee -- Count-Min Sketch's one formal property,
+verified clean at 52,316 samples earlier in this project -- was being
+violated 633,000 times in a few seconds. That rate is far too high to be
+a real algorithmic defect; it meant the port had a concurrency bug.
+
+**Three distinct bugs found and fixed**, via direct diagnostic capture
+(latching the first violation's raw internal state) after two wrong
+guesses based on reasoning alone:
+
+1. `(*cell)++` and `c->cur++` were plain non-atomic read-modify-writes.
+   Under `--identity-key comm`, many threads sharing one identity (e.g.
+   hackbench's workers) hammer the same map cell from multiple CPUs at
+   once -- a textbook lost update. Fixed with `__sync_fetch_and_add`.
+2. The "identity not seen before" path used `BPF_ANY`, which
+   unconditionally overwrites. Two CPUs racing to create the same new
+   identity's entry could both see the lookup miss; whichever insert
+   lands second silently discards the first's `cur=1`. Fixed with
+   `BPF_NOEXIST` plus a fallback to atomic increment on `EEXIST`.
+
+Two wrong turns, kept in the code comments because they looked plausible
+before being tested: an epoch consistency check, then a proper seqlock,
+both aimed at a hypothesized read-side rotation race. Neither moved the
+violation rate. Direct instrumentation showed the actual captured
+violation happened at `cms_epoch=0` -- before any rotation had ever
+occurred -- ruling out rotation timing entirely for the case that was
+actually caught.
+
+**Net effect: ~600k violations down to ~210k** on the same stress test.
+A third, understood cause remains unfixed: `cms_roll()`'s own three-field
+update (`prev = cur; cur = 0; epoch = new`) isn't atomic either and can
+tear the same way once real rotations start. The correct fix is a
+`bpf_spin_lock`, and nothing else in this codebase uses one as a
+reference pattern. **Deliberately deferred** rather than risking another
+multi-cycle chase with no working example to check against -- the same
+kind of scope call as the anomaly-detector rolling baseline in Section 1.
+
+**A real build-system gap found while verifying fixes.** `build.rs` only
+watched `src/bpf/main.bpf.c` directly, not the files it `#include`s.
+Editing `tracker.bpf.c` without touching `main.bpf.c` produced a silent
+0.12s no-op build reporting success without recompiling anything --
+caught by the timing looking wrong, not by the tool telling us. Fixed by
+watching the whole `src/bpf` tree. `scx_flow` and `scx_cidland` have the
+identical gap; not specific to this scheduler.
+
+**What this means for every earlier `--compare`-based number in this
+project** (the collision attack in 9.4, seed rotation in 9.6, the
+scheduling-manipulation measurements): all of them ran under lighter
+concurrent-same-identity contention than this hackbench test deliberately
+maximizes (many attacker *processes* with distinct or matched identities,
+not hundreds of threads hammering one shared identity across every CPU
+simultaneously). The qualitative findings are unlikely to flip from a bug
+whose signature is occasional off-by-one undercounting. But the exact
+figures now carry more uncertainty than they were reported with, and none
+of them have been re-verified against the fixed build. **Re-running the
+headline numbers (9.4's +8,824%, 9.6's light/heavy split, 9.5's null
+result) against the current build is worth doing before those figures are
+treated as final** -- not because they are expected to change materially,
+but because "expected not to change" was exactly the assumption this bug
+violated.
+
 ## 10. Leaky edges in the mechanism abstraction
 
 Recorded because each is a place where a future change could produce a

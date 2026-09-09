@@ -109,10 +109,20 @@ def read_probe() -> dict:
 
 
 def set_probe_pid(pid: int) -> None:
-    """Point the probe at a pid, zeroing the accumulated counts."""
-    value = list(pid.to_bytes(4, "little")) + [0] * 36
+    """Point the probe at a pid, zeroing the accumulated counts.
+
+    Value size is read from the map itself rather than hardcoded: a
+    previous version hardcoded 40 bytes, and it silently went stale the
+    moment probe.bpf.c's struct grew (diagnostic fields added while
+    chasing the never-undercount bug) -- the exact class of drift this
+    project keeps getting bitten by.
+    """
+    mid = map_id("cms_probe")
+    info = json.loads(bpftool("map", "show", "id", str(mid), "-j"))
+    value_size = info["bytes_value"]
+    value = list(pid.to_bytes(4, "little")) + [0] * (value_size - 4)
     bpftool(
-        "map", "update", "id", str(map_id("cms_probe")),
+        "map", "update", "id", str(mid),
         "key", "0", "0", "0", "0",
         "value", *[f"0x{b:02x}" for b in value],
     )
