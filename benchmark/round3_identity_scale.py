@@ -4,9 +4,12 @@ Round 3: does the sketch actually save memory, and at what quality cost?
 
 WHY ROUND 3 EXISTS
 
-Round 2 established that approximate tracking preserves scheduling
-quality. It established NOTHING about memory, and the way it appeared to
-is worth stating plainly because it would have gone into the paper:
+Round 2 did NOT establish that approximate tracking preserves scheduling
+quality -- its negative control showed the apparent benefit was almost
+entirely count-blind vtime perturbation, leaving sketch-vs-exact
+comparisons with little to resolve. It established nothing about memory
+either, and the way it appeared to is worth stating plainly because it
+would have gone into the paper:
 
   sketch, at defaults      2 x 256 x 4 cells x 4B  =   ~8 KB
   exact, as provisioned    CMS_MAX_TRACKED = 16384 =  ~800 KB
@@ -125,20 +128,27 @@ def map_memory(name_substr: str) -> dict:
                              text=True, check=True).stdout
     except (subprocess.CalledProcessError, FileNotFoundError):
         return {}
+    # `bpftool map show` emits two lines per map: an id/type/name header,
+    # then an indented line carrying key/value/max_entries/memlock. The
+    # figure we want is on the SECOND line, so match on the header and
+    # read the line after it.
+    lines = out.splitlines()
     found = {}
-    for line in out.splitlines():
-        if name_substr not in line:
+    for i, line in enumerate(lines):
+        if name_substr not in line or not line[:1].isdigit():
             continue
+        name = line.split("name")[-1].split()[0] if "name" in line else f"map{i}"
+        detail = lines[i + 1] if i + 1 < len(lines) else ""
         d = {}
-        toks = line.replace(":", " ").split()
-        for i, t in enumerate(toks):
-            if t in ("key", "value", "max_entries", "memlock") and i + 1 < len(toks):
+        toks = detail.replace("B", " ").split()
+        for j, t in enumerate(toks):
+            if t in ("key", "value", "max_entries", "memlock") and j + 1 < len(toks):
                 try:
-                    d[t] = int(toks[i + 1].rstrip("B"))
+                    d[t] = int(toks[j + 1])
                 except ValueError:
                     pass
-        if "memlock" in d:
-            found[line.split()[1] if len(line.split()) > 1 else "?"] = d
+        if d:
+            found[name] = d
     return found
 
 
