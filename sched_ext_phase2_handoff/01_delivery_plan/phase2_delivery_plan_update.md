@@ -642,13 +642,37 @@ occurred -- ruling out rotation timing entirely for the case that was
 actually caught.
 
 **Net effect: ~600k violations down to ~210k** on the same stress test.
-A third, understood cause remains unfixed: `cms_roll()`'s own three-field
-update (`prev = cur; cur = 0; epoch = new`) isn't atomic either and can
-tear the same way once real rotations start. The correct fix is a
-`bpf_spin_lock`, and nothing else in this codebase uses one as a
-reference pattern. **Deliberately deferred** rather than risking another
-multi-cycle chase with no working example to check against -- the same
-kind of scope call as the anomaly-detector rolling baseline in Section 1.
+
+**[CORRECTED] What remains is broader than first characterized here.**
+Writing the regression suite (Section 9.9) immediately found it: with
+each individual increment now atomic, `cms_track()`'s sequence of
+incrementing exact, incrementing sketch, then reading both for
+`--compare` is not atomic *as a unit*. A concurrent reader on another CPU
+can still observe one structure mid-update relative to the other. This
+was first attributed narrowly to `cms_roll()`'s three-field update
+(`prev = cur; cur = 0; epoch = new`) tearing once real rotations start --
+that race is real and still present, but it turns out to be one
+manifestation of the broader issue, not the whole story: confirmed to
+scale directly with concurrency (0/9/110 violations at 2/8/32 workers
+sharing one identity) on a window long enough that no rotation ever
+fired, which rules `cms_roll()` out specifically for that case.
+
+Both are the same underlying problem and need the same fix: some form of
+per-identity mutual exclusion, most naturally a `bpf_spin_lock`. **Still
+deliberately deferred**, for the same reason as before -- no existing
+`bpf_spin_lock` usage in this codebase to build from, and the risk of an
+unbounded chase with no working reference judged too high. Both are now
+tracked as explicit expected-failures in the regression suite rather than
+left as a comment only, so the gap stays visible rather than being
+forgotten a second time.
+
+**Practical impact is still bounded, worth restating precisely now that
+the scope is better understood.** It requires genuine concurrent access
+to the *same* identity to trigger. Most measurements in this project's
+attack harnesses do not sustain that at high intensity — each attacker is
+typically its own process with its own identity, not many threads
+hammering one shared identity the way `--identity-key comm` on a real
+multi-threaded workload (hackbench, or `schbench`'s worker pool) can.
 
 **A real build-system gap found while verifying fixes.** `build.rs` only
 watched `src/bpf/main.bpf.c` directly, not the files it `#include`s.
@@ -697,6 +721,36 @@ volume" finding holds**, confirmed across two runs on the fixed build.
 Recorded as a reminder of exactly the trap 9.5 already caught once at n=5
 vs n=15: a single run in the "interesting" direction is not evidence
 until it survives a second look.
+
+## 9.9 A regression suite now exists, and it immediately paid for itself
+
+Section 5's original instruction -- build this before, not after,
+starting the BPF work -- had gone unmet for the whole of the security
+investigation in Sections 9.4-9.8. `tests/regression.py`
+(`scheds/experimental/scx_cms/tests/`) closes that gap:
+
+- `attach_detach_matrix` -- every tracker/mechanism combination loads
+  and unloads cleanly.
+- `window_rotation_advances` -- the timer-driven epoch actually
+  increments over time.
+- `mechanism_reach_reported` -- the core counters are present and
+  readable.
+- `concurrent_stress` -- many processes sharing one identity, hammering
+  the same map cells concurrently. This is the test that would have
+  caught all three of Section 9.8's lost-update bugs on its first run,
+  had it existed before that investigation rather than after.
+- `known_roll_race` -- the same load sustained across real window
+  rotations, isolating the additional rotation-triggered exposure.
+
+**It paid for itself immediately.** Running it against the already-fixed
+build found the fourth, broader issue documented in the correction to
+Section 9.8 above: `concurrent_stress` failed even with no rotation
+involved, which is what revealed that the remaining problem is broader
+than `cms_roll()` specifically. Both `concurrent_stress` and
+`known_roll_race` are marked as expected failures (xfail) rather than
+skipped or silently passing, so the known gap stays visible in every run
+of the suite rather than depending on someone remembering a code
+comment. The other three tests pass cleanly.
 
 ## 10. Leaky edges in the mechanism abstraction
 
