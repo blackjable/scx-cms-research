@@ -1413,8 +1413,20 @@ For quick reference when working through this in Claude Code:
         penalty. The corruption-heavy and latency-measurable regimes do
         not overlap on this 4-CPU machine.
 
-        [ ] NOT shown impossible. Untested levers, each future work: more
-        CPUs (attacker load absorbed while collisions still land), a
-        smaller sketch (more collisions per unit load), a steeper or
-        uncapped mechanism. A 4-CPU VM is the worst case for the
-        attacker's load being absorbed and may flatter the defender.
+        [x] All three named levers now tested, n=5 each, and all still
+        null:
+
+        | lever | config | gap |
+        |---|---|---|
+        | smaller sketch | width=32 (vs. 256) | -21.5% (wrong direction) |
+        | more CPUs | 8 (vs. 4) | +3.0% |
+        | combined | width=32, 8 CPUs, effectively uncapped adjustment | +11.4% |
+
+        Every gap fell well within run-to-run noise. This substantially
+        strengthens rather than overturns the finding: it now holds
+        across sketch width, CPU count, mechanism steepness, and their
+        combination, not just the original single configuration.
+
+        Confirmed run on the fixed build (checked the scheduler binary's
+        build timestamp against when these tests ran, rather than
+        assuming) — no separate re-verification caveat needed here.

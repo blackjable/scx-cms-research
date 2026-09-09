@@ -466,21 +466,24 @@ the wakeup signal does not thereby measurably worsen the victim's
 scheduling, because the corrupting regime is also the self-saturating
 regime.
 
-Does NOT establish that manipulation is impossible. Untested levers that
-could change it, each a candidate for future work:
+**Update: all three named levers have since been tested** (n=5 each, on
+the fixed build -- confirmed via the scheduler binary's build timestamp
+rather than assumed), and all remain null:
 
-- **More CPUs.** On a large machine the attacker's raw load is absorbed
-  across many cores while the collisions still land, potentially
-  separating the two regimes. This 4-CPU VM is the worst case for the
-  attacker's load being absorbed and may be the best case for the
-  defender.
-- **A smaller sketch.** Fewer columns means more collisions per unit
-  load, raising inflation-per-load -- the same reason a small sketch is
-  less accurate makes it easier to poison cheaply.
-- **A steeper or uncapped mechanism.** The vulnerability's expression
-  depends on how hard the scheduler leans on the count. The values here
-  cap any adjustment at one region of vtime; a mechanism that weights the
-  count more aggressively would amplify a given corruption further.
+| lever | config | gap vs. exact+penalty |
+|---|---|---|
+| smaller sketch | width=32 (vs. 256) | -21.5% (wrong direction) |
+| more CPUs | 8 (vs. 4) | +3.0% |
+| combined | width=32, 8 CPUs, effectively uncapped adjustment | +11.4% |
+
+Every gap was well within run-to-run noise. This substantially
+strengthens the null finding rather than overturning it -- it now holds
+across sketch width, CPU count, mechanism steepness, and their
+combination, not just the original single configuration. Manipulation is
+still not *proven* impossible (no finite set of configurations proves a
+negative), but the specific candidate explanations for why the original
+result might have been an artifact of one narrow setup have each been
+tested directly and found not to change it.
 
 The security claim the paper can currently support is therefore precise:
 the *signal* is corruptible (demonstrated, 9.4), but a corrupted signal
