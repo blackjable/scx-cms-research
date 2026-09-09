@@ -430,6 +430,38 @@ not one:
    actually run today for latency-sensitive workloads," not just to
    this project's own internal variants.
 
+5. **Count-blind negative control [ADDED AFTER ROUND 2 -- the most
+   important tier, and the one this list originally lacked]** -- the
+   same custom scheduler applying a vtime perturbation of equal
+   strength that ignores the tracked count entirely.
+
+   Tiers 1-4 all vary *the scheduler*. None of them varies *only
+   whether the signal is used*, and so none can separate "tracking
+   wakeup frequency helps" from "perturbing vtime helps." That gap is
+   not hypothetical: round 2 produced a 6.8x improvement against the
+   isolation baseline that this control subsequently reproduced almost
+   entirely (Section 4.2). Every mechanism does something besides the
+   thing being studied, and the correct baseline for "does the signal
+   help" is the same intervention without the signal -- not a different
+   scheduler.
+
+**Evaluation metric [CORRECTED AFTER ROUND 2]**: this section
+originally specified tail latency (p99) as the outcome measure, in line
+with standard practice. That specification was wrong, and following it
+alone would have produced the opposite conclusion.
+
+A count-blind penalty and a count-proportional one reach statistically
+indistinguishable p99. They are separated at the *median*: the
+count-blind version taxes every task including the latency-sensitive
+one, while the count-proportional version leaves the median untouched.
+Tail latency alone cannot distinguish a discriminating policy from a
+blunt one, because degrading every task uniformly also compresses the
+tail.
+
+The evaluation therefore reports p50 and p99 together, and treats a
+tail improvement accompanied by median regression as a cost, not a win.
+See Section 4.2.
+
 **Standard tooling, not a bespoke metric**: rather than inventing an
 ad-hoc evaluation harness, use the tools the sched_ext/kernel
 community already treats as credible:
@@ -1250,21 +1282,77 @@ are named in item 28 and untested.]
 
 ## 6. Conclusion
 
-[NEEDS: entirely dependent on results. Cannot be honestly written yet.
-Placeholder structure once results exist:]
+This project set out to test whether a Count-Min Sketch could replace
+exact per-task counters for tracking wakeup frequency in a BPF
+scheduler, saving memory without degrading scheduling quality. Neither
+half of that thesis is currently supported, and the reasons why are
+more useful than the thesis would have been.
 
-- Restate the hypothesis and what was actually found (memory savings
-  achieved: [NEEDS number]; accuracy cost: [NEEDS number]; scheduling
-  outcome preserved: [NEEDS yes/no/partially]).
-- State plainly whether the hypothesis was supported, partially
-  supported, or not supported — per the project's own honesty standard
-  established earlier in this research process, this should not be
-  oversold if results are mixed or negative.
-- [NEEDS: future work paragraph — likely candidates: real hardware
-  validation, extending beyond wakeup-frequency to other resource
-  signals (e.g. the memory-bandwidth case that motivated Section 1),
-  revisiting after LPC 2026 talks are public to properly position
-  against Wu's lazy-wakeups work.]
+**What was established.**
+
+The clearest result is methodological. *Evaluating a scheduler on tail
+latency alone cannot distinguish a discriminating policy from a blunt
+one.* A count-blind vtime penalty and a count-proportional one reach
+statistically indistinguishable p99; they separate only at the median,
+where the count-blind version taxes every task including the one the
+user is waiting on. Discrimination manifests as the absence of
+collateral damage, which a tail metric cannot see. This project's own
+methodology section specified p99 and would have reached the wrong
+conclusion.
+
+Following from that: *most of the apparent scheduling benefit of a
+wakeup-frequency mechanism is not the wakeup frequency.* A count-blind
+control reproduced roughly 84% of a 6.8x tail improvement on a log
+scale. The control is cheap, and none of the four baseline tiers this
+paper originally specified would have caught the confound, because all
+four vary the scheduler rather than varying only whether the signal is
+used. Work claiming scheduling wins from tracked signals should include
+it.
+
+Alongside these, on the sketch itself: the never-undercount guarantee
+holds on real kernel data; a targeted-collision attack reproduces
+against a real kernel (+8,824% inflation of a victim's estimate), though
+corrupting the estimate did not translate into manipulating a scheduling
+decision at the scale tested, because inflation and load are coupled.
+
+**What was not established.**
+
+*That the sketch preserves scheduling quality.* With no isolated,
+confirmed count-attributable effect, sketch-versus-exact compares two
+ways of computing a number whose influence on outcomes has not been
+demonstrated. The observed equivalence is uninformative rather than
+confirmatory. [NEEDS: revise if round 2c confirms the collateral-damage
+finding, which would restore a count-attributable effect for the sketch
+to preserve or lose.]
+
+*That the sketch saves memory.* This was never measured in a regime
+where it could. At the ~132 distinct identities exercised, a
+right-sized exact map (~6 KB) is smaller than the sketch (~8 KB): in the
+only conditions tested, the sketch is a memory regression. [NEEDS:
+round 3 result. A legitimate outcome is that exact counting holds both
+quality and affordable memory at every scale this hardware reaches, in
+which case the sketch solves a problem this environment does not have.]
+
+**On honesty about negative results.** Three headline numbers in this
+project did not survive contact with a larger sample or a proper
+control: a seed-rotation mitigation that looked effective at heavy
+volume, a +34.7% effect at n=5 that became -1.7% at n=15, and the 6.8x
+above. In each case the pattern was the same -- a real-looking effect,
+an insufficient control, and a conclusion that would have been
+published. The controls have never once turned out to be unnecessary.
+That is the strongest practical argument this work can offer for
+running them.
+
+**Future work.** Bare-metal and cross-hardware validation, given that
+this environment's timer-delivery floor already invalidated one victim
+workload outright. Extending beyond wakeup frequency to other resource
+signals, particularly the memory-bandwidth case motivating Section 1,
+where the identity population may be large enough for bounded-memory
+counting to pay for itself in a way it does not here. Fixing the
+open increment-then-read atomicity bug (Section 9.8 of the delivery
+plan) and re-testing the same-identity concurrent path, which every
+Phase 6 measurement deliberately avoided exercising. Repositioning
+against Wu's lazy-wakeups work once the LPC 2026 talks are public.
 
 ---
 
