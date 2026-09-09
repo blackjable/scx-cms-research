@@ -1007,17 +1007,23 @@ Placeholder structure once results exist:]
 For quick reference when working through this in Claude Code:
 
 1. [x] ~~Cite Cormode & Muthukrishnan CMS paper + formal error bounds (2.1)~~ DONE
-2. [x] ~~Task identity key: build the swappable abstraction~~ ABSTRACTION
-       DONE, DECISION STILL OPEN (deliberately). `scx_cms/src/bpf/
+2. [x] ~~Task identity key: PID vs TGID vs comm~~ **DECIDED: PID or
+       TGID, not `comm`** — on evidence, per item 27. With `comm` a
+       targeted collision attack inflated a victim's estimate by +8,824%
+       using 64 processes at a modest wake rate; against `pid` that
+       attack is structurally unavailable, since a task cannot choose its
+       own pid and so cannot steer into a victim's cells. A qualitative
+       difference, not a tuning one. This confirms the prior lean rather
+       than overturning it, but it is now measured rather than assumed.
+       [ ] TGID itself was not measured; the structural argument covers
+       it, but that is reasoning, not evidence.
+
+       Abstraction as built: `scx_cms/src/bpf/
        identity.bpf.c` resolves a task to PID, TGID, or an FNV-1a hash of
        `comm`, selected at run time via `--identity-key` (a `const
        volatile` set before load, so no rebuild to switch). Ergonomically
        all three are cheap to read in `runnable`, so BPF constraints do
-       not decide this. [ ] The actual choice still awaits the
-       per-candidate real-kernel replication of the targeted-collision
-       attack (4.1.1/4.2) — a self-influenceable identity (`comm`) is a
-       demonstrated security-relevant choice, not just a granularity
-       tradeoff, so the attack replication should decide it.
+       not decide this.
 3. [x] ~~Implement actual BPF scheduler with CMS as a BPF map, wired
        into `runnable`~~ (2.3) DONE. `scheds/experimental/scx_cms/` loads
        on a real kernel (Fedora 44, 6.19) and tracks wakeup frequency per
@@ -1235,3 +1241,43 @@ For quick reference when working through this in Claude Code:
         latency-sensitive task). [ ] A directly comparable measurement,
         matching Phase 1's churn level and single-target statistic, has
         not been made.
+
+27. [x] ~~Real-kernel replication of the targeted-collision attack~~ DONE
+        for `comm` and `pid` (harness: `attack/collision_attack.py`).
+        Victim and attackers are real processes; both counts come from
+        the kernel's own query via a probe map, not a userspace
+        reimplementation of the hash -- that being how 4.1.3 once
+        produced a false "this hash is immune" result.
+
+        | identity | seeds | attackers | inflation |
+        |---|---|---|---|
+        | comm | known | 64 @ 200/s | **+8,824%** |
+        | comm | unknown | 64 @ 200/s | +0.0% |
+        | comm | unknown | 256 @ 1000/s | **+5,450%** |
+        | pid | known | 64 @ 200/s | +0.0% (unavailable) |
+        | pid | unknown | 256 @ 1000/s | **+1,439%** |
+
+        The attack transfers to a real kernel; Phase 1's finding was not
+        a simulation artifact. Magnitude tracks attacker volume rather
+        than being a property of the sketch, so **+8,824% is not
+        comparable to 4.1.1's +440%**.
+
+        CORRECTION TO SECTION 5's THREAT MODEL: it states the attack
+        needs "only knowledge of the hash function and per-row seeds (not
+        privileged system access)". On a real kernel the seeds live in a
+        BPF map and reading them REQUIRES privilege, so an unprivileged
+        co-tenant cannot mount the targeted attack -- only flooding. The
+        adversary is an insider, a leak, or predictable seeds. Section 5
+        should be revised accordingly.
+
+        Also corrected mid-investigation: an early blind result of +0.0%
+        briefly looked like "blind attacks are harmless". Retesting at
+        higher volume gave +5,450%. Seed knowledge buys efficiency, not
+        access.
+
+        [ ] Single run per condition, no variance yet. The pid-vs-comm
+        gap under blind flooding must NOT be read as a real effect.
+        [ ] A contaminated run was caught and discarded: a stale
+        scheduler was still attached, so a "pid" measurement was really
+        the previous comm one. The harness now reads and prints the
+        identity key from the kernel for that reason.
