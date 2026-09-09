@@ -1142,3 +1142,69 @@ distinct short-lived identities, where exact counting genuinely must
 allocate and the sketch's bounded footprint is the actual point. Until
 that exists the paper has evidence for half its thesis.
 
+### Re-run against `flat` at n=15: the p99 claim dies, a better one appears
+
+The control above was n=8 and cleared by 2%. Re-run at n=15 with `flat`
+as the baseline:
+
+| condition | p50 median | p50 range | p99 median | p99 range |
+|---|---|---|---|---|
+| cms_none | 3,948us | 2,156-5,208 | 88,192us | 64,064-157,952 |
+| cms_exact_penalty | 3,964us | 3,588-4,104 | 12,784us | 10,928-21,664 |
+| cms_sketch_penalty | 4,012us | 3,676-6,008 | 12,880us | 10,576-32,288 |
+| flat_4ms | **11,760us** | 11,120-12,624 | 16,544us | 15,344-29,600 |
+
+**On the pre-declared metric the count-attributable effect is gone.**
+exact (10,928-21,664) and flat_4ms (15,344-29,600) overlap heavily on
+p99. At n=8 they cleared by 320us; at n=15 they do not clear at all. By
+the criterion committed to in advance -- ranges overlapping means no
+effect demonstrated -- there is no demonstrated p99 benefit from
+consulting the count over an equally strong count-blind penalty. That is
+the third headline number in this project to evaporate under a larger
+sample.
+
+**But p50 shows something the p99 comparison was blind to.** `flat`
+penalises every task, the victim included, and its median wakeup latency
+is 11,760us against ~3,950us for every other condition -- 3x worse,
+ranges nowhere near overlapping. `cms_exact_penalty` achieves comparable
+tail reduction while leaving p50 statistically identical to doing
+nothing (3,964 vs cms_none's 3,948).
+
+The count's value is therefore not "reduces the tail more than a flat
+penalty does". It is:
+
+> A count-blind penalty buys tail improvement by taxing every task,
+> including the latency-sensitive one. A count-proportional penalty buys
+> comparable tail improvement at no cost to the median, because it can
+> tell the victim from the churn. Discrimination shows up as absence of
+> collateral damage, not as a larger tail reduction.
+
+**Why this is reported as provisional, not as the finding.** The
+pre-declared primary metric was p99, and p99 is inconclusive. The effect
+was located in p50 only after p99 disappointed, which is metric-shopping
+regardless of p50 having been collected in every run since round 2
+began. A paired sign test on p99 (the harness interleaves conditions
+within each repetition, so the data is paired by design) gives exact <
+flat in 12 of 15 pairs, one-sided p = 0.018 -- but that test was also
+chosen after seeing the range criterion fail, and post-hoc test
+selection is how the two false positives earlier in this project
+happened.
+
+What keeps it alive rather than discarded is that it is not a marginal
+statistical rescue: it is a 3x non-overlapping gap whose mechanism was
+predictable in advance (a count-blind penalty MUST hit the victim; a
+count-proportional one mostly spares it). The hypothesis explains the
+data instead of being fitted to it.
+
+**Required before this is claimed:** a pre-registered run declaring p50
+as the primary metric and the paired sign test as the analysis, before
+any data is collected. Nothing above should reach the paper until that
+run exists.
+
+**Sketch caution.** `cms_sketch_penalty` overlaps exact on both metrics,
+so no difference is demonstrated -- but its upper tails run high on
+both (p50 6,008 vs exact's 4,104; p99 32,288 vs exact's 21,664). That
+is the signature one would expect if the sketch occasionally mis-ranks a
+task under collision. Not demonstrated, and specifically worth
+instrumenting in round 3 rather than left as an impression.
+
