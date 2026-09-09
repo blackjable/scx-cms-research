@@ -600,6 +600,12 @@ treated as final** -- not because they are expected to change materially,
 but because "expected not to change" was exactly the assumption this bug
 violated.
 
+**9.4's headline re-verified**: +6,064.2% on the fixed build (comm,
+white-box, 64 attackers), against the original +8,824.2%. Same order of
+magnitude, same conclusion (`comm` severely exploitable) -- the
+qualitative finding holds. 9.6 and 9.5 have not yet been re-run; treat
+their exact figures as provisional until they are.
+
 ## 10. Leaky edges in the mechanism abstraction
 
 Recorded because each is a place where a future change could produce a
