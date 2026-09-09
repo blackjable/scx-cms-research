@@ -49,17 +49,26 @@ as a string; in the eventual BPF implementation this would map to a
 PID, TGID, or `comm`-derived identifier depending on which identity
 notion best matches the churn pattern being tracked.
 
-[NEEDS: a decision on which identity key to actually use in the BPF
-version — PID (churns fastest, arguably the wrong granularity), TGID,
-or `comm` string (coarser, survives PID reuse, but collides across
-unrelated processes sharing a binary name). This decision materially
-affects both the churn simulation's realism and the real
-implementation, and hasn't been made yet. **This decision is now
-higher-stakes than originally scoped** — see Section 2.1.1's
-targeted-collision finding: `comm` strings are partially
-attacker/process-influenceable, and a self-chosen identity string is a
-meaningfully worse choice once a deliberate-collision attack is a
-demonstrated possibility, not just a theoretical one.]
+**[RESOLVED] Identity key: PID or TGID, not `comm`.** The candidates
+were PID (churns fastest, arguably the wrong granularity), TGID, and
+the `comm` string (coarser, survives PID reuse, but collides across
+unrelated processes sharing a binary name). The decision was
+deliberately deferred until Phase 2 could produce evidence, on the
+grounds that a self-settable identity is a security choice rather than
+only a granularity one.
+
+The evidence (checklist item 27) settles it. Against a real kernel, a
+targeted-collision attack on `comm` inflated a victim's estimated
+wakeup count by +8,824% using 64 processes; the same attack against
+PID produced no measurable effect, because a task cannot choose its own
+pid and therefore cannot construct an identity that lands in a victim's
+cells. The attack is not harder against PID, it is structurally
+unavailable — a qualitative difference.
+
+Two caveats: TGID was not measured directly, though being
+kernel-assigned the same argument applies to it; and this choice
+removes the *targeted* attack only. Untargeted volume flooding needs no
+control over identity and damaged both candidates.
 
 ### 2.1.1 Reproducibility bug and fix [RESOLVED]
 
@@ -116,15 +125,23 @@ existing callbacks:
 - **`quiescent`**: invoked when a task becomes non-runnable (blocks,
   exits). Could be used to finalize or decay per-window statistics.
 
-[NEEDS: this integration has not been implemented yet — only designed.
-The actual BPF code (a `.bpf.c` file extending or forking
-`scx_simple.bpf.c`) needs to be written, implementing the CMS as a BPF
-map (likely `BPF_MAP_TYPE_ARRAY` for the counter table) and wiring the
-increment logic into `runnable`. This requires the Fedora VM /
-sched_ext-enabled kernel environment (see Section 3.2) to build and
-test against, since BPF verifier constraints (bounded loops, no
-unbounded recursion) may require restructuring the sketch's hashing
-logic compared to the free-form Python prototype.]
+**[RESOLVED] This integration is now implemented** as `scx_cms`
+(`scheds/experimental/scx_cms/` in the scx tree), and runs on Fedora 44,
+kernel 6.19. The CMS is a `BPF_MAP_TYPE_ARRAY` counter table sized at
+load time to exactly `2 x width x depth` cells, with the increment
+wired into `runnable` as designed here. Verifier constraints did not
+require restructuring the hashing logic; the loops are bounded by the
+configured depth and width, and the FNV-1a construction ports directly.
+
+Two things did have to change, neither anticipated here. The scheduler
+could not fork `scx_simple.bpf.c` because that file no longer exists in
+the scx repository — the C schedulers were moved out to
+`scx-c-examples`, so the policy was recovered from repository history
+instead. And window rotation for the *exact* counter could not clear a
+hash map wholesale, since iterating and deleting every entry from a BPF
+program is not something the surrounding codebase does; entries are
+rolled forward lazily against an epoch instead, which is observably
+equivalent. The sketch, having a fixed table, does clear for real.
 
 ### 2.3.1 Forgetting mechanism: design history [RESOLVED]
 
@@ -930,16 +947,46 @@ scheduling-decision manipulation.
 
 - **The approach is not robust to adversarial or unfavorable churn
   patterns.** This is the most significant limitation found: a
-  targeted-collision attack (Section 4.1.1), requiring only knowledge
-  of the hash function and per-row seeds (not privileged system
-  access), degrades accuracy by over 5x relative to true value —
-  dramatically worse than the ~37% error characterizing the
-  "well-behaved" uniform case this project initially reported. Any
-  claim of this approach's viability must be scoped to environments
-  where task identity strings cannot be adversarially chosen, pending
-  further investigation of whether hash-seed rotation or a
-  cryptographically-stronger per-boot hash could mitigate this (not
-  yet explored).
+  targeted-collision attack (Section 4.1.1) degrades accuracy by over
+  5x relative to true value in simulation — dramatically worse than the
+  ~37% error characterizing the "well-behaved" uniform case this
+  project initially reported — and the attack has since been
+  reproduced against a real kernel (checklist item 27), where 64
+  processes inflated a victim's estimate by +8,824%. Any claim of this
+  approach's viability must be scoped accordingly.
+
+  **[CORRECTED] On the privilege required.** An earlier version of this
+  section stated the attack requires "only knowledge of the hash
+  function and per-row seeds (not privileged system access)". That is
+  wrong for a real implementation and overstates the risk. In the BPF
+  scheduler the per-row seeds are generated by `bpf_get_prandom_u32()`
+  and stored in a BPF map, so **reading them requires privilege**. An
+  unprivileged co-located process cannot mount the targeted attack at
+  all; measured at identical attacker volume, knowing the seeds is the
+  difference between +8,824% and no measurable effect. The realistic
+  adversary is therefore an insider, a seed leak, or a system with
+  predictable seeds — not any co-tenant.
+
+  This narrows who the attack applies to; it does not make the sketch
+  safe. Volume flooding needs no seed knowledge and still inflated a
+  victim's estimate by +5,450% given enough attackers. Seed secrecy
+  raises the cost of the precise attack; it does not remove the
+  approximate one.
+
+  **[RESOLVED] Which identity key.** The above is also what settles the
+  identity-key question left open in Section 2.1: `comm` is settable by
+  the task, so an attacker can construct an identity landing in a
+  victim's cells, whereas a kernel-assigned pid or tgid makes the
+  targeted attack structurally unavailable rather than merely harder.
+  Use PID or TGID.
+
+  **[STILL OPEN] Mitigation.** Whether hash-seed rotation or a
+  per-boot key materially reduces this on a real kernel is implemented
+  (`--seed-rotation`) but untested against the attack. Phase 1 found
+  seed rotation to be a partial mitigation only (+400% to +200%,
+  Section 4.1.3), for a mechanistic reason that would apply equally
+  here: the surviving buffer carries poisoned data forward for exactly
+  one window regardless of reseeding.
 - **An earlier implementation had a reproducibility defect** (Python's
   randomized string hashing, Section 2.1.1) that would have silently
   invalidated any claim of reproducible results had it not been caught
@@ -978,7 +1025,23 @@ an actual exploitable scheduling-decision manipulation (e.g., can an
 attacker use this to make the scheduler wrongly throttle or
 deprioritize a victim task) is unresolved — this requires Phase 2's
 actual scheduling-outcome measurement, not just the frequency-tracking
-accuracy measured so far in Phase 1.]
+accuracy measured so far in Phase 1.
+
+**This remains open even after the real-kernel replication, and the
+distinction must not be blurred.** Every attack run in checklist item
+27 was performed with `--mechanism none`: the scheduler was tracking
+but not acting on what it tracked. What has been demonstrated is that
+an attacker can corrupt the *signal* by orders of magnitude. What has
+NOT been demonstrated is that this changes any scheduling decision, or
+that a victim suffers measurably worse latency as a result.
+
+Those are different claims, and only the weaker one is currently
+supported. Establishing the stronger one requires re-running the attack
+with a mechanism active and measuring the victim's scheduling outcome —
+which also depends on the mechanism reaching a meaningful share of
+dispatches at all (checklist item 25, where reach was 0.8% on an idle
+system). An attack on a signal nothing acts on is a correctness problem,
+not yet a security one.]
 
 ---
 
