@@ -1035,13 +1035,20 @@ an attacker can corrupt the *signal* by orders of magnitude. What has
 NOT been demonstrated is that this changes any scheduling decision, or
 that a victim suffers measurably worse latency as a result.
 
-Those are different claims, and only the weaker one is currently
-supported. Establishing the stronger one requires re-running the attack
-with a mechanism active and measuring the victim's scheduling outcome —
-which also depends on the mechanism reaching a meaningful share of
-dispatches at all (checklist item 25, where reach was 0.8% on an idle
-system). An attack on a signal nothing acts on is a correctness problem,
-not yet a security one.]
+Those are different claims. As of the real-kernel work (checklist item
+28) the weaker one is demonstrated and the stronger one is NOT, and there
+is now a structural reason why. With a mechanism active and attacker load
+held constant, corrupting the signal produced no detectable change in the
+victim's scheduling latency across configurations (up to n=15). The cause
+is a coupling the Phase 1 simulation could not have surfaced: a cell's
+inflation equals the colliding load that produces it, so large corruption
+requires heavy load that saturates latency on its own, while at
+measurable load the achievable corruption (2-3x) is too small to move a
+scheduling decision. An attack on a signal nothing acts on is a
+correctness problem; whether it is also a security one is unresolved and
+appears, on this 4-CPU scale, to be structurally resisted. Levers that
+might overturn this (more CPUs, a smaller sketch, a steeper mechanism)
+are named in item 28 and untested.]
 
 ---
 
@@ -1345,40 +1352,40 @@ For quick reference when working through this in Claude Code:
         the previous comm one. The harness now reads and prints the
         identity key from the kernel for that reason.
 
-28. [ ] NEW: does the corrupted signal manipulate SCHEDULING? Attempted
-        and **unresolved** (harness: `attack/latency_attack.py`). Item 27
-        corrupts the count; this asks whether that changes what the
-        scheduler does. Attacker load held identical across three
-        conditions, varying only which counter the mechanism reads:
+28. [x] ~~does the corrupted signal manipulate SCHEDULING?~~ Answered:
+        **NO on this scale**, with a structural reason. Item 27 corrupts
+        the count; this asks whether that changes what the scheduler does
+        to the victim. Redone with `schbench` as the victim
+        (`attack/schbench_attack.py`) after an earlier Python sleep-loop
+        victim (`attack/latency_attack.py`) proved too noisy to decide.
 
-        | condition | victim p99 under attack | range |
-        |---|---|---|
-        | sketch + penalty (corruptible) | 503.5us | 380-1232 |
-        | exact + penalty (truthful) | 822.5us | 454-1340 |
-        | sketch + none (not acted on) | 809.2us | 577-1041 |
+        Attacker load held identical across three conditions; only the
+        counter the mechanism reads changes. Metric is schbench request
+        p99 (~1000 samples; wakeup-latency percentiles are unusable in
+        rps mode, ~17 samples pinned to a ~900ms histogram artifact).
 
-        Five interleaved repetitions each, adjustment cap raised so a
-        13.6x inflation became a 133ms implied penalty against a truthful
-        9.8ms. **No detectable effect, and the experiment lacks the power
-        to claim there is none**: within-condition spread is ~3x, larger
-        than any difference between conditions. A single earlier run
-        showed the corrupted condition 28% worse, in the predicted
-        direction, which looked like a finding until repetition showed
-        the direction flips between runs.
+        | config | sketch+penalty | exact+penalty | gap |
+        |---|---|---|---|
+        | gentle penalty, high-rate victim, n=5 | 25,184us | 24,544us | +2.6% |
+        | steep penalty, low-rate victim, n=5 | 14,896us | 11,056us | +34.7% |
+        | steep penalty, low-rate victim, n=15 | 15,184us | 15,440us | -1.7% |
 
-        This must be reported as "cannot detect", not "no effect". The
-        distinction matters: Section 5 currently lists this as unknown,
-        and it remains unknown.
+        The n=5 steep run looked real (+34.7%, correct direction, no flip
+        between runs). At n=15 it collapsed to -1.7%. **Nearly written up
+        as a positive finding; caught by higher N** -- the project's own
+        recurring lesson, now twice in this line of work.
 
-        [ ] Redo with `schbench` as the victim rather than a Python
-        sleep loop, which puts interpreter overhead, timer granularity
-        and GC into the measurement. Section 3.3 already specifies
-        schbench for exactly this measurement; the shortcut was
-        expedient for building the harness and should not survive into
-        a result.
-        [ ] Victim p99 improved under attack in every condition, so
-        something systematic differs between the phases beyond the
-        attack. Only the between-row comparison at matched load is
-        currently trustworthy.
-        [ ] The victim may simply not be contended enough for a vtime
-        penalty to change when it runs.
+        Structural reason it is hard: a cell's inflation equals the
+        colliding wakeups landing in it per window, which IS the load
+        those attackers add. Large corruption (~89x, item 27) requires
+        heavy load, which saturates victim latency on its own; at load
+        light enough to measure latency cleanly, achievable corruption is
+        only 2-3x -- too small to move scheduling even under a steep
+        penalty. The corruption-heavy and latency-measurable regimes do
+        not overlap on this 4-CPU machine.
+
+        [ ] NOT shown impossible. Untested levers, each future work: more
+        CPUs (attacker load absorbed while collisions still land), a
+        smaller sketch (more collisions per unit load), a steeper or
+        uncapped mechanism. A 4-CPU VM is the worst case for the
+        attacker's load being absorbed and may flatter the defender.

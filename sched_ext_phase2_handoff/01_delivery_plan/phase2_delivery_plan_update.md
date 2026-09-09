@@ -383,70 +383,101 @@ Caveats, stated rather than buried:
   heavy damage from blind volume, so this decision does not make the
   sketch safe; it removes the cheapest and most precise attack.
 
-## 9.5 Does the corrupted signal actually manipulate scheduling? UNRESOLVED
+## 9.5 Does the corrupted signal actually manipulate scheduling? NO (not on this scale)
 
-The attack in 9.4 corrupts the tracked count. Whether that corrupts a
-scheduling *decision* is a separate claim, and the runs there could not
-speak to it because they used `--mechanism none`.
+The attack corrupts the tracked count (9.4). Whether that corrupts a
+scheduling *decision* is a separate claim, and the answer here, across
+every regime tested, is that no manipulation is detectable -- with a
+structural reason why it is hard, and explicit conditions under which it
+might still occur.
 
-Harness: `attack/latency_attack.py`. The victim wakes on a 5ms period and
-records how late each wakeup was. Because an attack is also a load, and
-load degrades everyone's latency regardless of any sketch, the design
-holds attacker load identical and varies only which counter reaches the
-scheduling decision:
+### Method
 
-| condition | what it isolates |
-|-----------|------------------|
-| sketch + penalty | mechanism reads a corruptible count |
-| exact + penalty | mechanism reads a truthful count, same attackers |
+Harness: `attack/schbench_attack.py`. The victim is `schbench` in
+fixed-rps mode, the instrument the delivery plan specifies (Section 3.3)
+because it measures scheduling latency directly. Its threads all share
+the comm "schbench", so under `--identity-key comm` the victim is one
+identity the attacker collides with. Attacker load is held identical
+across three conditions; only the counter the mechanism reads changes:
+
+| condition | isolates |
+|-----------|----------|
+| sketch + penalty | mechanism reads the corruptible count |
+| exact + penalty | mechanism reads the true count, same load |
 | sketch + none | count corrupted, nothing acts on it |
 
-Five interleaved repetitions each, `--adjust-max-ns` raised to 200ms so
-the corruption could express fully (13.6x inflation became a 133ms
-implied penalty against a truthful 9.8ms):
+Manipulation would show as sketch+penalty degrading the victim more than
+exact+penalty at matched load. Metric is `schbench` request-latency p99
+(~1000 samples, stable); wakeup-latency percentiles are unusable in rps
+mode (~17 samples, tail pinned to a ~900ms histogram-ceiling artifact).
 
-| condition | victim p99 under attack | range across runs |
-|-----------|------------------------:|------------------:|
-| sketch + penalty | 503.5us | 380-1232 |
-| exact + penalty | 822.2us | 454-1340 |
-| sketch + none | 809.2us | 577-1041 |
+### Result: no effect, confirmed across configurations
 
-**No detectable effect, and the experiment is too noisy to claim
-otherwise.** The ranges overlap almost entirely, and the within-condition
-spread is roughly 3x -- larger than any between-condition difference. A
-single earlier run had shown the corrupted condition 28% *worse*, in the
-predicted direction, which looked like a finding until repetition showed
-the direction flips between runs.
+| config | sketch+penalty p99 | exact+penalty p99 | gap | verdict |
+|--------|-------------------:|------------------:|----:|---------|
+| gentle penalty, high-rate victim, n=5 | 25,184us | 24,544us | +2.6% | within noise |
+| steep penalty, low-rate victim, n=5 | 14,896us | 11,056us | +34.7% | within noise, but suggestive |
+| steep penalty, low-rate victim, n=15 | 15,184us | 15,440us | -1.7% | no effect |
 
-State this as "cannot detect", not as "no effect". The null is
-uninformative rather than negative: with this much variance the
-experiment would fail to detect a real effect of moderate size, so it
-neither demonstrates nor rules out scheduling manipulation.
+The n=5 steep-penalty run looked like an effect: +34.7% in the predicted
+direction, and unlike an earlier Python-harness attempt the direction did
+not flip between runs. At n=15 it collapsed to -1.7%. **This is the
+project's own recurring lesson, caught again: a suggestive small-sample
+result in the hoped-for direction must be confirmed at higher N before it
+is believed.** It was nearly written up as a positive finding.
 
-### Why it is this noisy, and what to do instead
+### Why manipulation is hard here: inflation and load are coupled
 
-The victim is a Python process using `time.sleep`, so interpreter
-overhead, timer granularity and GC all land in the measurement alongside
-the scheduling latency being measured. That was expedient for building
-the harness but is the wrong instrument for the question.
+A cell's inflation equals the number of colliding wakeups landing in it
+per window -- which is exactly the load those attackers add. Measured
+directly:
 
-The delivery plan already specifies the right one: `schbench`, which
-exists precisely to measure wakeup-to-execution latency and reports the
-percentiles directly. Redoing this with `schbench` as the victim, at
-higher repetition, is the way to give the question real statistical
-power. Section 3.3's tooling choice was made for this reason and should
-be honoured here rather than worked around.
+| attacker load | victim inflation | victim latency |
+|---------------|-----------------:|----------------|
+| 64 @ 200/s | ~89x (9.4) | saturated (~900ms, histogram ceiling) |
+| 16 @ 20/s, high-rate victim | 1.8x | measurable (~24ms p99) |
+| 16 @ 20/s, low-rate victim | 3.0x | measurable |
 
-Two further confounds to remove in that redo:
+Large corruption requires heavy colliding load, and heavy load saturates
+the victim's latency on its own -- independent of any mechanism -- which
+drowns any manipulation effect. At load light enough to measure latency
+cleanly, the achievable corruption is only 2-3x, a count difference too
+small to move scheduling even under a steep penalty. The corruption-heavy
+and latency-measurable regimes do not overlap on this 4-CPU machine.
 
-- Victim p99 *improved* under attack in every condition (roughly 1200us
-  to 500-800us). Something systematic changes between the phases beyond
-  the attack's presence, so baseline-to-attack comparison within a row is
-  not trustworthy; only the between-row comparison at matched load is.
-- The victim wakes every 5ms and is not aggressively competing for CPU,
-  so its queue position may simply not be contended enough for a vtime
-  penalty to change when it runs. A victim under genuine contention
-  would give the mechanism something to bite on.
+A lower-rate victim raises the inflation *ratio* (a task that mostly
+sleeps has a tiny baseline count), which is why 3.0x beat 1.8x -- but not
+enough to escape the coupling.
+
+### What this does and does not establish
+
+Establishes: on this hardware and configuration, an attacker who corrupts
+the wakeup signal does not thereby measurably worsen the victim's
+scheduling, because the corrupting regime is also the self-saturating
+regime.
+
+Does NOT establish that manipulation is impossible. Untested levers that
+could change it, each a candidate for future work:
+
+- **More CPUs.** On a large machine the attacker's raw load is absorbed
+  across many cores while the collisions still land, potentially
+  separating the two regimes. This 4-CPU VM is the worst case for the
+  attacker's load being absorbed and may be the best case for the
+  defender.
+- **A smaller sketch.** Fewer columns means more collisions per unit
+  load, raising inflation-per-load -- the same reason a small sketch is
+  less accurate makes it easier to poison cheaply.
+- **A steeper or uncapped mechanism.** The vulnerability's expression
+  depends on how hard the scheduler leans on the count. The values here
+  cap any adjustment at one region of vtime; a mechanism that weights the
+  count more aggressively would amplify a given corruption further.
+
+The security claim the paper can currently support is therefore precise:
+the *signal* is corruptible (demonstrated, 9.4), but a corrupted signal
+translating into a corrupted *scheduling decision* is not demonstrated at
+this scale, and is structurally resisted by the coupling between
+corruption and load.
+
 
 ## 10. Leaky edges in the mechanism abstraction
 
