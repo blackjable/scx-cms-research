@@ -1344,3 +1344,41 @@ For quick reference when working through this in Claude Code:
         scheduler was still attached, so a "pid" measurement was really
         the previous comm one. The harness now reads and prints the
         identity key from the kernel for that reason.
+
+28. [ ] NEW: does the corrupted signal manipulate SCHEDULING? Attempted
+        and **unresolved** (harness: `attack/latency_attack.py`). Item 27
+        corrupts the count; this asks whether that changes what the
+        scheduler does. Attacker load held identical across three
+        conditions, varying only which counter the mechanism reads:
+
+        | condition | victim p99 under attack | range |
+        |---|---|---|
+        | sketch + penalty (corruptible) | 503.5us | 380-1232 |
+        | exact + penalty (truthful) | 822.5us | 454-1340 |
+        | sketch + none (not acted on) | 809.2us | 577-1041 |
+
+        Five interleaved repetitions each, adjustment cap raised so a
+        13.6x inflation became a 133ms implied penalty against a truthful
+        9.8ms. **No detectable effect, and the experiment lacks the power
+        to claim there is none**: within-condition spread is ~3x, larger
+        than any difference between conditions. A single earlier run
+        showed the corrupted condition 28% worse, in the predicted
+        direction, which looked like a finding until repetition showed
+        the direction flips between runs.
+
+        This must be reported as "cannot detect", not "no effect". The
+        distinction matters: Section 5 currently lists this as unknown,
+        and it remains unknown.
+
+        [ ] Redo with `schbench` as the victim rather than a Python
+        sleep loop, which puts interpreter overhead, timer granularity
+        and GC into the measurement. Section 3.3 already specifies
+        schbench for exactly this measurement; the shortcut was
+        expedient for building the harness and should not survive into
+        a result.
+        [ ] Victim p99 improved under attack in every condition, so
+        something systematic differs between the phases beyond the
+        attack. Only the between-row comparison at matched load is
+        currently trustworthy.
+        [ ] The victim may simply not be contended enough for a vtime
+        penalty to change when it runs.

@@ -383,6 +383,71 @@ Caveats, stated rather than buried:
   heavy damage from blind volume, so this decision does not make the
   sketch safe; it removes the cheapest and most precise attack.
 
+## 9.5 Does the corrupted signal actually manipulate scheduling? UNRESOLVED
+
+The attack in 9.4 corrupts the tracked count. Whether that corrupts a
+scheduling *decision* is a separate claim, and the runs there could not
+speak to it because they used `--mechanism none`.
+
+Harness: `attack/latency_attack.py`. The victim wakes on a 5ms period and
+records how late each wakeup was. Because an attack is also a load, and
+load degrades everyone's latency regardless of any sketch, the design
+holds attacker load identical and varies only which counter reaches the
+scheduling decision:
+
+| condition | what it isolates |
+|-----------|------------------|
+| sketch + penalty | mechanism reads a corruptible count |
+| exact + penalty | mechanism reads a truthful count, same attackers |
+| sketch + none | count corrupted, nothing acts on it |
+
+Five interleaved repetitions each, `--adjust-max-ns` raised to 200ms so
+the corruption could express fully (13.6x inflation became a 133ms
+implied penalty against a truthful 9.8ms):
+
+| condition | victim p99 under attack | range across runs |
+|-----------|------------------------:|------------------:|
+| sketch + penalty | 503.5us | 380-1232 |
+| exact + penalty | 822.2us | 454-1340 |
+| sketch + none | 809.2us | 577-1041 |
+
+**No detectable effect, and the experiment is too noisy to claim
+otherwise.** The ranges overlap almost entirely, and the within-condition
+spread is roughly 3x -- larger than any between-condition difference. A
+single earlier run had shown the corrupted condition 28% *worse*, in the
+predicted direction, which looked like a finding until repetition showed
+the direction flips between runs.
+
+State this as "cannot detect", not as "no effect". The null is
+uninformative rather than negative: with this much variance the
+experiment would fail to detect a real effect of moderate size, so it
+neither demonstrates nor rules out scheduling manipulation.
+
+### Why it is this noisy, and what to do instead
+
+The victim is a Python process using `time.sleep`, so interpreter
+overhead, timer granularity and GC all land in the measurement alongside
+the scheduling latency being measured. That was expedient for building
+the harness but is the wrong instrument for the question.
+
+The delivery plan already specifies the right one: `schbench`, which
+exists precisely to measure wakeup-to-execution latency and reports the
+percentiles directly. Redoing this with `schbench` as the victim, at
+higher repetition, is the way to give the question real statistical
+power. Section 3.3's tooling choice was made for this reason and should
+be honoured here rather than worked around.
+
+Two further confounds to remove in that redo:
+
+- Victim p99 *improved* under attack in every condition (roughly 1200us
+  to 500-800us). Something systematic changes between the phases beyond
+  the attack's presence, so baseline-to-attack comparison within a row is
+  not trustworthy; only the between-row comparison at matched load is.
+- The victim wakes every 5ms and is not aggressively competing for CPU,
+  so its queue position may simply not be contended enough for a vtime
+  penalty to change when it runs. A victim under genuine contention
+  would give the mechanism something to bite on.
+
 ## 10. Leaky edges in the mechanism abstraction
 
 Recorded because each is a place where a future change could produce a
