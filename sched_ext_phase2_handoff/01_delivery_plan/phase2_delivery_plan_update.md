@@ -1208,3 +1208,77 @@ is the signature one would expect if the sketch occasionally mis-ranks a
 task under collision. Not demonstrated, and specifically worth
 instrumenting in round 3 rather than left as an impression.
 
+## 14. Round 2c: the pre-registered test voids itself, and exposes an instability
+
+Pre-registration committed at cc31180 before any data existed. Result at
+n=20:
+
+| condition | p50 median | p50 range | p99 median | p99 range |
+|---|---|---|---|---|
+| cms_exact_penalty | 3,836us | 3,444-4,012 | 11,712us | 10,352-14,000 |
+| cms_sketch_penalty | 3,860us | 3,508-**11,120** | 12,912us | 10,032-24,224 |
+| flat_4ms | 11,680us | 10,320-12,464 | 16,160us | 15,248-21,920 |
+
+**Criterion 1 (gating) FAILED.** The p99 ranges were required to overlap,
+confirming matched tail benefit. They do not: exact (10,352-14,000) sits
+cleanly below flat (15,248-21,920). The pre-registration states that in
+this case the primary comparison is void and must be re-registered.
+
+Criteria 2 and 3 both passed emphatically -- paired sign test 20/20,
+one-sided p = 9.5e-7, p50 ranges nowhere near overlapping. **They are
+void anyway.** The precondition was written down precisely to prevent
+accepting the favourable half of a result whose framing had already
+failed, and it is being honoured.
+
+### The real problem: two runs disagree about the system
+
+| comparison | n=15 run | n=20 run (2c) |
+|---|---|---|
+| exact p99 range | 10,928-21,664 | 10,352-**14,000** |
+| flat_4ms p99 range | 15,344-29,600 | 15,248-**21,920** |
+| overlap? | **yes** | **no** |
+
+Exact's upper bound fell from 21,664 to 14,000 while N *increased*.
+Ranges do not narrow with more sampling; something uncontrolled differs
+between the runs.
+
+The leading hypothesis is condition-set composition. The n=15 matrix
+included `cms_none`, whose p99 is ~88ms; 2c did not. If running a
+pathological condition perturbs conditions measured after it -- residual
+runqueue state, page cache, CPU frequency, or the harness's own
+scheduler attach/detach path -- then **which conditions share a matrix
+changes the numbers**, and every comparison in this project inherits
+that confound, including those already written into the paper.
+
+This must be resolved before any Phase 6 number is trusted. The check is
+cheap: run exact and flat alone, then again with cms_none interleaved,
+and see whether exact's range moves. Until then the correct status of
+every round 2 comparison is *unstable, not reproduced*.
+
+### The sketch has an occasional severe failure mode
+
+Sketch p50 across the 20 repetitions:
+
+```
+3508 3588 3620 3684 3692 3732 3804 3780 3836 3828
+3884 5240 3932 3932 3924 4052 11120 3948 3932 4020
+```
+
+Eighteen runs track exact closely. Two do not: 5,240us and 11,120us,
+the latter essentially flat's median. Exact never exceeded 4,012us.
+
+That is a ~10% severe-failure rate with a clear mechanism: a hash
+collision places the victim in the same cell as heavy wakers, its
+estimated wakeup count inflates, and the penalty intended for churn
+lands on the task the user is waiting on. It is the scheduling-outcome
+consequence of Section 9.4's collision attack, arriving here by
+accident rather than by an adversary.
+
+**This is the most policy-relevant sketch finding so far, and medians
+hide it completely.** The sketch's cost is not a small average
+degradation that a memory saving might justify; it is occasional
+severe misranking of exactly the task the mechanism exists to protect.
+For a scheduler that is arguably worse than uniform error, and it means
+sketch-vs-exact must be reported as a failure-rate comparison, not a
+median comparison.
+
