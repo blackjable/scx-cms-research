@@ -1182,13 +1182,37 @@ For quick reference when working through this in Claude Code:
         exists~~ Results (4) and Limitations (5) now have substantial
         real content from Phase 1. [ ] Conclusion (6) still blocked on
         Phase 2.
-15. [x] ~~Investigate hash-seed rotation as a mitigation~~ DONE
+15. [x] ~~Investigate hash-seed rotation as a mitigation~~ DONE in Python
         (4.1.3) — PARTIAL mitigation only: reduces attack damage from
         +400% to +200% via one window's lag, but does not eliminate
         it, because the rotating buffer's "previous" slot carries
         poisoned data forward for exactly one extra window regardless
-        of seed change. [ ] Whether damage fully clears by two windows
-        out was not tested — remains open.
+        of seed change.
+
+        **[NEW] Replicated on a real kernel** (`--seed-rotation`,
+        harness `attack/seed_rotation_attack.py`), and the real-kernel
+        result is more nuanced than the Python one: effectiveness
+        depends on attacker volume relative to sketch size, not only on
+        Phase 1's one-window carry-over lag.
+
+        | load | rotation OFF | rotation ON |
+        |---|---|---|
+        | light (160 events/s) | 9.5-181.8% | **0.0-4.8%** (near-total mitigation) |
+        | heavy (12,800 events/s) | 1,219-14,084% | 791-2,011% (~6x lower, not cleared) |
+
+        At light volume rotation nearly eliminates the attack. At heavy
+        volume, sustained raw traffic saturates a 256-column table
+        regardless of whether identities still hash to the intended
+        column — a second effect Phase 1's Python test never modeled,
+        since rotation invalidates *targeting*, not *volume*. Consistent
+        with the plain-flooding finding in item 27 (comm/blind/256@1000/s
+        → +5,450% with no seed knowledge at all).
+
+        [ ] Single run per load level; light/heavy boundary not swept.
+        Only the sustained-replay attack variant tested, not Phase 1's
+        one-shot-then-silent variant. Whether damage fully clears by two
+        windows out under the ORIGINAL one-shot variant remains untested
+        on a real kernel.
 16. [x] ~~Re-run targeted-collision attack using a BPF-realistic hash
         (FNV-1a) instead of blake2b~~ DONE (4.1.3) — both hashes show
         IDENTICAL +400% vulnerability once a bug in the test itself

@@ -479,6 +479,53 @@ this scale, and is structurally resisted by the coupling between
 corruption and load.
 
 
+## 9.6 Seed rotation: effective at moderate volume, not at saturating volume
+
+Whether `--seed-rotation` actually mitigates the collision attack on a
+real kernel, per Phase 1's open question (delivery plan Section 1).
+Harness: `attack/seed_rotation_attack.py`. Attackers replay identities
+computed once, against the seeds live at attack start, sustained across
+several window rotations -- Phase 1's "replay stale keys" variant, not
+the "fire once and go silent" one. Samples are taken by polling
+`cms_epoch` until it advances, not by sleeping a fixed duration; an
+earlier version slept `window_ms` between samples and drifted out of
+phase with the kernel's actual timer, producing a result (0%, 0%, then
+rising to 787%) that looked like a finding and was measuring drift
+instead. Caught by adding epoch logging to a diagnostic run before
+trusting the number.
+
+Two attacker-volume regimes, single run each:
+
+| load | rotation OFF | rotation ON |
+|------|-------------:|------------:|
+| light: 8 @ 20/s (160 events/s) | 9.5%, 181.8%, 17.8%, 181.4% | **0.0%, 0.0%, 0.0%, 4.8%** |
+| heavy: 64 @ 200/s (12,800 events/s) | 1,219-14,084% | 791-2,011% (~6x lower) |
+
+**At light volume, rotation is close to a full mitigation.** At heavy
+volume it only reduces damage, by roughly 6x, and does not clear it.
+
+**Why, mechanistically, and it is not the same story as Phase 1's.**
+Phase 1 characterized incomplete clearance as one window's carry-over lag
+through the "previous" buffer. That still applies here, but at the heavy
+setting a second, independent effect dominates: 12,800 events/s into a
+256-column table is ~100 events per column per row per 2s window from
+pure load, before any targeting is considered. Sustained volume at that
+scale saturates the table regardless of whether an identity still hashes
+to the intended column, which is a structural limit rotation cannot
+address -- rotation invalidates *targeting*, not *volume*. This is
+consistent with 9.4's separate finding that untargeted flooding alone
+(`comm`/blind/256@1000/s) produced +5,450% with no seed knowledge at all.
+
+**Caveats.** Single run per configuration, no repetition -- given how
+often a single-run result has misled in this line of work (9.5's
++34.7%-that-became--1.7% is the most recent), treat the exact percentages
+as illustrative, not precise, though the qualitative light-vs-heavy
+split is large enough (near-zero vs. four figures) that it is unlikely to
+be noise. Only the sustained-replay attack variant was tested, not
+Phase 1's one-shot-then-silent variant. The light/heavy boundary was not
+swept, so "how much load before rotation stops fully working" is known
+only as "between 160 and 12,800 events/s," not pinned down.
+
 ## 10. Leaky edges in the mechanism abstraction
 
 Recorded because each is a place where a future change could produce a
