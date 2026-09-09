@@ -1018,15 +1018,18 @@ For quick reference when working through this in Claude Code:
        attack (4.1.1/4.2) — a self-influenceable identity (`comm`) is a
        demonstrated security-relevant choice, not just a granularity
        tradeoff, so the attack replication should decide it.
-3. [~] Implement actual BPF scheduler wired into `runnable` (2.3) —
-       PARTIALLY DONE. `scheds/experimental/scx_cms/` exists, loads on a
-       real kernel (Fedora 44, 6.19), and tracks wakeup frequency per
+3. [x] ~~Implement actual BPF scheduler with CMS as a BPF map, wired
+       into `runnable`~~ (2.3) DONE. `scheds/experimental/scx_cms/` loads
+       on a real kernel (Fedora 44, 6.19) and tracks wakeup frequency per
        identity in `runnable` with the validated rotating dual-buffer
-       windowing. **The tracker is currently an exact counter, not a
-       CMS** — that is deliberately the tier-3 isolation baseline
-       (checklist item 12) built first. [ ] The CMS-as-BPF-map version,
-       and the targeted-collision robustness test that must accompany it
-       (per 4.2), are not built yet.
+       windowing. Both counting methods exist and are selectable at
+       launch (`--tracker exact|sketch`); the sketch is a BPF array map
+       sized at load time to exactly `2 * width * depth` cells, which is
+       8,192 bytes at the Phase 1 reference parameters. The
+       never-undercount guarantee has been verified against a live event
+       stream (zero violations in 52,316 samples).
+       [ ] The targeted-collision robustness test that must accompany
+       this (per 4.2) is not built yet.
 
        Correction to this item's premise: it says "fork of
        `scx_simple.bpf.c`". That file is no longer in this repo — the C
@@ -1206,3 +1209,29 @@ For quick reference when working through this in Claude Code:
         on a specific `schbench` P99 figure has NOT been measured — if
         that is ever needed, measure it (same benchmark bare vs. under
         trace) rather than estimating. See delivery plan Section 4.
+25. [ ] NEW, and load-bearing for how every Phase 2 result must be
+        reported: **a mechanism only reaches a fraction of dispatches,
+        and that fraction depends on load.** `select_cpu` dispatches
+        straight to the local queue when it finds an idle CPU, bypassing
+        the `enqueue` path where the mechanism adjusts vtime. Measured
+        reach was 0.8% on an idle VM against 85.9% under `hackbench`.
+        A null result from a lightly loaded system therefore cannot be
+        distinguished from a mechanism that never ran, and every result
+        must state its reach. `scx_cms` prints it on every stats line.
+        [ ] This is also a candidate explanation for 4.2.1's own null
+        result, which the Python simulation could not account for — now
+        a testable hypothesis rather than an open question.
+26. [ ] NEW: first real-kernel accuracy measurement, via a compare mode
+        that feeds both counters one identical event stream (the
+        kernel-side equivalent of what Phase 1 did in Python).
+        **+11.0% overestimate** at width=256/depth=4 under `hackbench`,
+        max overshoot 836; **+0.0%** on an idle VM, where ~50-100
+        distinct pids never collide at those parameters. Verified not to
+        be a fall-through bug by shrinking the sketch to width=4/depth=1,
+        where error appears immediately (+7.2%).
+        **This figure is NOT comparable to 4.1's +31.9%** — different
+        churn level, and a different statistic (a ratio of sums over all
+        queried identities, versus the error on one tracked
+        latency-sensitive task). [ ] A directly comparable measurement,
+        matching Phase 1's churn level and single-target statistic, has
+        not been made.

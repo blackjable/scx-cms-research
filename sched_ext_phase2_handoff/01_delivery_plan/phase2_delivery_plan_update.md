@@ -210,7 +210,28 @@ general lesson, which held: **both** pinned assumptions were stale.
    Verified loading and running on the real kernel; window rotation,
    lazy roll-forward and buffer discard confirmed against live map
    dumps. See Section 8 below for implementation departures.
-5. [ ] Port the sketch-based version, testing both penalty and boost
+5. [~] IN PROGRESS. The sketch is ported and runs on a real kernel;
+   `--tracker exact|sketch` selects the counting method, and both are fed
+   by one window clock so a comparison cannot be confounded by differing
+   window boundaries. `--compare` feeds BOTH counters every wakeup and
+   reports their divergence, which is the kernel-side equivalent of Phase
+   1 feeding one event stream to both structures -- without it, sketch
+   error would have to be compared across two runs with different
+   workloads and the two effects could not be separated.
+
+   Mechanisms were also split one-per-file under `mechanisms/`, with a
+   single registration point (`index.h`) and a build-time check that
+   fails on a strategy file nobody listed. See Section 10.
+
+   Real-kernel results so far are in Section 9. Still outstanding for
+   this step: the targeted-collision replication per identity key, and
+   the identity-key decision that depends on it. Also untested: both
+   mechanism shapes under a workload where the mechanism actually
+   reaches most dispatches (see Section 9's reach finding), and the
+   other two identity-key candidates.
+
+   Original wording of this step, for reference: port the sketch-based
+   version, testing both penalty and boost
    mechanism shapes (Section 2), AND all three identity-key candidates
    from step 2 — including a real-kernel replication of the
    targeted-collision attack (Section 7) per key candidate. Use these
@@ -221,10 +242,123 @@ general lesson, which held: **both** pinned assumptions were stale.
    hardware/kernel (Section 7) before trusting the Python-validated
    mitigation design.
 
-## 8. Implementation departures from the Python prototype (step 4)
+## 9. Real-kernel findings so far (step 5, partial)
 
-Both forced by what BPF can do cheaply. Recorded here because they are
-semantic decisions, not incidental coding details.
+Three results from the first kernel-side measurements. None is a
+scheduling-quality outcome -- Section 4.2 of the paper is still unrun --
+but all three bear directly on how those outcomes must be measured.
+
+### 9.1 The mechanism reaches almost nothing on an idle machine
+
+`select_cpu` dispatches straight to the local queue whenever it finds an
+idle CPU, bypassing `enqueue` -- which is where a mechanism adjusts
+vtime -- entirely. The share of dispatches a mechanism can influence at
+all is therefore load-dependent, and on an unloaded system it is
+approximately zero:
+
+| condition | local | global | mechanism reach |
+|-----------|------:|-------:|----------------:|
+| idle VM   | 6,976 |     54 | **0.8%** |
+| `hackbench -l 2000 -g 12` | 7,381 | 44,927 | **85.9%** |
+
+This matters more than it first appears. **A null result from an idle or
+lightly loaded system is uninterpretable**: "the sketch made no
+difference to scheduling" and "the mechanism never ran" produce identical
+output. Every reported result must state its reach alongside it, and the
+scheduler now prints it on every stats line for that reason.
+
+It is also a candidate explanation for Phase 1's own null result (paper
+Section 4.2.1), where penalty-based tracking showed no sketch-vs-exact
+difference and the simulation could not say why. If the analogous
+condition held there, the mechanism may simply not have been exercised.
+That is now a testable hypothesis rather than an open shrug.
+
+### 9.2 Sketch error is load-dependent, and zero on an idle system
+
+Measured with `--compare`, so both counters see one identical event
+stream:
+
+| condition | exact mean | sketch mean | overestimate | max overshoot |
+|-----------|-----------:|------------:|-------------:|--------------:|
+| idle VM   | 1,134 | 1,134 | **+0.0%** | 0 |
+| `hackbench` | 153.0 | 169.8 | **+11.0%** | 836 |
+
+The idle figure is not a finding about the sketch; an idle VM has on the
+order of 50-100 distinct pids, and 256 columns across 4 rows with a
+minimum taken across them simply does not collide at that scale. Phase
+1's +31.9% came from ~5,000 churn identities per window.
+
+This was verified rather than assumed: at `--sketch-width 4
+--sketch-depth 1`, where collisions are unavoidable, error appears
+immediately (+7.2%, max overshoot 1,754). A sketch silently falling
+through to the exact path would have shown zero there too.
+
+**The +11.0% is not comparable to Phase 1's +31.9%** and must not be
+reported as though it were. Different churn level, and a different
+statistic: this is a ratio of sums across every queried identity, whereas
+Phase 1's headline was the error on one tracked latency-sensitive task.
+Both are meaningful; conflating them is not.
+
+### 9.3 The never-undercount guarantee holds on real kernel data
+
+Count-Min's one formal guarantee is that it never undercounts. Checked
+continuously in compare mode against a live event stream: **zero
+violations in 52,316 samples**. This is the kernel-side counterpart of
+the Python invariant check in paper Section 4.1.2, and it is a real
+validation of the port rather than a formality -- had it failed, every
+accuracy figure above would be void.
+
+## 10. Leaky edges in the mechanism abstraction
+
+Recorded because each is a place where a future change could produce a
+quietly wrong experiment rather than an obvious failure.
+
+- **Most dispatches bypass it entirely** on an idle system (Section 9.1).
+  Deliberately not "fixed": routing everything through `enqueue` would
+  distort the baseline scheduler to make the mechanism fire, which is
+  worse than reporting reach honestly. The evaluation workload must
+  instead be one that actually saturates CPUs.
+- **`--fifo` silently disabled mechanisms.** FIFO takes a different
+  branch in `enqueue` and never consults them. Now warns at startup;
+  previously it would have produced a full run's worth of data from a
+  scheduler that was never applying the requested mechanism.
+- **The accumulated-budget clamp is the caller's job.** A boost that
+  escaped it could hand a task unbounded credit; the mechanism documents
+  the requirement but cannot enforce it. There is exactly one caller
+  today.
+- **A mechanism can only shift queue position.** It cannot extend a
+  slice or preempt, which bounds what strategies are expressible at all.
+
+## 11. Implementation departures from the Python prototype
+
+Forced by what BPF can do cheaply. Recorded because they are semantic
+decisions, not incidental coding details.
+
+### Sketch (step 5)
+
+- **The table is sized at load time to exactly `2 * width * depth`
+  cells**, not to a compiled-in maximum. The sketch's entire claim is a
+  small fixed footprint; an over-allocated table would make the memory it
+  occupies disagree with the memory it reports, which would quietly
+  undermine the headline number. At the Phase 1 reference parameters this
+  is 8,192 bytes, matching that work exactly.
+- **Identities are hashed as u64, not as strings.** The prototype hashed
+  identity strings; here an identity is already a u64 (a pid, tgid, or
+  hashed comm), so the same FNV-1a construction runs over its eight
+  bytes. Seed mixing and table structure are unchanged, so the collision
+  behaviour Section 4.1.3 found to be structural rather than
+  hash-specific is preserved.
+- **Each buffer carries its own seeds**, as in the prototype. This is
+  what makes seed rotation coherent: a recycled buffer can take fresh
+  seeds while the surviving buffer is still read with the seeds its
+  counts were written under. The seeds are readable from userspace, which
+  the collision replication needs in order to play the adversary.
+- **Rotation zeroes the discarded buffer for real**, unlike the exact
+  tracker's lazy per-entry roll. There is nowhere to hang a per-entry
+  epoch without adding a field to every cell, which would inflate the
+  very footprint under measurement.
+
+### Exact counter (step 4)
 
 - **Rotation is lazy and per-entry, not a buffer swap-and-clear.**
   Clearing a hash map from a BPF program means iterating and deleting
