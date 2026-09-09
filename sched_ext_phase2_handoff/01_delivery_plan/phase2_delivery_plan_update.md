@@ -603,8 +603,26 @@ violated.
 **9.4's headline re-verified**: +6,064.2% on the fixed build (comm,
 white-box, 64 attackers), against the original +8,824.2%. Same order of
 magnitude, same conclusion (`comm` severely exploitable) -- the
-qualitative finding holds. 9.6 and 9.5 have not yet been re-run; treat
-their exact figures as provisional until they are.
+qualitative finding holds.
+
+**9.5 re-verified**: +2.0% (steep penalty, low-rate victim, n=5), well
+within noise (288us gap vs. 1,296us range) -- consistent with the
+original n=15 result of -1.7%. The paper's central "no scheduling
+manipulation detected" claim holds on the fixed build.
+
+**9.6 re-verified, with a genuine scare worth recording.** Light volume:
+0.0%, 11.1%, 93.0%, 0.0% -- noisier than the original 0.0%/0.0%/0.0%/4.8%
+but the same qualitative picture (near-total mitigation). Heavy volume,
+first run: 208.9%, 0.0%, 0.0%, 0.0% -- looked like the counter fix had
+qualitatively changed the finding from "partial mitigation" to "near-full
+clearance." A second heavy-volume run showed 815.6%, 1869.8%, 1936.4%,
+1942.9% -- back to sustained high damage matching the original
+790.5-2011.4% range. The first run was a fluke, not a fix-driven change;
+**the original "partial mitigation only, not full clearance, at heavy
+volume" finding holds**, confirmed across two runs on the fixed build.
+Recorded as a reminder of exactly the trap 9.5 already caught once at n=5
+vs n=15: a single run in the "interesting" direction is not evidence
+until it survives a second look.
 
 ## 10. Leaky edges in the mechanism abstraction
 
