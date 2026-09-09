@@ -1171,12 +1171,19 @@ For quick reference when working through this in Claude Code:
        width=128/depth=16 at equal memory), confirming theoretical
        prediction that width controls error magnitude more than depth
        does.
-8. [ ] Define quantitative "acceptable accuracy loss" threshold tied to
-       a real scheduling-outcome metric (3.1) — now also needs to
-       account for the adversarial-case error (440%), not just the
-       benign-case error (37%), when defining what's "acceptable."
-9. [ ] Write explicit justification for memory-capped VM as hardware
-       proxy (3.2)
+8. [~] PARTIALLY DONE. "Connect accuracy to a real scheduling-outcome
+       metric" (3.1) is done — item 28: across every configuration
+       tested, corrupting the tracked count produced no detectable
+       scheduling-outcome change. [ ] The numeric threshold itself is
+       deliberately left as an author judgment call, not resolved here
+       — and now needs to account for both the adversarial-case error
+       (440% in Python, +8,824%/+6,064% replicated on a real kernel) and
+       Section 9.7's finding that real execution shows meaningfully more
+       benign-case error than Phase 1's synthetic model predicted.
+9. [x] Explicit justification for memory-capped VM as hardware proxy
+       (3.2) — DONE. Memory-footprint claims defended as genuinely
+       architecture-independent; accuracy/timing claims explicitly NOT
+       extended that far, per Section 9.7.
 10. [x] ~~Decide on latency-sensitive workload representation~~
         PARTIALLY RESOLVED (3.3) — use `rt-app` (JSON-configured
         workload modeling) rather than a hand-rolled synthetic task;
@@ -1360,8 +1367,8 @@ For quick reference when working through this in Claude Code:
         [ ] This is also a candidate explanation for 4.2.1's own null
         result, which the Python simulation could not account for — now
         a testable hypothesis rather than an open question.
-26. [ ] NEW: first real-kernel accuracy measurement, via a compare mode
-        that feeds both counters one identical event stream (the
+26. [x] ~~First real-kernel accuracy measurement~~ DONE, via a compare
+        mode that feeds both counters one identical event stream (the
         kernel-side equivalent of what Phase 1 did in Python).
         **+11.0% overestimate** at width=256/depth=4 under `hackbench`,
         max overshoot 836; **+0.0%** on an idle VM, where ~50-100
@@ -1371,9 +1378,19 @@ For quick reference when working through this in Claude Code:
         **This figure is NOT comparable to 4.1's +31.9%** — different
         churn level, and a different statistic (a ratio of sums over all
         queried identities, versus the error on one tracked
-        latency-sensitive task). [ ] A directly comparable measurement,
-        matching Phase 1's churn level and single-target statistic, has
-        not been made.
+        latency-sensitive task).
+
+        **[NEW] A directly comparable measurement was then attempted**
+        (Section 9.7): Phase 1's exact setup, ported to ~5,000 real
+        churn processes and one tracked victim. It did NOT converge to
+        Phase 1's +31.9% (got +277.3% at a 5s window, +98.9% at 15s), and
+        that non-convergence is itself the finding — real OS scheduling
+        contention among concurrent processes measurably affects sketch
+        error in a way Phase 1's zero-cost synthetic events could not
+        capture. Read as Phase 1 likely understating real-world error,
+        not as this measurement being broken. See Section 9.7 for the
+        full reasoning and the caveats on treating the exact magnitudes
+        as precise (two data points, one run each).
 
 27. [x] ~~Real-kernel replication of the targeted-collision attack~~ DONE
         for `comm` and `pid` (harness: `attack/collision_attack.py`).
