@@ -86,6 +86,7 @@ printed, and then left alone.
 
 import argparse
 import glob
+import random
 import json
 import os
 import pwd
@@ -420,6 +421,10 @@ def main() -> int:
     ap.add_argument("--victim-rps", type=int, default=100)
     ap.add_argument("--penalty-ns", type=int, default=0,
                     help="0 = derive from pre-flight (recommended)")
+    ap.add_argument("--order-seed", type=int, default=1,
+                    help="seed for per-repetition condition shuffling; "
+                         "printed with the results so a run can be "
+                         "reproduced exactly")
     ap.add_argument("--only", default=None,
                     help="comma-separated condition names to run, for "
                          "confirmation runs at higher --repeat that do not "
@@ -482,9 +487,29 @@ def main() -> int:
         conditions = [c for c in conditions if c[0] in wanted]
 
     runs = {name: [] for name, _, _, _ in conditions}
+    # Condition order is randomised per repetition, and this is not a
+    # detail. With a fixed order, whatever the preceding condition leaves
+    # behind -- runqueue state, CPU frequency, page cache, residue from
+    # the scheduler attach/detach path -- lands on the SAME condition
+    # every repetition, so carryover is systematic bias that more
+    # repetitions cannot average away.
+    #
+    # That is not hypothetical. The n=15 matrix ran cms_none (p99 ~88ms)
+    # immediately before cms_exact_penalty in every repetition; round 2c
+    # ran exact first from a clean state. Exact's p99 upper bound was
+    # 21,664us in the first and 14,000us in the second, and the two runs
+    # disagreed about whether exact separates from flat at all.
+    # Randomising converts that bias into noise that averaging removes.
+    #
+    # Seeded so a run is reproducible from its printed seed.
+    order_rng = random.Random(args.order_seed)
+    print(f"condition order randomised per repetition, seed={args.order_seed}\n")
+
     for rep in range(args.repeat):
         print(f"### repetition {rep + 1}/{args.repeat} ###")
-        for name, binary, sched_args, nice in conditions:
+        shuffled = list(conditions)
+        order_rng.shuffle(shuffled)
+        for name, binary, sched_args, nice in shuffled:
             try:
                 r = run_condition(binary, sched_args, args, churn_nice=nice,
                                   churn_override=(args.posctl_churn
