@@ -75,6 +75,34 @@ Report every result as a **relative multiplier against EEVDF**, not
 just relative to this project's own variants (matches the convention
 used in the "Towards Agentic OS" precedent cited in the paper).
 
+**[CONFIRMED, pre-Phase-6 sanity check]** All four are buildable and load
+on the current VM (Fedora 44, kernel 6.19); worth checking before Phase 6
+itself, since a build failure discovered mid-benchmark is far more
+disruptive than one discovered now:
+
+- **EEVDF** — no setup, it's the state with no `sched_ext` scheduler
+  loaded.
+- **`scx_simple`** — no longer in this repo (moved to
+  `sched-ext/scx-c-examples`, per Section 1's earlier finding). Cloned
+  separately and built with `make scx_simple` (`~/scx-c-examples`).
+  **That repo's own `meson.build` deliberately errors out** ("Meson
+  builds are deprecated... switch to `cargo build`... `make` for C
+  schedulers") — the opposite migration direction from this repo, worth
+  knowing before assuming meson applies there just because it's a C
+  scheduler collection. Attaches and detaches cleanly.
+- **`scx_cms --tracker exact --mechanism none`** — already built and
+  exercised throughout Section 9.
+- **`scx_rusty`** and **`scx_lavd`** — both build via `cargo build -p
+  <name>` in this repo, no extra setup. Both attach and detach cleanly.
+
+One environment note this surfaced: `meson`/`ninja-build` were
+deliberately removed from this repo's own VM setup (Section 6) since the
+main `scx` tree is pure Cargo now — correct for that repo, but
+`scx-c-examples` still needs `make` (and briefly, meson, before its
+`meson.build` redirects you to `make`). Installed on the VM now
+(`sudo dnf install meson ninja-build`, though only `make` ended up
+mattering) for whoever picks up Phase 6 next.
+
 ## 4. Tooling needed on the Fedora VM [INSTALLED]
 
 - `schbench` — primary metric source (P99/P999 wakeup latency).
