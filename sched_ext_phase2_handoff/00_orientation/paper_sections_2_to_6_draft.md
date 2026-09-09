@@ -1215,15 +1215,35 @@ For quick reference when working through this in Claude Code:
         now means fetching `scx_simple` from `scx-c-examples`, since it
         is no longer in this repo.
         [ ] `boost` carries no validation from Phase 1 — see item 23.
-13. [ ] Run Phase 2 kernel experiments once 3–12 are done (4.2), using
-        schbench/cyclictest/hackbench (not a bespoke metric) and
-        reporting results as relative multipliers against the EEVDF
-        baseline (per the "Towards Agentic OS" precedent cited in
-        3.3), not just relative to this project's own other variants.
-        MUST also include a real-kernel replication of the
-        targeted-collision attack (4.1.1), not just the benign-case
-        comparison originally
-        scoped.
+13. [~] IN PROGRESS (Phase 6, round 1; delivery plan Section 12).
+        `schbench` request-latency P99/P999, 5 interleaved repetitions,
+        reported as multipliers against EEVDF as required:
+
+        | scheduler | p99 vs. EEVDF | p999 vs. EEVDF |
+        |---|---|---|
+        | `scx_simple` | 0.57x | 0.45x |
+        | `scx_cms` (exact) | 0.55x | 0.42x |
+        | `scx_lavd` | 1.64x | 1.83x |
+
+        Consistent across all 5 repetitions with non-overlapping ranges
+        — not one of the single-run scares this project has caught
+        before. `scx_lavd` losing to EEVDF got a direct follow-up rather
+        than being reported flat: `--performance` (disables its core
+        compaction) closes about a sixth of the gap (44,480us →
+        37,568us median), confirming power management costs something
+        here, but `scx_lavd` remains ~1.4x worse than EEVDF even with it
+        off. The remaining gap is plausibly its criticality-classification
+        overhead earning nothing on `schbench`'s single uniform task
+        type — NOT verified, would need a mixed-workload test.
+
+        The real-kernel targeted-collision replication this item asked
+        for is done — see item 27, not this one; that work happened in
+        Section 9, ahead of Phase 6.
+
+        [ ] `cyclictest` and `hackbench` not yet run against any tier —
+        `hackbench` matters in particular as the throughput regression
+        check. [ ] Only one workload shape tested. [ ] `rt-app` and the
+        workload-profile decision (item 10) remain open.
 14. [x] ~~Write Results, Limitations, Conclusion once real data
         exists~~ Results (4) and Limitations (5) now have substantial
         real content from Phase 1. [ ] Conclusion (6) still blocked on

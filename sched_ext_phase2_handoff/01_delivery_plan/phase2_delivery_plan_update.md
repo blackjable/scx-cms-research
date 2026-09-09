@@ -267,9 +267,12 @@ general lesson, which held: **both** pinned assumptions were stale.
    per key candidate. Use these results to make the identity-key decision
    (Section 2) as a documented, evidence-based choice at this point, not
    before.
-6. [ ] Obtain/build the remaining three baseline tiers. Not started —
-   this is Phase 6's work, distinct from the security/tracking-accuracy
-   investigation Section 9 covers.
+6. [~] IN PROGRESS. Round 1 done — see Section 12. All three obtained
+   and confirmed working (`scx_simple` from `scx-c-examples` via `make`,
+   `scx_cms --tracker exact --mechanism none`, `scx_lavd`), with a real
+   first comparison against EEVDF on `schbench`. [ ] `cyclictest`,
+   `hackbench`, and a mixed-workload benchmark (needed to test the
+   `scx_lavd` finding's leading hypothesis) remain undone.
 7. [x] DONE. The real targeted-collision attack (9.4), the
    scheduling-manipulation question (9.5), and the seed-rotation
    mitigation test (9.6) are all run on actual hardware/kernel (Fedora
