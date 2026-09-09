@@ -230,23 +230,22 @@ Citations for the design alternatives considered and rejected/adopted:
 
 ### 2.4 Related work
 
-[NEEDS: expand this properly. What exists so far, informally, from
-prior research (not yet verified against a real literature search):]
+**[RESOLVED]** An informal scan first found two starting points, both
+later confirmed by a proper literature search rather than left as
+web-search impressions: no existing `sched_ext` scheduler applies
+probabilistic/approximate data structures for behavioral tracking (see
+`sched_ext_embedded_research.md` for the specific searches run), and a
+proposed LPC 2026 talk ("Amortizing CPU wakeup costs with lazy wakeups,"
+Samuel Wu, Google) addresses a related but distinct problem — detecting
+wakeup-heavy tasks to reduce idle-transition energy cost — without, as
+far as the published abstract indicates, addressing the memory-scaling
+problem of the tracking mechanism itself. [NEEDS: revisit after LPC 2026
+(5–7 Oct) once slides/recording are published, to properly cite or
+differentiate — this is the one part of this section still blocked on an
+event outside the project's control, not on further search effort.]
 
-- No existing sched_ext scheduler applies probabilistic/approximate
-  data structures for behavioral tracking, as far as could be
-  determined via web search at time of writing (see
-  `sched_ext_embedded_research.md` for the specific searches run and
-  their results).
-- A proposed LPC 2026 talk ("Amortizing CPU wakeup costs with lazy
-  wakeups," Samuel Wu, Google) addresses a related but distinct
-  problem — detecting wakeup-heavy tasks to reduce idle-transition
-  energy cost — without (as far as the published abstract indicates)
-  addressing the memory-scaling problem of the tracking mechanism
-  itself. [NEEDS: revisit after LPC 2026 (5–7 Oct) once slides/recording
-  are published, to properly cite or differentiate.]
-**[RESOLVED]** Literature search conducted (see search queries logged
-in project history). Findings:
+The literature search itself (see search queries logged in project
+history) confirms and extends both starting points. Findings:
 
 - Bloom filters and Count-Min Sketches are well-established in
   **networking** (flow tracking / heavy-hitter detection in data-plane
@@ -324,13 +323,22 @@ requires sweeping `w`, `d`, and `N` across a meaningful range, and
 reporting accuracy/memory tradeoffs as curves, not single numbers. This
 sweep has not been run yet.]
 
-[NEEDS: a decision on what "acceptable accuracy loss" means
-quantitatively for this domain — e.g., is a 37% overestimate on a
-wakeup-frequency signal actually harmful to scheduling decisions, or
-tolerable given the signal is only used for a coarse
-classification/throttling decision rather than an exact computation?
-This requires connecting the accuracy metric back to an actual
-scheduling-outcome metric (Section 3.3), which hasn't been done.]
+**[PARTIALLY ANSWERED]** Whether accuracy loss is harmful requires
+connecting it back to a real scheduling-outcome metric, which checklist
+item 28 has since done directly: across every configuration tested
+(default and steep penalty, small and large sketch, 4 and 8 CPUs, high-
+and low-rate victims), corrupting the tracked count by orders of
+magnitude produced no detectable change in victim scheduling latency.
+That is evidence toward "tolerable" at the scales tested, not toward
+"harmful."
+
+[NEEDS: this still does not amount to a numeric threshold, and setting
+one is an author judgment call this document should not make on its own
+behalf — the data now available (item 26's accuracy figures, item 28's
+outcome-connection result, Section 9.7's finding that real execution
+shows meaningfully more error than Phase 1's synthetic model predicted)
+is what a threshold decision should be made from, not a substitute for
+making it.]
 
 ### 3.2 Phase 2: Kernel/BPF integration and hardware environment
 
@@ -355,12 +363,38 @@ have been produced yet — Section 4.2 remains unrun.]
   physical embedded/mobile hardware, on the basis that the hypothesis
   under test concerns memory-footprint behavior of the tracking data
   structure itself, not CPU-architecture-specific effects.
-- [NEEDS: an explicit justification paragraph for why a memory-capped
-  VM is an adequate proxy for real embedded hardware, anticipating
-  reviewer pushback — likely drawing on the reasoning already
-  discussed: the hypothesis is about data-structure memory scaling, not
-  ARM-vs-x86 timing behavior, but this should be stated and defended
-  in the paper itself, not just assumed.]
+**[RESOLVED]** Justification for a memory-capped VM as an adequate proxy
+for real embedded hardware, split into what it supports confidently and
+what it does not:
+
+*The memory-footprint claims* (fixed sketch size vs. a growing exact
+counter; the 8,192-byte figure at the reference parameters) are
+genuinely architecture-independent. They follow from the data
+structures' own layout — width × depth × 4 bytes for the sketch, a hash
+map entry per distinct identity for the exact counter — not from
+anything ARM, x86, or a specific device's memory controller does
+differently. A `cgroup v2` `memory.max` ceiling is, if anything, a more
+rigorous instrument than physical hardware for this claim: it gives a
+precise, repeatable, sweepable limit, where a specific embedded board
+gives one fixed number you cannot vary between runs. The VM runs a real
+Linux kernel with genuine `sched_ext` support, so the scheduling
+decisions and BPF verifier constraints under test are real, not
+approximated — nothing here is emulated.
+
+*The accuracy and timing-sensitive claims are a different matter*, and
+this project's own Phase 2 work found a reason for real caution that
+wasn't visible when this justification was first planned: Section 9.7
+found that real OS scheduling contention among many concurrent processes
+measurably changes the sketch's reported error (a 3x longer window
+dropped mean overestimate from +277.3% to +98.9%, and neither matched
+Phase 1's synthetic +31.9%). That is a timing-and-contention effect, not
+a memory-footprint one, and it means accuracy figures measured on this
+4-CPU VM should not be assumed to transfer unchanged to a real embedded
+device with fewer, weaker cores — contention could plausibly be worse
+there, not better. The memory-footprint argument for VM-as-proxy stands;
+the accuracy-figure argument does not extend as far as originally
+assumed, and any reporting of accuracy numbers should say so rather than
+imply they generalize as cleanly as the memory numbers do.
 - [NEEDS: if reviewer/audience credibility requires it, a follow-up
   validation pass on real embedded hardware (e.g. Raspberry Pi) once
   the VM-based result holds — deferred, not yet scheduled.]
