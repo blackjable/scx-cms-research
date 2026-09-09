@@ -937,3 +937,66 @@ management specifically.
   unchanged from before this round.
 - **Single VM, single hardware configuration.** No cross-checking against
   a different CPU count or a non-VM environment.
+
+## 13. Phase 6 round 2: mixed workload, and the first positive result
+
+Round 1 compared schedulers on a workload where the mechanism had nothing
+to do. Round 2 was built to answer the question the project actually
+exists to answer, and which nothing before it had opened:
+
+> **Does acting on the tracked wakeup count improve scheduling quality,
+> and if so, does the sketch preserve that improvement?**
+
+This decomposes into two comparisons, in strict order:
+
+1. **`cms_exact_penalty` vs `cms_none`** -- the *gating* question. Same
+   scheduler, same tracker, same overhead; the only difference is whether
+   the mechanism acts on the count. If this shows nothing, the sketch
+   question is meaningless, because there is no signal for the sketch to
+   preserve or lose.
+2. **`cms_sketch_penalty` vs `cms_exact_penalty`** -- the paper's
+   hypothesis, interpretable *only* if (1) showed something.
+
+### Building the instrument took six iterations, and that was the work
+
+Every previous attempt to detect a mechanism effect (Section 9.5) found
+nothing across every configuration tried. The honest reading of that was
+never "the mechanism does nothing" -- it was "no instrument here can tell
+the difference between *no effect* and *cannot detect an effect*." Round 2
+therefore led with a **positive control**: the same victim measured with
+the antagonist mostly removed (`--posctl-churn 8`). If the victim does not
+improve when the pressure is lifted, the workload cannot detect scheduling
+quality and every other row is void.
+
+Six candidate workloads were built and rejected, each killed by the
+positive control before a full matrix was ever run. Two findings came out
+of that, both worth recording because both cost real time:
+
+**`rt-app` is unusable as a victim on this VM.** It measures timer-driven
+wakeups, and timer *delivery* under this VM's virtualised clock has a
+floor around 1.7ms. Churn levels of 24, 4, and 0 tasks all produced a
+victim latency of ~1700us -- indistinguishable, because the floor swamps
+everything scheduling does. This resolves paper checklist item 10 in the
+negative for this environment: the audio-callback profile cannot be
+measured with `rt-app` here. `schbench`, which measures *task-to-task*
+wakeups, has no such floor and works. Anyone reproducing this on bare
+metal should re-test rather than inherit the conclusion.
+
+**Victim latency is driven by runqueue depth, not CPU demand.** This was
+the breakthrough that made the instrument work, and it is counter-
+intuitive enough to state plainly:
+
+| churn shape | CPU demand | victim degradation |
+|---|---|---|
+| 48 tasks, heavy (each burning a lot) | 19.2 CPUs | 6.23x |
+| 128 tasks, light (each burning little) | 5.1 CPUs | **9.07x** |
+
+A *quarter* of the CPU demand spread across *2.7x* the task count hurts
+the victim substantially more. Wakeup latency is a queueing phenomenon:
+what matters is how many runnable tasks sit between the victim and the
+CPU, not how much work they represent. This is also precisely the regime a
+wakeup-frequency mechanism should be able to exploit -- many small
+frequent wakers are exactly what it is built to identify. The final
+workload is therefore 128 CPU-light, wakeup-heavy churn tasks at 200
+wakeups/s burning 200us each, against a `schbench` victim.
+
