@@ -1000,3 +1000,145 @@ frequent wakers are exactly what it is built to identify. The final
 workload is therefore 128 CPU-light, wakeup-heavy churn tasks at 200
 wakeups/s burning 200us each, against a `schbench` victim.
 
+### Result: the gate opens, confirmed at n=15
+
+The first matrix ran at n=5 and looked spectacular. Because two earlier
+results in this project evaporated when N was raised (Section 9.6's
+seed-rotation "near-clearance", and a +34.7% effect at n=5 that became
+-1.7% at n=15), the headline conditions were re-run at n=15 before
+anything was written down. Both numbers are given, because the movement
+between them is itself evidence:
+
+| condition | p99 @ n=5 | p99 @ n=15 | range @ n=15 |
+|---|---|---|---|
+| eevdf | 259,328us | 250,624us | 208,128-343,552 |
+| cms_none | 87,424us | 82,304us | 63,808-165,632 |
+| cms_exact_penalty | 9,104us | **12,016us** | 11,152-19,040 |
+| cms_sketch_penalty | 9,200us | **13,456us** | 10,928-27,168 |
+
+**The gating question is answered yes, for the first time in this
+project.** `cms_exact_penalty` (11,152-19,040) against `cms_none`
+(63,808-165,632): the ranges are nowhere near overlapping, across 15
+repetitions, for a **6.8x** reduction in victim p99. Both conditions run
+the same scheduler, the same tracker, and the same per-wakeup tracking
+overhead, with `reach=100%` in both. The only difference is whether the
+mechanism consults the count it already computed. Section 9.5's "no
+effect on this scale" was a property of that workload, not of the
+mechanism.
+
+Note the effect *shrank* from 9.6x to 6.8x when N tripled. That is the
+expected signature of a real effect that a small sample flattered, and
+is more reassuring than a number that had not moved at all.
+
+**The sketch comparison must be worded carefully.** Exact
+(11,152-19,040) and sketch (10,928-27,168) overlap heavily, which by
+this harness's own stated rule means *no difference was demonstrated*.
+That is the direction the hypothesis wants, but it is not the same
+claim, and the paper must not blur them:
+
+> Supported: the sketch retained the benefit; no penalty relative to
+> exact counting was detectable at n=15.
+> NOT established: that the sketch is equivalent to exact counting.
+
+Absence of a detected difference is not evidence of equivalence,
+particularly here -- the sketch's upper tail (27,168us) runs above
+exact's (19,040us), which is consistent with either noise or a real
+worst-case cost the sample cannot resolve. Establishing equivalence
+needs an equivalence test with a pre-declared margin, not a null from a
+difference test. This is the same error the project already caught
+itself making in Phase 1, where sketch and exact produced byte-identical
+outcomes and the tempting reading was "the approximation is accurate
+enough" when "the mechanism does not lean on the count hard enough" fit
+equally well.
+
+### The win is not bought by starving the background work
+
+A mechanism that wins its target metric by wrecking everything else has
+not won. The churn tasks completed a median 157,059 loops under
+`cms_exact_penalty` against 157,095 under `cms_none` -- 0.02% apart,
+inside run-to-run noise. The victim's 6.8x costs the antagonist nothing
+measurable.
+
+Caveat on that check's strength: the churn tasks are rate-limited at 200
+wakeups/s, so this can detect a *regression* but could not observe a
+throughput *gain*. As the regression check Section 4 asks for, it holds;
+it is not a general throughput result, and `hackbench` across the tiers
+is still unrun.
+
+### The negative control: most of the 6.8x is NOT the tracking
+
+`penalty` does two things simultaneously: it consults the tracked count,
+and it perturbs vtime. Comparing it against `none` measures both at once.
+If the improvement comes from the perturbation, the tracking is doing no
+work and the result says nothing about this project's premise.
+
+A `flat` mechanism was added (mechanisms/flat.bpf.c) applying an
+identical vtime penalty to every task at every enqueue with no reference
+to the count, swept across values chosen to be able to beat the
+treatment rather than one convenient number:
+
+| condition | p99 median | range | n |
+|---|---|---|---|
+| cms_none | 99,072us | 61,760-110,976 | 8 |
+| **cms_exact_penalty** | **12,384us** | 11,568-15,120 | 8 |
+| flat_2ms | 17,824us | 16,736-25,952 | 8 |
+| flat_4ms | 17,248us | 15,440-20,128 | 8 |
+| flat_8ms | 18,880us | 15,472-26,912 | 8 |
+
+**A count-blind penalty captures 5.7x of the 8.0x.** On a log scale
+roughly **84% of the effect is generic vtime perturbation**; only ~16%
+is attributable to consulting the count. The correct statement of the
+round 2 result is therefore:
+
+> Acting on wakeup frequency improved victim p99 by ~1.4x over an
+> equally strong count-independent penalty. The 6.8-8x figure against
+> `cms_none` conflates the mechanism with vtime perturbation per se and
+> must not be attributed to tracking.
+
+The count-attributable margin is real but thin: exact (max 15,120)
+against flat_4ms (min 15,440) clears by 320us, ~2% of the values, at
+n=8. Non-overlapping against all three flat variants, but fragile
+enough that it needs confirmation at higher N before it is reported.
+
+**This undermines the sketch conclusion above, and that matters more.**
+If only ~16% of the measured effect depends on the count, then
+sketch-vs-exact comparisons run against `cms_none` have almost no
+resolving power: both conditions are dominated by a component the
+sketch cannot degrade. A sketch losing a large fraction of the
+count-attributable signal would still land inside exact's range. The
+overlap reported in the previous subsection is therefore much weaker
+evidence than it appears.
+
+The sketch comparison must be re-run with **`flat` as the baseline, not
+`cms_none`**, isolating the count-attributable component. That is the
+comparison the paper's hypothesis actually rests on and it has not yet
+been made.
+
+This is the third time in this project that a headline number shrank
+under a control (Section 9.6's seed rotation, the n=5 to n=15 movement
+above, and now this). The pattern is consistent enough to be worth
+stating as method: every mechanism here does something besides the
+thing being studied, and the control that isolates it has never once
+been unnecessary.
+
+### The memory saving is NOT demonstrated by round 2
+
+Round 2 ran the sketch at defaults (2 x 256 x 4 cells x 4B = ~8 KB)
+against the exact tracker's LRU hash provisioned at CMS_MAX_TRACKED =
+16,384 entries (~800 KB). That looks like a ~100x saving and it is not
+one: **the workload had only ~132 distinct identities**, under 1% of the
+exact map's provisioned capacity. An exact map honestly sized for 132
+tasks would be roughly 6 KB -- *smaller than the sketch.*
+
+Round 2 demonstrates that approximate tracking preserves scheduling
+quality. It demonstrates nothing whatsoever about memory, because the
+identity count never approached the regime where bounded-memory
+counting is worth anything. Reporting the 8 KB vs 800 KB comparison
+from this experiment would be comparing a sketch at its natural size
+against a provisioning ceiling the workload never used.
+
+Demonstrating the memory claim needs a workload with thousands of
+distinct short-lived identities, where exact counting genuinely must
+allocate and the sketch's bounded footprint is the actual point. Until
+that exists the paper has evidence for half its thesis.
+

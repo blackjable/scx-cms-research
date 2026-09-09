@@ -462,6 +462,12 @@ def main() -> int:
         ("cms_none", scx_cms, ["--tracker", "exact", "--mechanism", "none"] + cms_common, 0),
         ("cms_exact_penalty", scx_cms, ["--tracker", "exact", "--mechanism", "penalty"] + cms_common, 0),
         ("cms_sketch_penalty", scx_cms, ["--tracker", "sketch", "--mechanism", "penalty"] + cms_common, 0),
+        ("flat_2ms", scx_cms, ["--tracker", "exact", "--mechanism", "flat",
+                               "--flat-ns", "2000000"] + cms_common, 0),
+        ("flat_4ms", scx_cms, ["--tracker", "exact", "--mechanism", "flat",
+                               "--flat-ns", "4000000"] + cms_common, 0),
+        ("flat_8ms", scx_cms, ["--tracker", "exact", "--mechanism", "flat",
+                               "--flat-ns", "8000000"] + cms_common, 0),
         ("scx_lavd", scx_lavd, [], 0),
         ("POSCTL_low_churn", None, [], 0),
     ]
