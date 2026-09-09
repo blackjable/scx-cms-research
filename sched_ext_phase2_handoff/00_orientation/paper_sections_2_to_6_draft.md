@@ -860,13 +860,133 @@ same targeted-collision technique" — is done: checklist item 28,
 answered no on this scale, with the structural reason (corruption and
 load are coupled) recorded there and in Section 5.
 
-[NEEDS: the broader scheduling-quality comparison is still entirely
-unrun — the four-tier baseline benchmark (stock EEVDF, `scx_simple`,
-this project's exact-counter tier, and a production scheduler) using
-`schbench`/`cyclictest`/`hackbench` per Section 3.3's tooling choice.
-Item 28 answered the security question; it did not compare the
-approach's scheduling quality against any baseline, which is the
-question this section is actually named for.]
+The broader comparison has now been run, in two rounds, and the second
+round overturned the first round's reading. Both are reported because
+the correction is the substantive content.
+
+**Round 1: four-tier baseline.** Stock EEVDF, `scx_simple`, this
+project's tiers, and `scx_lavd` on `schbench`. The result was
+internally consistent across five repetitions with non-overlapping
+ranges, and still could not answer this section's question: `scx_lavd`,
+a production scheduler, lost to a minimal one. A workload that ranks a
+serious scheduler below a toy is rewarding minimalism rather than
+measuring scheduling quality, and structurally cannot show a mechanism
+helping, because there is nothing for the mechanism to do.
+
+**Round 2: mixed workload.** A latency-sensitive victim (`schbench`)
+against wakeup-heavy, CPU-light background churn -- the regime where
+ordinary vtime fairness is blind, since a task that burns CPU is
+already deprioritised but one that merely wakes constantly is not. Two
+findings from constructing it are worth recording:
+
+- `rt-app` cannot serve as the victim in this environment. It measures
+  timer-driven wakeups, and timer *delivery* on this VM has a floor near
+  1.7ms; churn levels of 24, 4 and 0 tasks all produced ~1700us,
+  indistinguishable. **This resolves checklist item 10 in the negative
+  for this setup**: the audio-callback profile cannot be measured with
+  `rt-app` here. `schbench` measures task-to-task wakeups and has no
+  such floor.
+- Victim latency tracks *runqueue depth*, not CPU demand. 128 light
+  tasks (5.1 CPUs of demand) degraded the victim 9.07x while 48 heavy
+  tasks (19.2 CPUs) degraded it 6.23x. Wakeup latency is a queueing
+  phenomenon, and the relevant antagonist is many cheap frequent wakers.
+
+**The gating result, and why it did not survive.** Against
+`mechanism=none` -- identical scheduler, identical tracker, identical
+per-wakeup overhead, `reach=100%` in both -- acting on the count reduced
+victim p99 by 6.8x at n=15, ranges nowhere near overlapping.
+
+That comparison is confounded, and the confound is the point. `penalty`
+does two things at once: it consults the tracked count, and it perturbs
+vtime. To separate them, a `flat` mechanism was added applying an
+identical penalty to every task with no reference to the count, swept
+across strengths chosen to be able to beat the treatment:
+
+| condition | p50 median | p50 range | p99 median | p99 range |
+|---|---|---|---|---|
+| `none` | 3,948us | 2,156-5,208 | 88,192us | 64,064-157,952 |
+| `exact+penalty` | 3,964us | 3,588-4,104 | 12,784us | 10,928-21,664 |
+| `sketch+penalty` | 4,012us | 3,676-6,008 | 12,880us | 10,576-32,288 |
+| `flat` (count-blind) | 11,760us | 11,120-12,624 | 16,544us | 15,344-29,600 |
+
+**A count-blind penalty reproduces the tail improvement.** On p99,
+`exact+penalty` and `flat` overlap heavily at n=15. Roughly 84% of the
+apparent effect on a log scale is generic vtime perturbation. The 6.8x
+figure must not be attributed to wakeup tracking, and by extension
+**neither should comparable figures elsewhere in the scheduler
+literature that lack this control** -- it is cheap to run and, in this
+project, dissolved the headline result.
+
+**The metric was hiding the mechanism.** `flat` buys its tail
+improvement by taxing every task including the victim: median wakeup
+latency 11,760us against ~3,950us for every other condition, ranges
+nowhere near overlapping. `exact+penalty` achieves statistically
+indistinguishable tail benefit while leaving p50 identical to doing
+nothing at all.
+
+The general lesson is independent of this project's subject matter and
+is arguably its most transferable result: **evaluating a scheduler on
+tail latency alone cannot distinguish a discriminating policy from a
+blunt one**, because degrading every task uniformly also compresses the
+tail. Any evaluation reporting p99 without reporting what happened to
+the median can be satisfied by a mechanism that simply makes everything
+slower and more uniform. Discrimination shows up as the *absence of
+collateral damage*, which a tail metric is blind to by construction.
+
+[NEEDS: the collateral-damage claim above is stated provisionally. It
+was located in p50 only after the pre-declared p99 comparison came back
+inconclusive, which is metric-shopping regardless of p50 having been
+collected throughout. A pre-registered run (benchmark/
+PREREGISTRATION_round2c.md, committed before data collection) declares
+p50 primary, a paired sign test as the analysis, and n=20. Insert its
+result here. If it is null, the honest report is that the mechanism's
+benefit is fully explained by vtime perturbation and this section
+carries no positive finding about wakeup-frequency tracking.]
+
+**What this section does NOT establish.**
+
+- *Nothing about the Count-Min Sketch specifically.* With no isolated,
+  confirmed count-attributable effect on p99, sketch-vs-exact compares
+  two ways of computing a number whose influence has not been
+  demonstrated. The observed overlap between them is uninformative
+  rather than confirmatory -- both conditions are dominated by a
+  component the sketch cannot degrade, so a sketch losing much of the
+  count-attributable signal would still land inside exact's range.
+- *Nothing about memory.* See Section 4.2.2.
+- *Nothing beyond this VM*, this CPU count, and this workload shape.
+- `cyclictest` and `hackbench` remain unrun across the tiers. A
+  narrower throughput regression check was run (churn loop completions,
+  157,059 under `penalty` vs 157,095 under `none`, 0.02% apart) and
+  shows the victim's improvement is not bought by starving the
+  antagonist; because that churn is rate-limited it can detect a
+  regression but not a gain, so it is not a general throughput result.
+
+### 4.2.2 The memory claim is not supported by these experiments
+
+This must be stated plainly because the opposite very nearly went into
+this paper. Round 2 ran the sketch at defaults (2 x 256 x 4 cells x 4B,
+~8 KB) against the exact tracker's LRU hash provisioned at
+`CMS_MAX_TRACKED` = 16,384 entries (~800 KB), which reads as a ~100x
+saving.
+
+It is an artifact of provisioning. **The workload had roughly 132
+distinct identities**, under 1% of the exact map's capacity. An exact
+map honestly sized for 132 tasks is about 6 KB -- *smaller than the
+sketch*. In the only regime measured, the sketch is not a memory
+optimisation; it is a memory regression.
+
+A sketch earns its keep only where the identity population is large and
+unpredictable, since its footprint is constant while exact counting
+grows with the number of distinct things counted. These experiments
+never entered that regime, so they cannot speak to the tradeoff the
+paper is named for. [NEEDS: round 3 (benchmark/round3_identity_scale.py)
+holds concurrent load constant and varies identity count via task
+lifetime, sweeping ~64 to ~10,000 distinct identities, reading actual
+`memlock` from `bpftool` rather than computing from configured
+dimensions. A legitimate outcome is that exact counting holds quality at
+every scale this hardware reaches while costing memory the system does
+not notice -- in which case the sketch solves a problem this
+environment does not have, and that must be reported as the finding.]
 
 ### 4.2.1 Early directional policy simulation (pre-Phase-2)
 
@@ -983,6 +1103,43 @@ scheduling-decision manipulation.
 ## 5. Limitations and Threats to Validity
 
 **Confirmed limitations (from actual testing, not anticipated):**
+
+- **Most of the apparent scheduling benefit is not the mechanism.** A
+  count-blind penalty of equal strength reproduces the tail improvement
+  (Section 4.2). This is listed first among limitations because it is
+  the finding most likely to be missed by a reader skimming for the
+  headline number, and because the same confound plausibly affects other
+  work in this space.
+
+- **Evaluation metric selection materially changed the conclusion.**
+  The same experiment supports opposite readings depending on whether
+  p99 or p50 is primary. This project's own delivery plan specified p99,
+  which would have produced the wrong conclusion. Reported here rather
+  than silently resolved because it is a threat to validity for any
+  scheduler evaluation, not only this one.
+
+- **The memory claim is untested.** The identity population in every
+  experiment run (~132 distinct tasks) sits far below the scale at
+  which bounded-memory counting could pay for itself; at that scale a
+  right-sized exact map is smaller than the sketch (Section 4.2.2).
+
+- **The audio-callback workload profile could not be measured in this
+  environment.** `rt-app`'s timer-delivery floor on this VM (~1.7ms)
+  exceeds the scheduling differences being studied (checklist item 10).
+  Results here rest entirely on `schbench`'s task-to-task wakeup path.
+
+- **A known concurrency bug remains unfixed.** Increment-then-read is
+  not atomic as a unit in the counters (delivery plan Section 9.8);
+  the regression suite carries it as an expected failure. Distinct
+  churn identities were used throughout Phase 6 specifically to keep
+  this bug out of the measurements rather than have it silently
+  contaminate them, which means the measurements do not exercise the
+  same-identity concurrent path at all.
+
+- **Single VM, single CPU count, single workload shape.** No bare-metal
+  or cross-hardware validation. Given that the environment's timer floor
+  already invalidated one victim workload, environment-specific effects
+  should be assumed present until checked elsewhere.
 
 - **The approach is not robust to adversarial or unfavorable churn
   patterns.** This is the most significant limitation found: a
