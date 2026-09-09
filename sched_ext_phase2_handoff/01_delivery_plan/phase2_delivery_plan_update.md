@@ -539,7 +539,50 @@ Phase 1's one-shot-then-silent variant. The light/heavy boundary was not
 swept, so "how much load before rotation stops fully working" is known
 only as "between 160 and 12,800 events/s," not pinned down.
 
-## 9.7 A real concurrency bug found in the counters, partially fixed
+## 9.7 Attempting a Phase-1-matched accuracy number surfaces a real gap
+
+Earlier real-kernel accuracy figures (+11.0% under `hackbench`) were
+flagged as not comparable to Phase 1's +31.9%, being both a different
+churn level and a different statistic (aggregate ratio vs. one tracked
+identity's error). This attempts an actual match: ~5,000 real churn
+processes per window, each firing 1-20 wakeups, plus one persistent
+tracked victim, measured via the probe -- Phase 1's exact setup, ported
+to real processes.
+
+Harness: `attack/phase1_matched_accuracy.py`.
+
+| window length | mean overestimate (matched statistic) |
+|---|---|
+| 5s (Phase 1's implicit assumption: churn arrives and is measured near-instantly) | +277.3% |
+| 15s (3x longer, to let real processes settle) | +98.9% |
+| Phase 1 (Python, instantaneous synthetic events) | +31.9% |
+
+**This did not converge, and that is itself the finding.** Tripling the
+window brought the error down substantially, confirming that OS
+scheduling contention among 5,000 concurrent short-lived processes on 4
+real CPUs is a genuine contributing factor -- ruled out as a *fork-cost*
+issue directly (5,000 raw `fork()`s measured at 0.33s wall time, not the
+bottleneck). But it did not converge to Phase 1's figure even at 15s, so
+contention is not the whole explanation either.
+
+**Read this as: Phase 1's synthetic simulation likely understated
+real-world sketch error, not that the real-kernel measurement is broken.**
+A synthetic event has zero execution cost and arrives at a precisely
+controlled instant; a real process competing for 4 real CPUs among
+thousands of siblings does not, and that difference is structural, not a
+bug to be tuned away. Chasing further convergence by continuing to extend
+the window was deliberately not pursued -- past this point it would mean
+tuning the experiment toward Phase 1's number rather than learning
+something new, which is exactly the kind of iteration-toward-a-flattering-
+result this project's methodology exists to avoid.
+
+**Caveat:** two data points, one run each, no repetition. The direction
+(real execution shows more error than synthetic simulation, and settles
+toward but does not reach the synthetic figure as contention eases) is
+plausible and mechanistically explained, but the specific magnitudes
+should not be treated as precise.
+
+## 9.8 A real concurrency bug found in the counters, partially fixed
 
 Found while checking `--mechanism boost`'s behavior under `hackbench`
 (originally a quick loose-end check, not a planned investigation): the
