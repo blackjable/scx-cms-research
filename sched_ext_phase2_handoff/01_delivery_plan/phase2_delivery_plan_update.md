@@ -838,3 +838,99 @@ decisions, not incidental coding details.
   below a count threshold. Whether that proxy is useful at all is an
   open question for step 5; it must not be reported as inheriting Phase
   1's validation.
+
+## 12. Phase 6: four-tier baseline comparison (round 1)
+
+The comparison delivery plan Section 3 requires before any
+scheduling-quality claim is credible. Round 1: `schbench` request-latency
+P99/P999 only, one workload shape, on the 4-CPU Lima VM. `cyclictest`,
+`hackbench`, `rt-app`, and the still-open workload-profile decision
+(paper checklist item 10) are not yet part of this — see "what round 1
+does not cover" below.
+
+**Harness**: `benchmark/baseline_comparison.py`. Four tiers, 5 conditions
+interleaved per repetition (matching the methodology established in
+Sections 9.5/9.6): stock EEVDF, `scx_simple` (from `scx-c-examples`,
+built via `make`), `scx_cms --tracker exact --mechanism none` (this
+project's own scheduler with the sketch/mechanism questions already
+answered in Section 9 switched off, isolating "does this project's own
+scaffolding cost anything"), and `scx_lavd` (chosen over `scx_rusty` for
+thematic alignment — both are fundamentally about tracking task behavior
+to protect latency-sensitive work). Workload: `schbench -m2 -t4 -R100
+-w3 -r10`, fixed across all four conditions.
+
+### Result: consistent across all 5 repetitions, ranges do not overlap
+
+| scheduler | p99 median | p99 range | vs. EEVDF | p999 median | vs. EEVDF |
+|---|---:|---:|---:|---:|---:|
+| EEVDF | 25,760us | 24,800-29,344 | 1.00x | 36,416us | 1.00x |
+| `scx_simple` | 14,800us | 14,448-15,792 | **0.57x** | 16,416us | **0.45x** |
+| `scx_cms` (exact) | 14,256us | 11,088-14,896 | **0.55x** | 15,472us | **0.42x** |
+| `scx_lavd` | 42,176us | 35,008-45,760 | **1.64x** | 66,688us | **1.83x** |
+
+Unlike every single-run scare this project has already caught and
+discarded (9.5's +34.7%, 9.6's near-clearance fluke), this is not
+borderline: every one of the 5 repetitions independently shows the same
+ordering, and the ranges are cleanly separated -- `scx_lavd`'s worst run
+(35,008us) still exceeds EEVDF's best (29,344us).
+
+### `scx_simple` and `scx_cms` beating EEVDF is plausible and not
+surprising: both are minimal global-vtime schedulers with none of
+EEVDF's fairness/interactivity bookkeeping, on a synthetic benchmark
+that rewards exactly that simplicity. `scx_cms`'s own scaffolding
+(identity resolution, exact counter tracking, all running with
+`--mechanism none` so nothing acts on what's tracked) costs nothing
+detectable relative to `scx_simple` -- the two are statistically
+indistinguishable here (0.55x vs. 0.57x, overlapping ranges).
+
+### `scx_lavd` losing to EEVDF is the real finding, and it needed a
+follow-up before writing it up as a flat claim. `scx_lavd` is a
+power-aware scheduler (core compaction to save power on real hardware)
+built for SteamOS's actual heterogeneous gaming/desktop workloads --
+reporting "`scx_lavd` is 1.64x worse" without checking for an obvious
+confound first would have been unfair to it.
+
+**Confound tested directly**: `scx_lavd --performance` (disables core
+compaction entirely). 3 reps each: default 44,480us median, `--performance`
+37,568us median -- a real ~16% improvement, confirming power-saving
+costs something here. But it does not close the gap: even in
+`--performance` mode `scx_lavd` remains roughly 1.4x worse than EEVDF's
+25,760us, well outside what core compaction alone explains.
+
+**Plausible, NOT verified**: the remaining gap is most likely `scx_lavd`'s
+task-criticality/interactivity classification -- designed to
+differentiate real mixed workloads (foreground game thread vs.
+background compositor vs. audio callback) -- providing no benefit on
+`schbench`'s single, uniform task-type pattern while its overhead still
+applies. This has not been tested directly (would need a mixed-workload
+benchmark, which round 1 does not have) and must not be reported as
+confirmed.
+
+**What this does and does not establish.** It does NOT establish that
+`scx_lavd` is a worse scheduler in any general sense -- a synthetic
+single-workload-type benchmark on a virtualized 4-CPU machine is close
+to the least representative environment for a scheduler built around
+real hardware power/topology signals and heterogeneous task mixes,
+exactly the caveat already recorded in Section 3.2's VM-justification
+paragraph, now with a concrete illustration behind it rather than only
+the abstract argument. It DOES establish, with real confidence given 5
+non-overlapping repetitions, that on this specific workload and
+environment, `scx_lavd` underperforms both EEVDF and two much simpler
+schedulers, and that roughly a sixth of that gap is attributable to power
+management specifically.
+
+### What round 1 does not cover
+
+- **Only `schbench` P99/P999.** `cyclictest` and `hackbench` (Section 4's
+  tooling) have not been run against any of the four tiers yet --
+  `hackbench` in particular matters, since it is the throughput
+  regression check confirming a scheduler that wins on latency isn't
+  quietly losing on general throughput.
+- **Only one workload shape** (`schbench`'s uniform message/worker
+  pattern at a fixed low RPS). The mixed-workload test that would
+  actually probe the `scx_lavd` hypothesis above does not exist yet.
+- **`rt-app` and the workload-profile decision** (paper checklist item
+  10: audio-callback vs. periodic-deadline-task) remain unresolved,
+  unchanged from before this round.
+- **Single VM, single hardware configuration.** No cross-checking against
+  a different CPU count or a non-VM environment.
