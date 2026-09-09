@@ -820,14 +820,19 @@ open corrections remain from this pass.
 
 ### 4.2 Scheduling-quality outcomes (Phase 2, kernel)
 
-[NEEDS: entirely unrun. Depends on Phase 2 (Section 3.2) being built
-first — the actual BPF scheduler implementing sketch-based tracking,
-the exact-counter baseline scheduler, and the chosen workload/metric
-from Section 3.3. Given the Section 4.1.1 adversarial finding, Phase 2
-should explicitly include a test of whether a scheduling-relevant
-decision (e.g., throttling) can be manipulated via the same
-targeted-collision technique, not only whether accuracy holds under
-benign conditions.]
+**[PARTIALLY RUN]** The specific test this section originally asked for
+— "whether a scheduling-relevant decision can be manipulated via the
+same targeted-collision technique" — is done: checklist item 28,
+answered no on this scale, with the structural reason (corruption and
+load are coupled) recorded there and in Section 5.
+
+[NEEDS: the broader scheduling-quality comparison is still entirely
+unrun — the four-tier baseline benchmark (stock EEVDF, `scx_simple`,
+this project's exact-counter tier, and a production scheduler) using
+`schbench`/`cyclictest`/`hackbench` per Section 3.3's tooling choice.
+Item 28 answered the security question; it did not compare the
+approach's scheduling quality against any baseline, which is the
+question this section is actually named for.]
 
 ### 4.2.1 Early directional policy simulation (pre-Phase-2)
 
@@ -1020,15 +1025,15 @@ scheduling-decision manipulation.
 
 **Unknown until further results exist:**
 
-[NEEDS: whether the targeted-collision vulnerability translates into
-an actual exploitable scheduling-decision manipulation (e.g., can an
-attacker use this to make the scheduler wrongly throttle or
-deprioritize a victim task) is unresolved — this requires Phase 2's
-actual scheduling-outcome measurement, not just the frequency-tracking
-accuracy measured so far in Phase 1.
+**[RESOLVED, partially]** Whether the targeted-collision vulnerability
+translates into an actual exploitable scheduling-decision manipulation
+(e.g., can an attacker use this to make the scheduler wrongly throttle
+or deprioritize a victim task) required Phase 2's actual
+scheduling-outcome measurement, not just the frequency-tracking accuracy
+measured in Phase 1 — that measurement is now done (checklist item 28).
 
-**This remains open even after the real-kernel replication, and the
-distinction must not be blurred.** Every attack run in checklist item
+**The distinction between the two claims must not be blurred.** Every
+attack run in checklist item
 27 was performed with `--mechanism none`: the scheduler was tracking
 but not acting on what it tracked. What has been demonstrated is that
 an attacker can corrupt the *signal* by orders of magnitude. What has

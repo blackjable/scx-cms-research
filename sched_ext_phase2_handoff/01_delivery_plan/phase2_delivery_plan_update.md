@@ -210,37 +210,47 @@ general lesson, which held: **both** pinned assumptions were stale.
    Verified loading and running on the real kernel; window rotation,
    lazy roll-forward and buffer discard confirmed against live map
    dumps. See Section 8 below for implementation departures.
-5. [~] IN PROGRESS. The sketch is ported and runs on a real kernel;
+5. [x] DONE, superseding the "still outstanding" note this item carried
+   until now. The sketch is ported and runs on a real kernel;
    `--tracker exact|sketch` selects the counting method, and both are fed
    by one window clock so a comparison cannot be confounded by differing
    window boundaries. `--compare` feeds BOTH counters every wakeup and
    reports their divergence, which is the kernel-side equivalent of Phase
-   1 feeding one event stream to both structures -- without it, sketch
-   error would have to be compared across two runs with different
-   workloads and the two effects could not be separated.
+   1 feeding one event stream to both structures.
 
-   Mechanisms were also split one-per-file under `mechanisms/`, with a
-   single registration point (`index.h`) and a build-time check that
-   fails on a strategy file nobody listed. See Section 10.
+   Mechanisms were split one-per-file under `mechanisms/`, with a single
+   registration point (`index.h`) and a build-time check that fails on a
+   strategy file nobody listed. See Section 10.
 
-   Real-kernel results so far are in Section 9. Still outstanding for
-   this step: the targeted-collision replication per identity key, and
-   the identity-key decision that depends on it. Also untested: both
-   mechanism shapes under a workload where the mechanism actually
-   reaches most dispatches (see Section 9's reach finding), and the
-   other two identity-key candidates.
+   The targeted-collision replication per identity key (Section 9.4) and
+   the identity-key decision that depended on it (PID/TGID over `comm`)
+   are both done. So is the scheduling-manipulation question (9.5) and
+   the seed-rotation mitigation test (9.6).
+
+   [ ] TGID specifically was reasoned about (kernel-assigned, same
+   argument as PID) but not measured directly — closing this now.
+   [ ] `boost`'s reach and behavior under real load untested — closing
+   this now.
 
    Original wording of this step, for reference: port the sketch-based
-   version, testing both penalty and boost
-   mechanism shapes (Section 2), AND all three identity-key candidates
-   from step 2 — including a real-kernel replication of the
-   targeted-collision attack (Section 7) per key candidate. Use these
-   results to make the identity-key decision (Section 2) as a
-   documented, evidence-based choice at this point, not before.
-6. [ ] Obtain/build the remaining three baseline tiers.
-7. [ ] Run the real targeted-collision and mitigation tests on actual
-   hardware/kernel (Section 7) before trusting the Python-validated
-   mitigation design.
+   version, testing both penalty and boost mechanism shapes (Section 2),
+   AND all three identity-key candidates from step 2 — including a
+   real-kernel replication of the targeted-collision attack (Section 7)
+   per key candidate. Use these results to make the identity-key decision
+   (Section 2) as a documented, evidence-based choice at this point, not
+   before.
+6. [ ] Obtain/build the remaining three baseline tiers. Not started —
+   this is Phase 6's work, distinct from the security/tracking-accuracy
+   investigation Section 9 covers.
+7. [x] DONE. The real targeted-collision attack (9.4), the
+   scheduling-manipulation question (9.5), and the seed-rotation
+   mitigation test (9.6) are all run on actual hardware/kernel (Fedora
+   44, 6.19, via the Lima VM). [ ] The anomaly-triggered hard reset is
+   the one piece of the Python-validated mitigation design still
+   untested here — it needs a real rolling-baseline detector before it
+   can be tested at all, since the Python version used a known-true-value
+   oracle. Deliberately deferred as its own piece of work, not folded
+   into this pass.
 
 ## 9. Real-kernel findings so far (step 5, partial)
 
