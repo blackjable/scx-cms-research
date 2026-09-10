@@ -953,21 +953,45 @@ figure must not be attributed to wakeup tracking, and by extension
 literature that lack this control** -- it is cheap to run and, in this
 project, dissolved the headline result.
 
-**The metric was hiding the mechanism.** `flat` buys its tail
-improvement by taxing every task including the victim: median wakeup
-latency 11,760us against ~3,950us for every other condition, ranges
-nowhere near overlapping. `exact+penalty` achieves statistically
-indistinguishable tail benefit while leaving p50 identical to doing
-nothing at all.
+**What the median reveals.** `flat` buys its tail improvement by making
+the victim's own typical wakeup slower: median 11,760us against
+~3,950us for every other condition, ranges nowhere near overlapping.
+`exact+penalty` achieves statistically indistinguishable tail benefit
+while leaving p50 identical to doing nothing at all.
 
-The general lesson is independent of this project's subject matter and
-is arguably its most transferable result: **evaluating a scheduler on
-tail latency alone cannot distinguish a discriminating policy from a
-blunt one**, because degrading every task uniformly also compresses the
-tail. Any evaluation reporting p99 without reporting what happened to
-the median can be satisfied by a mechanism that simply makes everything
-slower and more uniform. Discrimination shows up as the *absence of
-collateral damage*, which a tail metric is blind to by construction.
+**[TERMINOLOGY CORRECTED]** An earlier draft called this "collateral
+damage", implying `flat` degrades *other* tasks to help the victim. The
+measurement does not show that. The p50 reported here is the **victim's
+own**, and a separate check found background-task throughput unchanged
+(157,059 loops under `penalty` vs 157,095 under `none`). So this is a
+tradeoff *within the victim's own latency distribution* -- worse
+typical case, better tail -- not damage inflicted on other tasks. The
+distinction matters because the two claims call for different
+evidence, and only the narrower one was collected.
+
+**[SCOPE CORRECTED]** An earlier draft called this the project's most
+transferable result, claiming tail-latency-only evaluation "rewards
+blunt instruments". Checked against this project's own data, that
+overstates it. A p99-only reading would have ranked `exact+penalty`
+above `flat` correctly in the stable-identity workload, and would have
+preferred `flat` in the high-turnover workload -- arguably also correct
+there, since a deadline-sensitive task cares about the tail. In no run
+did p99 alone give a clearly wrong ranking.
+
+What it did do, once, is give an *inconclusive* one: at n=15 the two
+conditions' p99 ranges overlapped, and p99 alone said "no difference"
+while p50 showed one of them tripling typical latency. So the honest
+and narrower claim is:
+
+> When p99 cannot separate two policies, p50 can, and it reports what a
+> tail improvement cost elsewhere in the same distribution. p50 is a
+> cost-accounting and tie-breaking metric, not a replacement for tail
+> latency in deadline-sensitive work.
+
+Where the workload has a real deadline, p99 remains the number that
+decides whether the scheduler works at all. Reporting both is still
+recommended; claiming that tail metrics are systematically misleading
+is not supported by what was measured here.
 
 **Confirmed.** Paired sign test 20/20, one-sided p = 9.5e-7, p50 ranges
 non-overlapping, under randomised condition ordering. `exact+penalty`

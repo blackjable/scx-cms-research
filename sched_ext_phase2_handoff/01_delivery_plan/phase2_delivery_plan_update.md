@@ -1419,3 +1419,100 @@ scale, different identity turnover). A result that survives a change of
 workload is considerably stronger than one confirmed only by more
 repetitions of the same one.
 
+## 17. Round 4: identity, boost, sketch shape, and a replication
+
+### 17.1 Identity stability, and why `comm` is not the fix
+
+n=10, respawning workload. Discrimination = flat p50 / row p50.
+
+| condition | p50 | p99 | discrim |
+|---|---|---|---|
+| flat_ref | 14,336us | 30,752us | 1.00x |
+| penalty_pid | 3,980us | 68,608us | 3.60x |
+| penalty_comm | 12,416us | 28,032us | 1.15x |
+| boost_pid | 4,000us | 115,456us | 3.58x |
+| boost_comm | 4,004us | 100,608us | 3.58x |
+
+`comm` recovered the tail (68,608 -> 28,032us, non-overlapping) exactly
+as predicted, and destroyed discrimination doing it (3.60x -> 1.15x).
+It is not a fix; it trades one failure for another, and `penalty_comm`
+is `flat` with extra steps.
+
+The mechanism is structural rather than a tuning problem: **a coarse
+identity key aggregates a multithreaded latency-sensitive application
+into the heaviest waker on the system.** The victim's four schbench
+threads share one comm, so their wakeups sum to ~400/s against each
+churn slot's 200/s. Under `comm` the task the mechanism exists to
+protect becomes the single most-penalised identity present.
+
+So the sharpened limitation is: the mechanism requires identity
+stability, and **no identity-key choice rescues it when identities
+churn** -- fine-grained keys cannot see the churn, coarse keys
+mis-attribute the victim.
+
+`boost` ran for the first time here, having existed since the mechanism
+abstraction was built. It has good discrimination and the worst tails
+measured anywhere in the project (100-115ms). Not a viable direction on
+this evidence.
+
+### 17.2 The sketch's best shot, at the budget where it collapsed
+
+n=10, 8 KB, cells held constant so only the width/depth split varies.
+
+| condition | p50 | p50 range | discrim |
+|---|---|---|---|
+| exact_ref | 4,012us | 3,988-4,136 | **3.67x** |
+| sketch_d1_w512 | 7,512us | **2,884-19,168** | 1.96x |
+| sketch_d2_w256 | 17,920us | 16,272-19,808 | 0.82x |
+| sketch_d4_w128 | 17,184us | 15,824-18,784 | 0.86x |
+| sketch_d8_w64 | 15,584us | 15,120-16,112 | 0.95x |
+| sketch_d4_rotate | 17,184us | 16,544-17,952 | 0.86x |
+
+**No shape reaches exact.** Best is depth-1 at 1.96x, barely half, and
+four of five sit below 1.0x -- worse than not discriminating at all.
+
+**Seed rotation does nothing** for accidental collisions: 0.86x with,
+0.86x without. It moves collisions rather than creating room. Its
+value against *adversarial* collisions (Section 9.6) is unaffected.
+
+Depth 1 is a lottery: p50 from 2,884us (better than exact's best) to
+19,168us. With one row there is no min-query, so the victim either gets
+a clean cell or does not, per run. Excellent-or-unusable depending on
+hash placement is not a viable scheduler design regardless of median.
+
+This closes the "did you give the sketch its best shot" objection. Four
+shapes plus rotation, at constant memory, at the deciding budget.
+
+### 17.3 Replication of the collapse at n=20, different seed
+
+| budget | exact n=8/s1 | exact n=20/s2 | sketch n=8/s1 | sketch n=20/s2 |
+|---|---|---|---|---|
+| 32 KB | 3.62x | **3.70x** | 3.14x | **3.53x** |
+| 8 KB | 3.55x | **3.64x** | 0.83x | **0.86x** |
+
+The collapse between 32 KB and 8 KB reproduces at a different sample
+size and a different order seed. At 8 KB the p50 ranges are nowhere
+near overlapping (exact 3,972-4,136us, sketch 16,048-17,504us).
+
+Replicated across two sample sizes, two order seeds, and independently
+supported by 17.2's shape sweep, this is the most solid result the
+project has.
+
+### 17.4 A tradeoff that holds across a continuous knob
+
+Ordering 17.2's rows by discrimination against their p99:
+
+```
+3.67x (exact)  -> p99  98,432us
+1.96x (d1)     -> p99  54,528us
+0.86x (d4)     -> p99  31,008us
+0.95x (d8)     -> p99  24,320us
+```
+
+Monotonic, or near enough. In this workload the blunter the instrument
+the better the tail, because identity turnover means discrimination
+mostly succeeds at penalising the victim. Scope matters: round 2d's
+stable-identity workload had exact achieving good discrimination AND
+good p99 (11,744us) simultaneously. The tradeoff is what identity churn
+does to the mechanism, not a universal law.
+
