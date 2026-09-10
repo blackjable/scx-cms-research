@@ -26,29 +26,39 @@ grows with the number of distinct things counted. Round 2 never entered
 that regime, so it could not have measured the tradeoff the paper is
 about. This round enters it deliberately.
 
-THE INDEPENDENT VARIABLE
+THE INDEPENDENT VARIABLE: MEMORY BUDGET, NOT IDENTITY COUNT
 
-Distinct identity count, swept across orders of magnitude. Churn tasks
-are short-lived and respawned continuously, so with --identity-key pid
-each new process is a new identity and the population of identities seen
-per window grows without the machine's concurrent task count growing.
-That separation matters: it varies what the TRACKER must hold without
-also varying the scheduling pressure, so a quality change can be
-attributed to tracking capacity rather than to load.
+The first design swept identity count, trying to overwhelm a fixed-size
+exact map. Two things killed it, both found by a smoke test rather than
+by reasoning, which is why the smoke test was worth running:
 
-WHAT IS MEASURED AT EACH SCALE
+  1. Both cms_counts and cms_sketch exist in the BPF object whichever
+     tracker is selected, so every condition reported identical memory
+     (1,559.9 KB). Selecting the sketch, as the implementation stood,
+     saved exactly zero bytes.
+  2. The interesting regime is unreachable that way. Exceeding 16,384
+     identities within a 1s window at 64 concurrent slots needs process
+     lifetimes under 4ms, which fork cannot deliver on this machine.
 
-  1. Victim p99, sketch vs exact -- does approximation degrade quality
-     once the identity space is genuinely large?
-  2. Actual map memory, read from bpftool, not computed from the
-     configured dimensions. The configured size and the resident cost
-     differ (hash overhead, per-CPU replication, LRU bookkeeping), and
-     the paper should quote what the kernel actually spends.
-  3. Exact's eviction rate. An LRU hash under-provisioned for the
-     identity population silently evicts, and an evicted identity
-     returns count 0 -- exact counting stops being exact. The scale at
-     which that starts is the honest boundary of "just use a hash map",
-     and finding it is the point of the whole experiment.
+So the sweep is over the memory budget itself. `--max-tracked` (added
+for this experiment) sizes the exact hash; the sketch is sized to
+comparable memory at each budget; both run the same workload. Shrink the
+budget until something breaks, and see which breaks first.
+
+That is also the better question. "How many identities before exact
+fails" is machine-specific. "At a fixed memory budget, which counting
+scheme delivers better scheduling" is the question a system designer
+actually faces, and it is the one this paper claims to answer.
+
+WHAT IS MEASURED AT EACH BUDGET
+
+  1. Victim p50 and p99. p50 because round 2 established that tail
+     latency alone cannot distinguish a discriminating policy from a
+     blunt one -- a mechanism that degrades everything uniformly also
+     compresses the tail.
+  2. Actual memlock per map from bpftool, reported separately for exact
+     and sketch, never summed. Summing is what produced the meaningless
+     identical figures above.
 
 WHAT WOULD FALSIFY THE PROJECT'S PREMISE
 
@@ -72,6 +82,7 @@ the only part the sketch could possibly harm.
 
 import argparse
 import os
+import random
 import statistics
 import subprocess
 import sys
@@ -169,7 +180,16 @@ def run_scale_point(binary, sched_args, args, slots, lifetime_s) -> dict:
                 os.waitpid(p, 0)
             except ChildProcessError:
                 pass
-    res["memlock"] = sum(d.get("memlock", 0) for d in mem.values())
+    # Report per map, never a sum. Both cms_counts and cms_sketch exist in
+    # the BPF object whichever tracker is selected, so summing them is
+    # identical across conditions and measures nothing -- the first version
+    # of this script reported 1,559.9 KB for every row for exactly that
+    # reason. The number that means something is the selected tracker's own
+    # map.
+    res["mem_exact"] = next((d.get("memlock", 0) for n, d in mem.items()
+                             if "count" in n), 0)
+    res["mem_sketch"] = next((d.get("memlock", 0) for n, d in mem.items()
+                              if "sketch" in n), 0)
     res["identities_est"] = int(slots * (args.duration / lifetime_s))
     return res
 
@@ -179,7 +199,7 @@ def main() -> int:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--duration", type=int, default=10)
-    ap.add_argument("--slots", type=int, default=64,
+    ap.add_argument("--slots", type=int, default=128,
                     help="concurrent churn tasks; held CONSTANT across the "
                          "sweep so load does not vary with identity count")
     ap.add_argument("--churn-rate", type=float, default=200.0)
@@ -192,9 +212,14 @@ def main() -> int:
     ap.add_argument("--sketch-width", type=int, default=256)
     ap.add_argument("--sketch-depth", type=int, default=4)
     ap.add_argument("--repeat", type=int, default=8)
-    ap.add_argument("--lifetimes", default="10,1,0.25,0.06",
-                    help="churn task lifetime in seconds; SHORTER means more "
-                         "distinct identities per window at identical load")
+    ap.add_argument("--lifetime", type=float, default=0.25,
+                    help="churn task lifetime in seconds; short enough that "
+                         "identities turn over continuously")
+    ap.add_argument("--budgets-kb", default="128,32,8,2",
+                    help="memory budgets in KB; exact and sketch are each "
+                         "sized to cost about this much, from measured "
+                         "per-entry and per-cell cost")
+    ap.add_argument("--order-seed", type=int, default=1)
     args = ap.parse_args()
 
     if os.geteuid() != 0:
@@ -208,44 +233,73 @@ def main() -> int:
     print(f"load held constant at {args.slots} concurrent churn tasks; "
           f"identity count varied by task lifetime\n")
 
-    lifetimes = [float(x) for x in args.lifetimes.split(",")]
+    budgets_kb = [int(x) for x in args.budgets_kb.split(",")]
 
-    for lifetime in lifetimes:
-        est = int(args.slots * (args.duration / lifetime))
-        print(f"### lifetime {lifetime}s  ~{est} distinct identities "
-              f"per {args.duration}s ###")
+    # Matched budgets, derived from MEASURED per-unit cost rather than
+    # from configured dimensions. The exact hash costs ~96 bytes per
+    # entry (key + value + bucket overhead); the sketch ~8 bytes per
+    # cell. Sizing either from its nominal dimensions is how round 2
+    # ended up comparing an 8 KB sketch against an 800 KB map and
+    # calling it a 100x saving.
+    EXACT_B_PER_ENTRY = 96
+    SKETCH_B_PER_CELL = 8
+
+    # Same lesson as round 2 (commit 623762e): a fixed condition order
+    # makes carryover systematic bias that repetitions cannot average
+    # away. This file was written with that bug still in it.
+    order_rng = random.Random(args.order_seed)
+    print(f"condition order randomised per repetition, seed={args.order_seed}")
+    print("budgets matched on measured memlock; check the map column\n")
+
+    for kb in budgets_kb:
+        budget_b = kb * 1024
+        entries = max(16, budget_b // EXACT_B_PER_ENTRY)
+        cells = max(64, budget_b // SKETCH_B_PER_CELL)
+        width = max(16, min(4096, cells // (2 * args.sketch_depth)))
+
+        print(f"### budget ~{kb} KB   exact {entries} entries   "
+              f"sketch 2x{width}x{args.sketch_depth} ###")
         conds = [
             ("flat", ["--tracker", "exact", "--mechanism", "flat",
-                      "--flat-ns", str(args.flat_ns)] + common),
+                      "--flat-ns", str(args.flat_ns),
+                      "--max-tracked", str(entries)] + common),
             ("exact_penalty", ["--tracker", "exact", "--mechanism", "penalty",
-                               "--penalty-ns", str(args.penalty_ns)] + common),
+                               "--penalty-ns", str(args.penalty_ns),
+                               "--max-tracked", str(entries)] + common),
             ("sketch_penalty", ["--tracker", "sketch", "--mechanism", "penalty",
                                 "--penalty-ns", str(args.penalty_ns),
-                                "--sketch-width", str(args.sketch_width),
+                                "--sketch-width", str(width),
                                 "--sketch-depth", str(args.sketch_depth)] + common),
         ]
-        base = None
-        for label, sched_args in conds:
-            p99s, mems = [], []
-            for _ in range(args.repeat):
+        acc = {label: {"p50": [], "p99": [], "mem": []} for label, _ in conds}
+        for _ in range(args.repeat):
+            shuffled = list(conds)
+            order_rng.shuffle(shuffled)
+            for label, sched_args in shuffled:
                 try:
                     r = run_scale_point(scx_cms, sched_args, args, args.slots,
-                                        lifetime)
+                                        args.lifetime)
                 except Exception as e:  # noqa: BLE001
                     print(f"  {label:<16} ERROR: {e}")
-                    break
-                p99s.append(r["wu_p99"])
-                mems.append(r["memlock"])
-            if not p99s:
+                    continue
+                acc[label]["p50"].append(r["wu_p50"])
+                acc[label]["p99"].append(r["wu_p99"])
+                acc[label]["mem"].append(r["mem_sketch"] if "sketch" in label
+                                         else r["mem_exact"])
+        base = None
+        for label, _ in conds:
+            a = acc[label]
+            if not a["p99"]:
                 continue
-            med = statistics.median(p99s)
+            med99 = statistics.median(a["p99"])
             if label == "flat":
-                base = med
-            rel = f"{med / base:>5.2f}x vs flat" if base else "  baseline"
-            mem_kb = statistics.median(mems) / 1024.0 if mems else 0
-            print(f"  {label:<16} p99 {med:>7.0f}us  {rel}  "
-                  f"range {min(p99s):>6}-{max(p99s):>6}  "
-                  f"maps {mem_kb:>7.1f} KB")
+                base = med99
+            rel = f"{med99 / base:>5.2f}x" if base else "  --  "
+            print(f"  {label:<16} p50 {statistics.median(a['p50']):>6.0f}us  "
+                  f"p99 {med99:>7.0f}us {rel}  "
+                  f"p50 rng {min(a['p50']):>5}-{max(a['p50']):<5} "
+                  f"p99 rng {min(a['p99']):>6}-{max(a['p99']):<6} "
+                  f"map {statistics.median(a['mem'])/1024.0:>7.1f}KB")
         print()
 
     print("HOW TO READ THIS:")

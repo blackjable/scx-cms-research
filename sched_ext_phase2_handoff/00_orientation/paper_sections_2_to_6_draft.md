@@ -936,10 +936,14 @@ across strengths chosen to be able to beat the treatment:
 
 | condition | p50 median | p50 range | p99 median | p99 range |
 |---|---|---|---|---|
-| `none` | 3,948us | 2,156-5,208 | 88,192us | 64,064-157,952 |
-| `exact+penalty` | 3,964us | 3,588-4,104 | 12,784us | 10,928-21,664 |
-| `sketch+penalty` | 4,012us | 3,676-6,008 | 12,880us | 10,576-32,288 |
-| `flat` (count-blind) | 11,760us | 11,120-12,624 | 16,544us | 15,344-29,600 |
+| `none` | 3,920us | 2,148-3,956 | 80,640us | 63,680-138,496 |
+| `exact+penalty` | 3,920us | 3,556-3,964 | 11,744us | 10,512-39,488 |
+| `sketch+penalty` | 3,928us | 3,524-4,872 | 12,880us | 10,832-22,304 |
+| `flat` (count-blind) | 11,776us | 10,832-12,368 | 16,576us | 15,248-17,568 |
+
+(n=20, condition order randomised per repetition. An earlier version of
+this table used numbers from a matrix that ran conditions in fixed
+order; see "A measurement error that invalidated four rounds" below.)
 
 **A count-blind penalty reproduces the tail improvement.** On p99,
 `exact+penalty` and `flat` overlap heavily at n=15. Roughly 84% of the
@@ -965,15 +969,43 @@ the median can be satisfied by a mechanism that simply makes everything
 slower and more uniform. Discrimination shows up as the *absence of
 collateral damage*, which a tail metric is blind to by construction.
 
-[NEEDS: the collateral-damage claim above is stated provisionally. It
-was located in p50 only after the pre-declared p99 comparison came back
-inconclusive, which is metric-shopping regardless of p50 having been
-collected throughout. A pre-registered run (benchmark/
-PREREGISTRATION_round2c.md, committed before data collection) declares
-p50 primary, a paired sign test as the analysis, and n=20. Insert its
-result here. If it is null, the honest report is that the mechanism's
-benefit is fully explained by vtime perturbation and this section
-carries no positive finding about wakeup-frequency tracking.]
+**Confirmed.** Paired sign test 20/20, one-sided p = 9.5e-7, p50 ranges
+non-overlapping, under randomised condition ordering. `exact+penalty`
+leaves the median identical to `none` to the microsecond (3,920us in
+both) while achieving a ~6.9x tail reduction; `flat` reaches a smaller
+tail reduction and makes the median 3x worse than doing nothing at all.
+
+A pre-registration for this comparison (benchmark/
+PREREGISTRATION_round2c.md, committed before data collection) was
+written and then voided on its own gating precondition: it required the
+p99 ranges of the two conditions to overlap, establishing "matched tail
+benefit, different median cost", and in the run they did not. The
+confirmation above therefore rests on the subsequent randomised-order
+matrix rather than on that pre-registered test, and the framing is
+simply that the count-proportional penalty dominates the count-blind one
+on both metrics.
+
+### A measurement error that invalidated four rounds
+
+The harness ran conditions in a fixed order within every repetition.
+Whatever the preceding condition left behind -- runqueue state, CPU
+frequency, residue from the scheduler attach and detach path -- landed
+on the same condition every time, so carryover was systematic bias that
+additional repetitions could not average away.
+
+It was not subtle in effect. One matrix ran `none` (p99 ~80ms)
+immediately before `exact+penalty` in every repetition; a later one ran
+`exact+penalty` first from a clean state. The same condition's p99 upper
+bound was 21,664us in the first and 14,000us in the second, and the two
+runs disagreed about whether `exact+penalty` separates from `flat` at
+all.
+
+Randomising the order per repetition fixes it. Every measurement in
+rounds 1 through 2c carries the confound and is reported here only where
+it has been re-established afterwards. This is recorded rather than
+quietly corrected because fixed condition ordering is a plausible
+default in any scheduler benchmark harness, and its effect here was
+large enough to reverse a conclusion.
 
 **What this section does NOT establish.**
 
@@ -1317,13 +1349,13 @@ decision at the scale tested, because inflation and load are coupled.
 
 **What was not established.**
 
-*That the sketch preserves scheduling quality.* With no isolated,
-confirmed count-attributable effect, sketch-versus-exact compares two
-ways of computing a number whose influence on outcomes has not been
-demonstrated. The observed equivalence is uninformative rather than
-confirmatory. [NEEDS: revise if round 2c confirms the collateral-damage
-finding, which would restore a count-attributable effect for the sketch
-to preserve or lose.]
+*That the sketch preserves scheduling quality.* There is now a
+confirmed count-attributable effect for the sketch to preserve or lose
+-- the collateral-damage result -- and the sketch shows no significant
+difference from exact counting on either metric (exact lower in 14 of 20
+repetitions on p99, p ~ 0.06). That is "no difference detected", not
+equivalence; establishing equivalence requires a test with a
+pre-declared margin, which has not been run.
 
 *That the sketch saves memory.* This was never measured in a regime
 where it could. At the ~132 distinct identities exercised, a
@@ -1333,7 +1365,7 @@ round 3 result. A legitimate outcome is that exact counting holds both
 quality and affordable memory at every scale this hardware reaches, in
 which case the sketch solves a problem this environment does not have.]
 
-**On honesty about negative results.** Three headline numbers in this
+**On honesty about negative results.** Four headline numbers in this
 project did not survive contact with a larger sample or a proper
 control: a seed-rotation mitigation that looked effective at heavy
 volume, a +34.7% effect at n=5 that became -1.7% at n=15, and the 6.8x
