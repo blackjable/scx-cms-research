@@ -260,6 +260,14 @@ def main() -> int:
         print(f"### budget ~{kb} KB   exact {entries} entries   "
               f"sketch 2x{width}x{args.sketch_depth} ###")
         conds = [
+            # `none` tracks but never acts. Without it, a tracker that has
+            # degenerated into doing nothing is indistinguishable from one
+            # that discriminates perfectly: both leave the victim's median
+            # untouched, and both therefore score well against `flat`,
+            # which is worse than doing nothing. Round 3 omitted it and
+            # could not tell those cases apart.
+            ("none", ["--tracker", "exact", "--mechanism", "none",
+                      "--max-tracked", str(entries)] + common),
             ("flat", ["--tracker", "exact", "--mechanism", "flat",
                       "--flat-ns", str(args.flat_ns),
                       "--max-tracked", str(entries)] + common),
