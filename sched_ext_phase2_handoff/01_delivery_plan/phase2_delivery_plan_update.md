@@ -1516,3 +1516,97 @@ stable-identity workload had exact achieving good discrimination AND
 good p99 (11,744us) simultaneously. The tradeoff is what identity churn
 does to the mechanism, not a universal law.
 
+## 18. Rounds 5 and 6: replacing inferences with instruments
+
+Every finding in this section replaced something previously asserted.
+That is the pattern worth noting: none of it came from more repetitions,
+all of it came from adding a control or an instrument.
+
+### 18.1 CONFIRMED: BPF LRU_HASH degenerates far below LRU semantics
+
+The claim that exact counting's small-map collapse was BPF LRU behaviour
+rather than capacity was raised as an explanation and never tested. A
+`--plain-map` flag now backs the same tracker with BPF_MAP_TYPE_HASH:
+identical capacity, no eviction. Stable workload, mean tracked count per
+query:
+
+| budget | entries | LRU_HASH | plain HASH |
+|---|---|---|---|
+| 8 KB | 85 | 184.2 | 192.4 |
+| **4 KB** | **42** | **1.6** | **189.8** |
+| 2 KB | 21 | 1.0 | 0.2 |
+
+At 42 entries the LRU map reports a mean count of **1.6** where a plain
+hash of the same size reports **189.8**. A true LRU holding 42 of the
+~330 live identities should report roughly 48. BPF's LRU is therefore
+about **30x worse than LRU semantics predict**, and the cliff falls
+between 42 and 85 entries on this 4-CPU machine.
+
+This is a property of the map type, not of exact counting, and it is
+worth reporting on its own: any BPF program sizing an LRU_HASH in the
+low tens of entries on a multi-core system is not getting an LRU.
+
+It also revises Section 16. "Exact goes inert below ~32 KB" was
+measuring a pathological map at the smallest budgets, not graceful
+capacity-limited degradation.
+
+Note the plain hash is not a fix, only a different failure. Its
+histogram shows 83% of queries returning zero while a locked-in minority
+accumulate counts in the thousands: first-come-first-served, with
+everything after the map fills up invisible. Neither structure degrades
+usefully; they simply degrade differently.
+
+### 18.2 Conservative update: effective, and unusable in BPF
+
+Conservative update reduces overestimation as theory says it should:
+
+| condition | baseline | conservative | conservative+hash mix |
+|---|---|---|---|
+| churning 16 KB | 2.79x | 2.40x | **2.27x** |
+| churning 8 KB | 4.30x | 3.59x | **2.78x** |
+| stable 16 KB | 1.21x | **1.07x** | 1.08x |
+
+A 15-35% improvement at no memory cost. It is still not usable, for a
+reason specific to BPF rather than to the algorithm.
+
+Conservative update must read all d cells, take the minimum and write
+back as one atomic unit. Each cell needs its own bpf_map_lookup_elem,
+and the verifier rejects a lock held across those calls outright:
+
+    function calls are not allowed while holding a lock
+
+So the implementation here is lock-free, using compare-and-swap with an
+atomic-increment fallback. The race that leaves is not theoretical: at
+stable 16 KB it produced **1,749 never-undercount violations against a
+baseline of 116**, a 15x increase. Two CPUs observing the same minimum
+and both writing min+1 lose an increment, and the guarantee that
+justifies using a Count-Min Sketch at all is gone.
+
+**Correct-and-slow is not available; only fast-and-wrong.** A locked
+version would need the entire table restructured into a single map
+value, which changes what is being measured.
+
+### 18.3 The unexplained 3.4x model gap: closed
+
+Section 3.4 of the paper recorded that the churning regime's mean
+tracked count (220) missed the workload model's prediction (~64) by 3.4x
+even after the identity population was measured. A count histogram shows
+why -- the distribution is bimodal, not centred:
+
+    churning 32 KB:  10-99 -> 101,606 queries    1k-10k -> 22,209 queries
+
+Most queries see 10-99, matching the model. A minority of long-lived
+identities carry counts in the thousands and drag the mean upward. The
+model counted only churn tasks and ignored the persistent ones.
+
+The lesson is narrow and practical: a mean tracked count is not a useful
+summary of a workload with mixed identity lifetimes, and three rounds of
+inference were spent on a number a histogram answered directly.
+
+### 18.4 Hash mixing: confirmed at the predicted size
+
+Adding a final avalanche before the power-of-two modulo improves the
+sketch's overestimate by roughly 5-13% (churning 16 KB 2.79x -> 2.46x;
+8 KB 4.30x -> 4.10x), matching the simulation estimate of <=13%. Real,
+worth fixing, changes no conclusion.
+
