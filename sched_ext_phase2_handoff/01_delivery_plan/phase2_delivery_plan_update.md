@@ -1350,3 +1350,72 @@ confound. Findings above are the ones re-established after the fix;
 anything else from those rounds should be treated as provisional until
 re-run.
 
+## 16. Round 3: the memory question, answered against the hypothesis
+
+Matched memory budgets, n=8, randomised condition order. `--max-tracked`
+was added to size the exact hash, because both maps exist in the BPF
+object whichever tracker is selected -- without it every condition
+reported identical memory and the first sweep measured nothing.
+
+Discrimination ratio = `flat` p50 / condition p50. It asks how well the
+tracker separates the victim from churn, with the count-blind penalty as
+the zero point. 1.0 means no discrimination at all.
+
+| budget | exact | sketch | sketch map |
+|---|---|---|---|
+| 128 KB | **3.72x** | 3.71x | 128.3 KB |
+| 32 KB | **3.62x** | 3.14x | 32.3 KB |
+| 8 KB | **3.55x** | **0.83x** | 8.3 KB |
+| 2 KB | **3.60x** | **0.97x** | 2.3 KB |
+
+**Exact counting beats the sketch at every budget tested, and the gap
+widens as memory shrinks. No crossover in the sketch's favour exists in
+the range measured.** That range is the project's entire premise.
+
+The sketch matches exact at 128 KB, slips at 32 KB, and by 8 KB has lost
+all discrimination -- its p50 (17,056us) is worse than the count-blind
+baseline (14,208us). At that width everything collides, every count is
+inflated including the victim's, and the mechanism penalises the task it
+exists to protect. Exact holds ~3.6x down to **21 entries** in a
+workload containing thousands of distinct pids.
+
+### Why: LRU is a better small-memory approximation than a sketch here
+
+Scheduling needs the *active set*, not the full population. An LRU hash
+under-provisioned by three orders of magnitude still holds the tasks
+that are currently running, and forgets the rest -- which is precisely
+the right thing to forget. A Count-Min Sketch retains every identity and
+blurs all of them together.
+
+When the budget is tight, precise-on-few beats imprecise-on-many, and
+the sketch's never-undercount guarantee inverts from a feature into a
+liability: guaranteed overestimation means the protected task's count is
+inflated and it gets penalised as churn.
+
+This is the substantive result of the project, and it is the opposite of
+the hypothesis. It is also specific rather than vague -- the crossover
+is between 32 KB and 8 KB on this workload, and the mechanism for the
+failure is identified.
+
+### Second finding: identity turnover defeats the mechanism
+
+Every penalty variant is 2-3x **worse** than `flat` on p99 at every
+budget (exact 2.15x-3.04x). With `--identity-key pid` and continuously
+respawning churn, each churn task is a fresh identity at count 0, is
+never penalised, and runs at full slice. Nothing controls the tail. The
+count-blind penalty does better precisely because it does not need to
+recognise anything.
+
+So the mechanism's usefulness depends on **identity stability**, an
+assumption never stated in the design. `--identity-key comm` should
+recover it, since respawned churn shares a comm -- untested, and it is
+the obvious next experiment.
+
+### Third: the collateral-damage finding replicates
+
+Exact holds ~3.6x discrimination at every budget in this workload, which
+is structurally different from round 2d's (respawning tasks, different
+scale, different identity turnover). A result that survives a change of
+workload is considerably stronger than one confirmed only by more
+repetitions of the same one.
+
