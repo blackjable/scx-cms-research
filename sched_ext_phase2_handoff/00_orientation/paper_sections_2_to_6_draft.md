@@ -1049,144 +1049,101 @@ large enough to reverse a conclusion.
   antagonist; because that churn is rate-limited it can detect a
   regression but not a gain, so it is not a general throughput result.
 
-### 4.2.2 The memory claim is not supported by these experiments
+### 4.2.2 The memory question, answered against the hypothesis
 
-This must be stated plainly because the opposite very nearly went into
-this paper. Round 2 ran the sketch at defaults (2 x 256 x 4 cells x 4B,
-~8 KB) against the exact tracker's LRU hash provisioned at
-`CMS_MAX_TRACKED` = 16,384 entries (~800 KB), which reads as a ~100x
-saving.
+The central claim this paper set out to test is that a Count-Min Sketch
+can replace exact per-identity counters, saving memory without
+degrading scheduling quality. It cannot, on this workload, at any
+budget measured.
 
-It is an artifact of provisioning. **The workload had roughly 132
-distinct identities**, under 1% of the exact map's capacity. An exact
-map honestly sized for 132 tasks is about 6 KB -- *smaller than the
-sketch*. In the only regime measured, the sketch is not a memory
-optimisation; it is a memory regression.
+An earlier draft of this section reported an apparent ~100x saving
+(8 KB sketch against an 800 KB exact map). That was an artifact of
+provisioning: the workload had ~132 distinct identities and the exact
+map was sized for 16,384. An exact map sized honestly for 132 tasks is
+about 6 KB, *smaller* than the sketch. The comparison had to be
+rebuilt around matched budgets, which required adding `--max-tracked`
+to size the exact hash -- without it, both trackers' maps exist in the
+BPF object regardless of which is selected, and every condition
+reports identical memory.
 
-A sketch earns its keep only where the identity population is large and
-unpredictable, since its footprint is constant while exact counting
-grows with the number of distinct things counted. These experiments
-never entered that regime, so they cannot speak to the tradeoff the
-paper is named for. [NEEDS: round 3 (benchmark/round3_identity_scale.py)
-holds concurrent load constant and varies identity count via task
-lifetime, sweeping ~64 to ~10,000 distinct identities, reading actual
-`memlock` from `bpftool` rather than computing from configured
-dimensions. A legitimate outcome is that exact counting holds quality at
-every scale this hardware reaches while costing memory the system does
-not notice -- in which case the sketch solves a problem this
-environment does not have, and that must be reported as the finding.]
+**Discrimination ratio** is the measure used throughout: the
+count-blind baseline's median victim latency divided by the condition's.
+It asks how well the tracker separates the latency-sensitive task from
+background churn, with "no discrimination at all" as the 1.0x zero
+point. Below 1.0x is worse than not discriminating.
 
-### 4.2.1 Early directional policy simulation (pre-Phase-2)
+| budget | exact | sketch |
+|---|---|---|
+| 128 KB | 3.72x | 3.71x |
+| 32 KB | 3.70x | 3.53x |
+| 8 KB | **3.64x** | **0.86x** |
+| 2 KB | 3.60x | 0.97x |
 
-Before committing to the real BPF/kernel build (Section 3.2), a
-lightweight, pure-Python discrete-event scheduler simulation
-(`scheduler_policy_simulation.py`) was built to get early, cheap signal
-on whether the project's core mechanism — deprioritizing/boosting
-tasks based on tracked wakeup frequency — actually changes scheduling
-outcomes at all, before investing in kernel infrastructure.
+**Exact counting wins at every budget, and the gap widens as memory
+shrinks.** No crossover in the sketch's favour exists in the range
+measured, which is the entire premise of the approach. The sketch
+matches exact at 128 KB, slips at 32 KB, and by 8 KB has lost all
+discrimination -- worse than the count-blind baseline. Exact holds
+~3.6x with **85 entries** against thousands of distinct pids. The 8 KB
+and 32 KB rows are replicated at n=20 with a different randomisation
+seed; the p50 ranges there do not overlap (exact 3,972-4,136us, sketch
+16,048-17,504us).
 
-**Explicit, repeated scope limitation, stated here as it is in the
-script's own output**: this simulation has no connection to real
-hardware timing, context-switch cost, cache effects, BPF verifier
-constraints, or real kernel behavior. It operates in abstract simulated
-time units and answers only "does this policy protect the
-latency-sensitive task better than that policy, under the same
-synthetic arrival process." It does not replace, and should not be
-read as a preview of, the real Phase 2 kernel benchmarking planned in
-Section 3.3 (schbench/cyclictest/hackbench against real EEVDF/
-`scx_simple`/a production sched_ext scheduler).
+**Why: an undersized LRU is a better small-memory approximation than a
+sketch for this problem.** Scheduling needs the *active set*, not the
+full identity population. An LRU hash under-provisioned by three orders
+of magnitude still holds the tasks currently running and forgets the
+rest, and forgetting the inactive is correct rather than lossy. A
+Count-Min Sketch retains every identity and blurs all of them together.
+When the budget is tight, precise-on-few beats imprecise-on-many.
 
-**Three real issues were found and fixed during this exercise**, each
-caught by applying the same discipline used throughout this project —
-treating a suspiciously clean or suspiciously favorable result as a
-signal to investigate, not to report:
+The sketch's never-undercount guarantee inverts from a feature into a
+liability here. Guaranteed *over*estimation means a collision inflates
+the protected task's count, and the penalty intended for churn lands on
+the task the mechanism exists to protect.
 
-1. **Event-model bug**: the first version processed one arrival-check
-   per scheduling decision, then advanced time by the chosen task's
-   full run duration with no arrivals modeled during that interval.
-   This meant the runnable queue was drained in lockstep with arrivals
-   and never built genuine backlog — producing a degenerate result
-   (the FIFO-like policy showing exactly 0.0 latency on every single
-   sample, and multiple distinct policies producing byte-identical
-   output). Fixed by rebuilding as a proper discrete-event simulation
-   with a real event queue (arrivals generated independently via a
-   Poisson process, able to queue while the CPU is busy).
+**This is not a property of one configuration.** At the 8 KB budget
+where the collapse occurs, holding memory constant and sweeping the
+width/depth split gives 1.96x (depth 1), 0.82x (depth 2), 0.86x
+(depth 4), 0.95x (depth 8) -- none approaching exact's 3.67x. Seed
+rotation changes nothing (0.86x with, 0.86x without): it relocates
+collisions rather than creating room, and its value against
+*adversarial* collisions (Section 4.1.4) is unaffected. Depth 1 is
+additionally a lottery, with p50 ranging from 2,884us to 19,168us
+across runs, because a single row has no min-query and the victim
+either lands in a clean cell or does not.
 
-2. **One-shot-identity bug**: churn arrivals were originally modeled
-   as unique, never-recurring task identities. Since each identity was
-   only ever inserted once, tracked "wakeup frequency" was uniformly
-   ~1 for every churn task — there was no actual recurring heavy-waker
-   signal for the frequency-tracking policies to detect, which
-   defeated the entire purpose of the comparison (this is precisely
-   the mechanism the whole project concerns). Fixed by drawing churn
-   arrivals from a fixed, persistent pool of identities with a skewed
-   draw distribution (matching the Phase 1 skewed-churn model), so
-   genuine recurring heavy wakers exist.
+### 4.2.3 The mechanism requires identity stability, and no key choice
+### provides it
 
-3. **Oracle-knowledge artifact**: the `scx_lavd`-style comparison
-   policy initially had direct, privileged knowledge of which task was
-   latency-sensitive (a hardcoded vruntime bonus), rather than having
-   to infer this from observed behavior the way a real interactivity
-   heuristic — and the frequency-tracking policies under test — must.
-   This produced an apparent, seemingly meaningful result (`scx_lavd`
-   -like beating the sketch/exact policies by roughly 2x on P99
-   latency) that was entirely an artifact of the unfair information
-   advantage, not a real algorithmic property. Fixed by requiring the
-   policy to infer "interactivity" purely from each task's own observed
-   recent burst-length history, on equal footing with every other
-   policy — after which its apparent advantage disappeared completely,
-   collapsing to byte-identical with plain EEVDF-like fairness.
+A limitation absent from the original design, found only by running a
+workload with continuous task turnover.
 
-**Result, after all three fixes**: `isolation_exact_tracking` and
-`our_sketch_tracking` produced **byte-identical outcomes** to each
-other and to plain EEVDF-like fairness in this scenario (P99 latency
-22.4, matching to the reported precision, across 10 seeds). Only true
-FIFO (`scx_simple_like`) differed meaningfully (P99 ratio 0.52x),
-which is expected given it ignores vruntime/history entirely by
-construction, not due to any tracking mechanism.
+With `--identity-key pid` and churn tasks that respawn continuously,
+every new process is a fresh identity at count 0, is never penalised,
+and runs at full slice. Nothing controls the tail: every penalty
+variant measured 2-3x **worse** on p99 than the count-blind baseline at
+every memory budget.
 
-**Honest interpretation**: this is a genuine non-finding, reported as
-such rather than engineered into a more flattering result by further
-parameter tuning (a live temptation that was explicitly named and
-declined during this work — see project discussion on the "fail early,
-fail often" principle). Two readings are both plausible and neither is
-resolved by this simulation alone: (a) sketch approximation error is
-robust enough, at this load level, to never actually change a
-scheduling decision relative to exact tracking — a mildly reassuring
-signal for the core hypothesis; or (b) the specific penalty-based
-mechanism tested here doesn't meaningfully leverage frequency-tracking
-information at all in this scenario (since the latency task's own
-vruntime already wins most contention without any penalty needed),
-meaning this simulation has not yet exercised a condition under which
-sketch-vs-exact divergence *would* show up, despite Phase 1's
-higher-churn and adversarial tests demonstrating that divergence is
-real at the tracking-accuracy level. Distinguishing between these two
-readings would require either a higher-load regime or a boost-based
-(rather than penalty-based) mechanism design — deliberately not
-pursued further here, per the bounded scope agreed for this
-exploratory detour, to avoid open-ended iteration toward a more
-favorable number.
+`--identity-key comm` recovers the tail exactly as predicted
+(68,608us -> 28,032us, non-overlapping) and destroys discrimination
+doing it (3.60x -> 1.15x), leaving a mechanism indistinguishable from
+the count-blind baseline. The cause is structural: **a coarse identity
+key aggregates a multithreaded latency-sensitive application into the
+heaviest waker on the system.** The victim's four threads share a
+`comm`, so their wakeups sum to ~400/s against each churn slot's 200/s,
+and the task being protected becomes the most-penalised identity
+present.
 
+So the constraint is not "choose a better key". Fine-grained keys
+cannot see churning identities; coarse keys mis-attribute
+multithreaded victims. **Wakeup-frequency tracking requires that
+identities persist across the tracking window**, and workloads with
+high task turnover violate that assumption structurally.
 
-
-Phase 1 supports a **qualified, not unqualified**, version of the
-original hypothesis. Under cooperative/uniform churn, the sketch
-achieves substantial memory savings (65.7x at matched
-accuracy-tolerant parameters, or a smaller but still meaningful ratio
-at higher-accuracy parameter choices) at a real, quantifiable, and
-tunable accuracy cost that behaves exactly as Count-Min Sketch theory
-predicts. However, this result is **not robust to adversarial or
-even moderately unfavorable churn conditions**: a volume-flooding
-scenario degrades accuracy by roughly 9x, and a targeted-collision
-attack — requiring only knowledge of the hash function, not privileged
-access — degrades it by over 40x relative to the theoretical minimum
-case. Any downstream claim or deployment recommendation must scope
-itself explicitly to environments where task identity cannot be
-adversarially influenced, pending further Phase 2 investigation of
-whether this vulnerability translates into an actual exploitable
-scheduling-decision manipulation.
-
----
+For completeness: `boost` (prioritising infrequent wakers rather than
+penalising frequent ones) was also evaluated here, and produced the
+worst tail latencies measured anywhere in this project (100-115ms).
 
 ## 5. Limitations and Threats to Validity
 
@@ -1206,10 +1163,27 @@ scheduling-decision manipulation.
   than silently resolved because it is a threat to validity for any
   scheduler evaluation, not only this one.
 
-- **The memory claim is untested.** The identity population in every
-  experiment run (~132 distinct tasks) sits far below the scale at
-  which bounded-memory counting could pay for itself; at that scale a
-  right-sized exact map is smaller than the sketch (Section 4.2.2).
+- **The approach does not work at any memory budget measured.** Exact
+  counting beats the sketch from 128 KB down to 2 KB, and no width/depth
+  split or seed rotation closes the gap (Section 4.2.2). This is the
+  central finding, not a caveat.
+
+- **The mechanism requires identity stability.** With high task
+  turnover, fine-grained keys cannot see churning identities and coarse
+  keys mis-attribute multithreaded victims (Section 4.2.3). Neither the
+  original design nor this paper's methodology section stated this
+  assumption.
+
+- **Every result is latency-based, and the mechanism's canonical
+  application is energy.** Section 2.4 identifies reducing
+  idle-transition energy cost -- the "wakeup tax" -- as the established
+  reason to track wakeup frequency, and this evaluation measures only
+  scheduling latency. A sketch's overestimation is far less damaging to
+  a batching heuristic than to a scheduling decision, so the negative
+  result here does not transfer to the energy case. It was not measured
+  because the VM exposes neither RAPL counters nor a battery gauge, and
+  host-level power measurement would be swamped by virtualisation
+  overhead.
 
 - **The audio-callback workload profile could not be measured in this
   environment.** `rt-app`'s timer-delivery floor on this VM (~1.7ms)
@@ -1338,77 +1312,83 @@ are named in item 28 and untested.]
 
 ## 6. Conclusion
 
-This project set out to test whether a Count-Min Sketch could replace
-exact per-task counters for tracking wakeup frequency in a BPF
-scheduler, saving memory without degrading scheduling quality. Neither
-half of that thesis is currently supported, and the reasons why are
-more useful than the thesis would have been.
+This project tested whether a Count-Min Sketch could replace exact
+per-task counters for tracking wakeup frequency in a BPF scheduler,
+saving memory without degrading scheduling quality. **It cannot, on the
+workloads measured, at any memory budget from 128 KB down to 2 KB.**
+The result is a refutation with an identified mechanism rather than an
+absence of evidence.
 
-**What was established.**
+**The finding.** Exact counting delivers 3.6-3.7x discrimination
+between a latency-sensitive task and background churn at every budget,
+including with 85 hash entries against thousands of distinct pids. The
+sketch matches it at 128 KB, degrades at 32 KB, and by 8 KB has lost
+all discrimination -- performing worse than a count-blind penalty.
+Replicated at two sample sizes and two randomisation seeds, and robust
+to every width/depth split and to seed rotation.
 
-The clearest result is methodological. *Evaluating a scheduler on tail
-latency alone cannot distinguish a discriminating policy from a blunt
-one.* A count-blind vtime penalty and a count-proportional one reach
-statistically indistinguishable p99; they separate only at the median,
-where the count-blind version taxes every task including the one the
-user is waiting on. Discrimination manifests as the absence of
-collateral damage, which a tail metric cannot see. This project's own
-methodology section specified p99 and would have reached the wrong
-conclusion.
+**Why, and this is the transferable part.** Scheduling needs the
+*active set*, not the full identity population. An LRU hash
+under-provisioned by three orders of magnitude still holds what is
+currently running and forgets the rest -- and forgetting the inactive
+is correct, not lossy. A sketch retains every identity and blurs them
+together. Precise-on-few beats imprecise-on-many, and the
+never-undercount guarantee inverts into a liability: guaranteed
+overestimation means a collision causes the protected task to be
+penalised as churn. **Before reaching for a sketch, check whether an
+undersized exact structure with a sensible eviction policy already
+solves the problem** -- for workloads where only the active set
+matters, it likely does.
 
-Following from that: *most of the apparent scheduling benefit of a
-wakeup-frequency mechanism is not the wakeup frequency.* A count-blind
-control reproduced roughly 84% of a 6.8x tail improvement on a log
-scale. The control is cheap, and none of the four baseline tiers this
-paper originally specified would have caught the confound, because all
-four vary the scheduler rather than varying only whether the signal is
-used. Work claiming scheduling wins from tracked signals should include
-it.
+**A design constraint the approach never stated.** Wakeup-frequency
+tracking requires identities that persist across the tracking window.
+Under high task turnover, fine-grained keys cannot see churning tasks
+and coarse keys aggregate a multithreaded victim into the heaviest
+waker on the system. No identity-key choice resolves this.
 
-Alongside these, on the sketch itself: the never-undercount guarantee
-holds on real kernel data; a targeted-collision attack reproduces
-against a real kernel (+8,824% inflation of a victim's estimate), though
-corrupting the estimate did not translate into manipulating a scheduling
-decision at the scale tested, because inflation and load are coupled.
+**A methodological caution.** The evaluation harness ran conditions in
+fixed order within each repetition, making carryover systematic bias
+that repetitions could not average away. It was large enough to reverse
+a conclusion, and fixed ordering is a plausible default in any
+scheduler benchmark harness. Randomise condition order.
 
-**What was not established.**
+**On what did not survive.** Four headline numbers in this project
+failed replication: a seed-rotation mitigation effective at heavy
+volume, a +34.7% effect at n=5 that became -1.7% at n=15, a 6.8x
+scheduling win that a count-blind control reproduced, and a ~10%
+sketch failure rate that vanished entirely once ordering was
+randomised. The fourth is the instructive one. The first three were
+disappointing results that survived the scrutiny they were given; the
+fourth was *interesting*, arrived with a plausible mechanism, and was
+accepted with less challenge than the disappointing ones received.
+Asymmetric skepticism is harder to detect than insufficient sample
+size, and no amount of statistical discipline catches it.
 
-*That the sketch preserves scheduling quality.* There is now a
-confirmed count-attributable effect for the sketch to preserve or lose
--- the collateral-damage result -- and the sketch shows no significant
-difference from exact counting on either metric (exact lower in 14 of 20
-repetitions on p99, p ~ 0.06). That is "no difference detected", not
-equivalence; establishing equivalence requires a test with a
-pre-declared margin, which has not been run.
+Two claims in earlier drafts were also narrowed after checking them
+against the data rather than against intuition: that tail-latency-only
+evaluation systematically rewards blunt policies (it gave an
+inconclusive ranking once, never a wrong one), and that the count-blind
+penalty inflicts collateral damage on other tasks (it is a tradeoff
+within the victim's own latency distribution; background throughput was
+unchanged).
 
-*That the sketch saves memory.* This was never measured in a regime
-where it could. At the ~132 distinct identities exercised, a
-right-sized exact map (~6 KB) is smaller than the sketch (~8 KB): in the
-only conditions tested, the sketch is a memory regression. [NEEDS:
-round 3 result. A legitimate outcome is that exact counting holds both
-quality and affordable memory at every scale this hardware reaches, in
-which case the sketch solves a problem this environment does not have.]
+**Future work.** The most promising direction is the one this
+evaluation did not take. Section 2.4 identifies reducing
+idle-transition energy -- the wakeup tax -- as the established reason to
+track wakeup frequency, and every measurement here is latency-based. A
+wakeup has a direct physical energy cost, frequent-but-cheap wakers are
+the canonical power pathology, and a sketch's overestimation is far
+less damaging to a batching heuristic than to a scheduling decision. So
+the negative result above does not transfer, and the energy case
+remains open. It requires bare metal: the VM used here exposes neither
+RAPL counters nor a battery gauge.
 
-**On honesty about negative results.** Four headline numbers in this
-project did not survive contact with a larger sample or a proper
-control: a seed-rotation mitigation that looked effective at heavy
-volume, a +34.7% effect at n=5 that became -1.7% at n=15, and the 6.8x
-above. In each case the pattern was the same -- a real-looking effect,
-an insufficient control, and a conclusion that would have been
-published. The controls have never once turned out to be unnecessary.
-That is the strongest practical argument this work can offer for
-running them.
-
-**Future work.** Bare-metal and cross-hardware validation, given that
-this environment's timer-delivery floor already invalidated one victim
-workload outright. Extending beyond wakeup frequency to other resource
-signals, particularly the memory-bandwidth case motivating Section 1,
-where the identity population may be large enough for bounded-memory
-counting to pay for itself in a way it does not here. Fixing the
-open increment-then-read atomicity bug (Section 9.8 of the delivery
-plan) and re-testing the same-identity concurrent path, which every
-Phase 6 measurement deliberately avoided exercising. Repositioning
-against Wu's lazy-wakeups work once the LPC 2026 talks are public.
+Beyond that: cross-hardware validation, given that this environment's
+timer-delivery floor invalidated one victim workload outright; fixing
+the open increment-then-read atomicity bug and testing the
+same-identity concurrent path that every Phase 6 measurement
+deliberately avoided; and repositioning against Wu's lazy-wakeups work
+once the LPC 2026 talks are public.
 
 ---
 
