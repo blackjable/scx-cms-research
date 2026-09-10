@@ -546,15 +546,25 @@ stable workload carries 329 identities (about 200 of them system
 processes), the churning workload mints 413 per second for roughly 826
 live per query span.
 
-**What this validates, and what it does not.** With the measured
-population the stable regime agrees with the model (~392 predicted
-against 366.7 measured, accounting for the fact that every wakeup
-triggers a query and the mean is therefore mass-weighted). **The
-churning regime does not**: the model predicts ~64 against 220
-measured, and the corrected population does not close the gap.
-Accuracy figures from the churning workload are therefore *not*
-validated against any independent reference, and results below drawn
-from that regime are marked accordingly.
+**What this validates.** With the measured population the stable regime
+agrees with the model (~392 predicted against 366.7 measured,
+accounting for the fact that every wakeup triggers a query and the mean
+is therefore mass-weighted).
+
+The churning regime initially did not -- the model predicted ~64
+against 220 measured -- and the discrepancy was resolved by
+instrumenting the distribution rather than by further inference. A
+histogram of tracked counts shows the regime is **bimodal**: most
+queries fall in the 10-99 bucket exactly as the model predicts
+(101,606 of them at 32 KB), while a minority of long-lived identities
+carry counts in the thousands (22,209 in the 1k-10k bucket) and drag
+the mean upward. The model counted only the churning tasks and ignored
+the persistent ones.
+
+The methodological point is small and practical: a mean tracked count
+is not a useful summary of a workload with mixed identity lifetimes,
+and three rounds of inference were spent on a number that one histogram
+answered.
 
 ## 4. Results
 
@@ -1229,6 +1239,65 @@ For completeness: `boost` (prioritising infrequent wakers rather than
 penalising frequent ones) was also evaluated here, and produced the
 worst tail latencies measured anywhere in this project (100-115ms).
 
+### 4.2.4 BPF's LRU_HASH degenerates far below LRU semantics
+
+This is a property of the map type rather than of anything this paper
+proposes, and it is reported because it is a practical trap for any BPF
+program keeping bounded per-task state.
+
+The exact tracker's collapse at small entry counts was initially
+explained by LRU behaviour, and that explanation was an assertion until
+a control existed. Backing the same tracker with `BPF_MAP_TYPE_HASH` --
+identical capacity, no eviction -- isolates it. Mean tracked count per
+query, stable workload:
+
+| budget | entries | LRU_HASH | plain HASH |
+|---|---|---|---|
+| 8 KB | 85 | 184.2 | 192.4 |
+| **4 KB** | **42** | **1.6** | **189.8** |
+| 2 KB | 21 | 1.0 | 0.2 |
+
+At 42 entries the LRU map reports a mean count of 1.6 where a plain hash
+of the same size reports 189.8. A true LRU retaining 42 of the ~330 live
+identities should report roughly 48, so BPF's LRU is about **30x worse
+than LRU semantics predict**, with the cliff falling between 42 and 85
+entries on this 4-CPU machine.
+
+The mechanism is the LRU's per-CPU free lists: on a multi-core system a
+map sized in the low tens of entries is smaller than the machinery
+managing it. **Anyone sizing an `LRU_HASH` that small is not getting an
+LRU**, and will get no warning.
+
+The plain hash is not a remedy, only a different failure. Its
+distribution shows 83% of queries returning zero while a locked-in
+minority accumulate counts in the thousands: first-come-first-served,
+with everything arriving after the map fills invisible. Neither
+structure degrades usefully; they degrade differently, and the choice
+between them is a choice of failure mode.
+
+### 4.2.5 The mechanism costs no throughput
+
+Section 3.3 specified `hackbench` and `cyclictest` alongside the latency
+measurements, and the check matters here more than it usually would: the
+mechanism works by *delaying* tasks, so it has an obvious route to
+buying tail-latency improvements at the cost of the machine's ability to
+get work done -- on a benchmark suite that measures only latency, that
+would be invisible.
+
+| condition | hackbench | vs EEVDF | cyclictest avg |
+|---|---|---|---|
+| EEVDF | 1.05s | 1.00x | 124us |
+| `none` | 0.95s | 0.91x | 134us |
+| `flat` | 1.00s | 0.95x | 117us |
+| `exact+penalty` | 0.97s | 0.92x | 113us |
+| `sketch+penalty` | 0.95s | 0.90x | 119us |
+
+No regression anywhere; every tier matches or slightly beats stock
+EEVDF, and `cyclictest` shows no meaningful separation (its absolute
+values are floored by this environment's timer delivery, so only the
+relative reading is usable). The latency results are not being bought
+with throughput.
+
 ## 5. Limitations and Threats to Validity
 
 **Confirmed limitations (from actual testing, not anticipated):**
@@ -1476,19 +1545,25 @@ the negative result above does not transfer, and the energy case
 remains open. It requires bare metal: the VM used here exposes neither
 RAPL counters nor a battery gauge.
 
-**Conservative update is the obvious thing to try next on the sketch
-itself, and was not tried.** The failure identified above is
+**Conservative update was tried, and cannot be used here.** The failure identified above is
 overestimation: collisions inflate the protected task's count.
 Conservative update (incrementing only the cells currently holding the
 minimum) attacks exactly that, costs no additional memory, and
 preserves the never-undercount property, which matters because the
-rotating-window design never decrements. It was not evaluated here
-because it turns each increment into a compound read-then-write across
-all rows, and the counters carry a known unfixed atomicity bug on
-exactly that pattern (Section 5); doing it correctly requires
-`bpf_spin_lock` first. A reviewer should read the negative result above
-as applying to a standard Count-Min Sketch, not to every sketch
-variant.
+rotating-window design never decrements. Measured, it delivers: overestimation falls
+15-35% at no memory cost (churning 8 KB, 4.30x -> 3.59x, and 2.78x
+combined with hash mixing).
+
+It is nonetheless unusable in BPF, for a reason belonging to the
+platform rather than the algorithm. Conservative update must read all
+`d` cells, take the minimum and write back as one atomic unit; each cell
+needs its own `bpf_map_lookup_elem`; and the verifier rejects a lock
+held across those calls outright with *"function calls are not allowed
+while holding a lock"*. The lock-free implementation that remains races
+observably: 1,749 never-undercount violations against a baseline of 116
+at stable 16 KB. Correct-and-slow is not available here, only
+fast-and-wrong, and a sketch that undercounts has surrendered the
+guarantee that justified choosing it.
 
 Beyond that: cross-hardware validation, given that this environment's
 timer-delivery floor invalidated one victim workload outright; fixing
