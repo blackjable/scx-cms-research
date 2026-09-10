@@ -1127,15 +1127,34 @@ point. Below 1.0x is worse than not discriminating.
 | 8 KB | **3.64x** | **0.86x** |
 | 2 KB | 3.60x | 0.97x |
 
-**Exact counting wins at every budget, and the gap widens as memory
-shrinks.** No crossover in the sketch's favour exists in the range
-measured, which is the entire premise of the approach. The sketch
-matches exact at 128 KB, slips at 32 KB, and by 8 KB has lost all
-discrimination -- worse than the count-blind baseline. Exact holds
-~3.6x with **85 entries** against thousands of distinct pids. The 8 KB
-and 32 KB rows are replicated at n=20 with a different randomisation
-seed; the p50 ranges there do not overlap (exact 3,972-4,136us, sketch
-16,048-17,504us).
+**[SUPERSEDED -- an earlier draft claimed exact counting wins at every
+budget, holding ~3.6x discrimination with 85 entries. That claim was an
+artifact of the metric. The discrimination ratio compares a condition
+against the count-blind baseline, which is *worse than taking no
+action*, so a tracker that has stopped acting scores just as well as one
+that discriminates perfectly. Adding a `mechanism=none` reference
+condition -- absent from the original sweep -- showed exact at 85 and 21
+entries is statistically identical to `none`: 3,960us against 3,960us on
+median latency, with overlapping tail ranges. It was not
+discriminating. It was inert.]**
+
+**The corrected finding: neither structure dominates, and they fail
+differently.** Above ~32 KB the two are indistinguishable. Below it,
+measured against `none` rather than against the count-blind baseline:
+
+| budget | | `none` | exact | sketch |
+|---|---|---|---|---|
+| 16 KB | p99 | 63,808us | 25,184us (2.5x) | **10,992us (5.8x)** |
+| 8 KB | p99 | 78,976us | 71,808us (**inert**) | **14,064us (5.6x)** |
+
+At 16 KB exact still acts and the sketch acts better. At 8 KB exact has
+stopped entirely while the sketch still delivers 5.6x. (Stable-identity
+workload, n=15, randomised order, validated per Section 3.4.)
+
+In the churning workload the ordering inverts -- the sketch's median
+rises to 17,088us against `none`'s 3,940us, worse than doing nothing,
+while exact goes quiet -- but those figures come from the regime Section
+3.4 could not validate and are preliminary.
 
 **Scope of this comparison.** The sweep ran in the high-turnover
 workload, which Section 4.2.3 shows is also the regime where *every*
@@ -1386,26 +1405,33 @@ workloads measured, at any memory budget from 128 KB down to 2 KB.**
 The result is a refutation with an identified mechanism rather than an
 absence of evidence.
 
-**The finding.** Exact counting delivers 3.6-3.7x discrimination
-between a latency-sensitive task and background churn at every budget,
-including with 85 hash entries against thousands of distinct pids. The
-sketch matches it at 128 KB, degrades at 32 KB, and by 8 KB has lost
-all discrimination -- performing worse than a count-blind penalty.
-Replicated at two sample sizes and two randomisation seeds, and robust
-to every width/depth split and to seed rotation.
+**The finding.** Neither structure dominates. Above ~32 KB they are
+indistinguishable. Below it the exact tracker goes inert -- at 85
+entries its behaviour is identical to not acting on the count at all --
+while the sketch continues to deliver a 5.6x tail improvement where the
+identity population fits its width, and becomes actively harmful where
+it does not.
 
-**Why, and this is the transferable part.** Scheduling needs the
-*active set*, not the full identity population. An LRU hash
-under-provisioned by three orders of magnitude still holds what is
-currently running and forgets the rest -- and forgetting the inactive
-is correct, not lossy. A sketch retains every identity and blurs them
-together. Precise-on-few beats imprecise-on-many, and the
-never-undercount guarantee inverts into a liability: guaranteed
-overestimation means a collision causes the protected task to be
-penalised as churn. **Before reaching for a sketch, check whether an
-undersized exact structure with a sensible eviction policy already
-solves the problem** -- for workloads where only the active set
-matters, it likely does.
+An earlier draft of this section claimed exact counting won at every
+budget. That was an artifact of comparing against a count-blind
+baseline that is itself worse than inaction, which cannot distinguish a
+tracker that discriminates from one that has stopped. Adding a
+do-nothing reference condition dissolved it.
+
+**Why, and this is the transferable part.** The two structures fail in
+different kinds. An exact tracker under a hard entry bound fails
+*silently*: entries evict, queries miss, counts read as zero, and the
+mechanism stops acting with no indication that it has. A sketch fails
+*loudly*: it never evicts, so under-provisioning inflates every
+estimate until each task looks like a heavy waker and the penalty meant
+for background work lands on the task being protected.
+
+Silent failure degrades to the underlying policy, which is survivable.
+Loud failure actively misdirects the scheduler, which is not. **So the
+question to ask of a bounded counting structure is not which is more
+accurate at a given size, but what it does when it runs out of room** --
+and an undersized exact map going quiet is a far better failure than an
+undersized sketch confidently reporting that everything is hot.
 
 **A design constraint the approach never stated.** Wakeup-frequency
 tracking requires identities that persist across the tracking window.

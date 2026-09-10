@@ -23,25 +23,28 @@ at load time with everything else held constant, and uses the tracked
 count to adjust scheduling. We evaluated it on a real kernel across
 matched memory budgets from 128 KB down to 2 KB.
 
-The sketch loses at every budget, and the gap widens as memory shrinks.
-Exact counting maintains a 3.6-3.7x separation between a
-latency-sensitive task and background churn at every budget tested,
-including with 85 hash entries against thousands of distinct process
-identities; the Count-Min Sketch matches it only at 128 KB and by 8 KB
-performs worse than not discriminating at all. The result is robust to
-every width/depth split at fixed memory and to seed rotation, and
-replicates across sample sizes and randomisation seeds.
+Neither structure dominates. Above roughly 32 KB the two are
+indistinguishable. Below it, the exact tracker stops functioning --
+at 85 entries its scheduling behaviour is statistically identical to
+not acting on the count at all, to the microsecond on median latency
+and with overlapping tail ranges -- while the sketch continues to
+deliver a 5.6x tail improvement over taking no action. Where the
+identity population fits the sketch's width, the sketch is the better
+small-memory structure; where identities greatly outnumber it, the
+sketch actively harms scheduling while the exact tracker merely goes
+quiet. The useful result is therefore a decision rule rather than a
+winner.
 
-The reason is specific and, we argue, generalises beyond this
-scheduler. Scheduling decisions need the *active set*, not the full
-identity population. An LRU hash under-provisioned by three orders of
-magnitude still holds the tasks currently running and forgets the rest,
-and forgetting the inactive is correct rather than lossy. A Count-Min
-Sketch retains every identity and blurs them together. Where only the
-active set matters, precise-on-few beats imprecise-on-many, and the
-sketch's never-undercount guarantee inverts into a liability: a
-collision inflates the protected task's count and the penalty intended
-for background work lands on the task being protected.
+The mechanisms differ in a way that determines which regime suits
+which. An exact tracker under a hard entry bound *fails silently*: it
+evicts, queries miss, counts read as zero, and the mechanism stops
+acting without any signal that it has. A sketch *fails loudly*: it
+never evicts, so under-provisioning inflates estimates until every task
+looks like a heavy waker and the penalty intended for background work
+lands on the task being protected. Silent failure is survivable --
+scheduling reverts to the underlying policy. Loud failure is not.
+That asymmetry, rather than any accuracy figure, is what should decide
+between them.
 
 We also report two results independent of the sketch question. First,
 wakeup-frequency tracking requires identities that persist across the
@@ -133,11 +136,12 @@ likely to recur in any scheduler evaluation:
 
 ### 1.3 Contributions
 
-1. **A negative result with an identified mechanism.** A Count-Min
-   Sketch is outperformed by exact counting at every memory budget from
-   128 KB to 2 KB for wakeup-frequency tracking in a scheduler, robust
-   to sketch geometry and to seed rotation, replicated across sample
-   sizes and randomisation seeds (Section 4.2.2).
+1. **A decision rule, not a winner.** Above ~32 KB the two structures
+   are indistinguishable. Below it the exact tracker goes inert while
+   the sketch keeps working when identities fit its width and becomes
+   actively harmful when they do not (Section 4.2.2). The failure modes
+   differ in kind -- silent for exact, loud for the sketch -- and that
+   is what should drive the choice.
 
 2. **An explanation that transfers.** Scheduling needs the active set,
    not the identity population. An undersized LRU keeps what is running
