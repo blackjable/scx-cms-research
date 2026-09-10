@@ -1,10 +1,13 @@
 # Paper Draft — Sections 2–6
 
-Companion to the Introduction (already drafted separately). Sections
-below are a mix of writable-now prose and explicit placeholders for
-work that hasn't been done yet. Search for `[NEEDS:` to find every spot
-that requires either running an experiment, building something, or a
-decision from the author before this is real.
+Companion to `paper_abstract_and_section_1.md`, which supersedes the
+earlier separately-drafted introduction -- that one framed the work as
+proposing an approach, which no longer matches the outcome.
+
+Phase 2 is complete and these sections carry its results. Remaining
+`[NEEDS:` markers are author decisions, deferred hardware validation,
+and one item blocked on LPC 2026 talks being published -- not
+unfinished experiments.
 
 ---
 
