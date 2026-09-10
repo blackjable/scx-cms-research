@@ -220,6 +220,11 @@ def main() -> int:
                          "sized to cost about this much, from measured "
                          "per-entry and per-cell cost")
     ap.add_argument("--order-seed", type=int, default=1)
+    ap.add_argument("--extra", default="",
+                    help="extra scheduler flags appended to every condition, "
+                         "space separated (e.g. --extra=--plain-map). Used to "
+                         "re-run a sweep under a control without duplicating "
+                         "the harness.")
     args = ap.parse_args()
 
     if os.geteuid() != 0:
@@ -228,6 +233,8 @@ def main() -> int:
 
     scx_cms = r2._find("scx-target/debug/scx_cms")
     common = ["--identity-key", "pid", "--window-ms", str(args.window_ms)]
+    if args.extra:
+        common = common + args.extra.split()
 
     print("Round 3: identity-count scaling -- the memory question")
     print(f"load held constant at {args.slots} concurrent churn tasks; "
