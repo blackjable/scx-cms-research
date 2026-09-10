@@ -513,6 +513,49 @@ metric still need a decision, now properly scoped against the above):
 
 ---
 
+### 3.4 Implementation validation
+
+The strongest objection to a comparison like this one is that it
+measures one author's implementation against the same author's other
+implementation rather than measuring the algorithms. Every
+implementation concern found on review is an instance of it: a hash
+that may under-mix, a map type whose behaviour at small sizes is its
+own, a value encoding that spends bytes on bookkeeping. The response is
+not to argue the implementations are sound but to check each against an
+independent reference before comparing them.
+
+**The sketch was checked against a model.** The BPF hash was
+reimplemented exactly outside the kernel, the measured workload driven
+through it, and the resulting estimates compared with what the kernel
+reported. In the stable-identity workload they agree: predicted
+overestimate 1.00x / 1.23x / 3.59x at widths 2048 / 128 / 32 against
+1.00x / 1.19x / 2.85x measured. The kernel implements the same sketch
+the model does.
+
+**The hash was checked against a better one.** Every width used is a
+power of two, so `h % width` keeps only FNV-1a's least-mixed bits.
+Re-running the model with a final avalanche step costs at most 13% less
+overestimate at the narrowest width and 1-5% elsewhere. The concern is
+real and the hash should be fixed; it does not move any result here.
+
+**The identity population was measured, not assumed.** An earlier
+version of this validation assumed the workload's identity count and
+was wrong by a factor of four, which invalidated the accuracy figures
+derived from it. The scheduler now counts distinct insertions: the
+stable workload carries 329 identities (about 200 of them system
+processes), the churning workload mints 413 per second for roughly 826
+live per query span.
+
+**What this validates, and what it does not.** With the measured
+population the stable regime agrees with the model (~392 predicted
+against 366.7 measured, accounting for the fact that every wakeup
+triggers a query and the mean is therefore mass-weighted). **The
+churning regime does not**: the model predicts ~64 against 220
+measured, and the corrected population does not close the gap.
+Accuracy figures from the churning workload are therefore *not*
+validated against any independent reference, and results below drawn
+from that regime are marked accordingly.
+
 ## 4. Results
 
 Phase 1 (synthetic, no kernel) results now exist in full, across four
@@ -1131,6 +1174,12 @@ either lands in a clean cell or does not.
 
 ### 4.2.3 The mechanism requires identity stability, and no key choice
 ### provides it
+
+**[UNVALIDATED REGIME -- see Section 3.4.]** Everything in this
+subsection comes from the churning workload, whose behaviour the
+validation model does not reproduce. The scheduling outcomes are
+measured and reproducible; the accuracy figures underlying their
+explanation are not independently confirmed. Treat as preliminary.
 
 A limitation absent from the original design, found only by running a
 workload with continuous task turnover.
