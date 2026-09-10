@@ -948,13 +948,16 @@ across strengths chosen to be able to beat the treatment:
 this table used numbers from a matrix that ran conditions in fixed
 order; see "A measurement error that invalidated four rounds" below.)
 
-**A count-blind penalty reproduces the tail improvement.** On p99,
-`exact+penalty` and `flat` overlap heavily at n=15. Roughly 84% of the
-apparent effect on a log scale is generic vtime perturbation. The 6.8x
-figure must not be attributed to wakeup tracking, and by extension
-**neither should comparable figures elsewhere in the scheduler
-literature that lack this control** -- it is cheap to run and, in this
-project, dissolved the headline result.
+**A count-blind penalty reproduces most of the tail improvement.**
+Going from `none` (80,640us) to `flat` (16,576us) captures most of the
+distance to `exact+penalty` (11,744us): about 82% of the total on a log
+scale is generic vtime perturbation with no reference to the tracked
+count. `exact+penalty` does reach a further improvement beyond `flat`
+-- the medians separate, though the p99 ranges overlap on a single
+outlier -- but the 6.8x figure quoted against `none` must not be
+attributed to wakeup tracking, and by extension **neither should
+comparable figures elsewhere that lack this control**. It is cheap to
+run and, in this project, dissolved most of the headline result.
 
 **What the median reveals.** `flat` buys its tail improvement by making
 the victim's own typical wakeup slower: median 11,760us against
@@ -1036,14 +1039,13 @@ large enough to reverse a conclusion.
 
 **What this section does NOT establish.**
 
-- *Nothing about the Count-Min Sketch specifically.* With no isolated,
-  confirmed count-attributable effect on p99, sketch-vs-exact compares
-  two ways of computing a number whose influence has not been
-  demonstrated. The observed overlap between them is uninformative
-  rather than confirmatory -- both conditions are dominated by a
-  component the sketch cannot degrade, so a sketch losing much of the
-  count-attributable signal would still land inside exact's range.
-- *Nothing about memory.* See Section 4.2.2.
+- *Nothing about the sketch, in THIS workload.* At the stable-identity
+  scale used here, `exact+penalty` and `sketch+penalty` are
+  indistinguishable on both metrics (p50 3,920 vs 3,928us). The sketch
+  question is settled in Section 4.2.2, at budgets and identity scales
+  this workload does not reach -- and note that this row is itself a
+  case where the sketch did *not* lose, which Section 4.2.2 must
+  account for rather than ignore.
 - *Nothing beyond this VM*, this CPU count, and this workload shape.
 - `cyclictest` and `hackbench` remain unrun across the tiers. A
   narrower throughput regression check was run (churn loop completions,
@@ -1092,6 +1094,15 @@ and 32 KB rows are replicated at n=20 with a different randomisation
 seed; the p50 ranges there do not overlap (exact 3,972-4,136us, sketch
 16,048-17,504us).
 
+**Scope of this comparison.** The sweep ran in the high-turnover
+workload, which Section 4.2.3 shows is also the regime where *every*
+penalty variant underperforms the count-blind baseline on tail latency.
+So this is a comparison of two trackers in conditions where neither
+produces a scheduler worth shipping. Discrimination remains the right
+basis for comparing trackers -- it isolates what the tracker knows from
+what the policy does with it -- but the comparison should not be read as
+"exact counting makes a good scheduler here". It does not.
+
 **Why: an undersized LRU is a better small-memory approximation than a
 sketch for this problem.** Scheduling needs the *active set*, not the
 full identity population. An LRU hash under-provisioned by three orders
@@ -1108,7 +1119,9 @@ the task the mechanism exists to protect.
 **This is not a property of one configuration.** At the 8 KB budget
 where the collapse occurs, holding memory constant and sweeping the
 width/depth split gives 1.96x (depth 1), 0.82x (depth 2), 0.86x
-(depth 4), 0.95x (depth 8) -- none approaching exact's 3.67x. Seed
+(depth 4), 0.95x (depth 8) -- none approaching exact's 3.67x in that
+same matrix (the 3.64x in the table above is the independent n=20
+replication; the two agree within run-to-run variation). Seed
 rotation changes nothing (0.86x with, 0.86x without): it relocates
 collisions rather than creating room, and its value against
 *adversarial* collisions (Section 4.1.4) is unaffected. Depth 1 is
@@ -1159,12 +1172,14 @@ worst tail latencies measured anywhere in this project (100-115ms).
   headline number, and because the same confound plausibly affects other
   work in this space.
 
-- **Evaluation metric selection materially changed the conclusion.**
-  The same experiment supports opposite readings depending on whether
-  p99 or p50 is primary. This project's own delivery plan specified p99,
-  which would have produced the wrong conclusion. Reported here rather
-  than silently resolved because it is a threat to validity for any
-  scheduler evaluation, not only this one.
+- **Evaluation metric selection changed what could be concluded.**
+  Reporting p99 alone would not have produced a *wrong* ranking in any
+  run -- see the scope correction in Section 4.2 -- but it did produce
+  an inconclusive one where p50 was decisive, and it cannot show what a
+  tail improvement cost elsewhere in the same distribution. Where the
+  workload has a real deadline, p99 remains the metric that decides
+  whether the scheduler works; p50 is cost accounting alongside it.
+  Recorded because this project's own methodology specified p99 alone.
 
 - **The approach does not work at any memory budget measured.** Exact
   counting beats the sketch from 128 KB down to 2 KB, and no width/depth
@@ -1385,6 +1400,20 @@ less damaging to a batching heuristic than to a scheduling decision. So
 the negative result above does not transfer, and the energy case
 remains open. It requires bare metal: the VM used here exposes neither
 RAPL counters nor a battery gauge.
+
+**Conservative update is the obvious thing to try next on the sketch
+itself, and was not tried.** The failure identified above is
+overestimation: collisions inflate the protected task's count.
+Conservative update (incrementing only the cells currently holding the
+minimum) attacks exactly that, costs no additional memory, and
+preserves the never-undercount property, which matters because the
+rotating-window design never decrements. It was not evaluated here
+because it turns each increment into a compound read-then-write across
+all rows, and the counters carry a known unfixed atomicity bug on
+exactly that pattern (Section 5); doing it correctly requires
+`bpf_spin_lock` first. A reviewer should read the negative result above
+as applying to a standard Count-Min Sketch, not to every sketch
+variant.
 
 Beyond that: cross-hardware validation, given that this environment's
 timer-delivery floor invalidated one victim workload outright; fixing
