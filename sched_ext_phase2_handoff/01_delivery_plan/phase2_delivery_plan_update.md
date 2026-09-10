@@ -1282,3 +1282,71 @@ For a scheduler that is arguably worse than uniform error, and it means
 sketch-vs-exact must be reported as a failure-rate comparison, not a
 median comparison.
 
+## 15. Round 2d: randomised ordering, and what survives
+
+First matrix run after the ordering fix (623762e), n=20, seed=1, all
+four conditions. This is the first Phase 6 measurement not carrying the
+fixed-order confound.
+
+| condition | p50 median | p50 range | p99 median | p99 range |
+|---|---|---|---|---|
+| cms_none | 3,920us | 2,148-3,956 | 80,640us | 63,680-138,496 |
+| cms_exact_penalty | 3,920us | 3,556-3,964 | 11,744us | 10,512-39,488 |
+| cms_sketch_penalty | 3,928us | 3,524-4,872 | 12,880us | 10,832-22,304 |
+| flat_4ms | 11,776us | 10,832-12,368 | 16,576us | 15,248-17,568 |
+
+### Confirmed, and robust to randomisation
+
+**The collateral-damage finding.** `flat` costs 3x median latency
+(11,776us vs 3,920us) while `cms_exact_penalty` costs nothing -- its p50
+is identical to `cms_none` to the microsecond. Ranges non-overlapping,
+paired sign test 20/20, p = 9.5e-7. This is the project's positive
+result and it is the one that survived every control applied to it.
+
+**The gate.** Acting on the count beats `none` on p99: 20/20
+non-overlapping, ~6.9x.
+
+**The count-blind control.** Still ~82% of the p99 improvement is
+generic vtime perturbation. The p50 column now shows what that
+perturbation costs: `flat` makes the median **3x worse than doing
+nothing at all**. It does not merely fail to help the typical case, it
+actively harms it to buy a tail number. That sharpens rather than
+weakens the original control finding.
+
+### RETRACTED: the sketch's ~10% severe-failure rate
+
+Section 14 reported 2 of 20 sketch runs at 5,240us and 11,120us p50 and
+called it "the most policy-relevant sketch finding so far", with a
+mechanism (collision places the victim in a cell with heavy wakers) and
+an explicit prediction that it was the finding *least* likely to be an
+ordering artifact.
+
+It does not reproduce. Under randomised ordering, **0 of 20** sketch
+runs exceeded 5,000us; the maximum was 4,872us against exact's 3,964us.
+The earlier observation was fixed-order contamination or chance.
+
+Recorded prominently rather than quietly deleted, because the error is
+instructive: the same skepticism was applied to results that were
+disappointing and not to one that was interesting. A plausible
+mechanism was available for the interesting result, and having a
+mechanism made it feel confirmed. That is the fourth headline number in
+this project to fail replication, and the first where the failure was
+caused by wanting it to be true.
+
+### Unresolved
+
+exact vs flat on p99: paired sign test strongly favours exact (19/20,
+p = 2e-5) but ranges overlap on a single exact outlier at 39,488us
+against a next-worst of ~14,000us. Probably real, not claimed.
+
+sketch vs exact: no significant difference on either metric (exact
+lower in 14/20 on p99, p ~ 0.058). The sketch neither clearly preserves
+nor clearly degrades what the count contributes.
+
+### Status of everything measured before 623762e
+
+Unreproduced. Rounds 1, 2, 2b and 2c all carry the fixed-order
+confound. Findings above are the ones re-established after the fix;
+anything else from those rounds should be treated as provisional until
+re-run.
+
