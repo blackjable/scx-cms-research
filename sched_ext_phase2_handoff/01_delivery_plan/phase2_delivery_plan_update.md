@@ -1610,3 +1610,99 @@ sketch's overestimate by roughly 5-13% (churning 16 KB 2.79x -> 2.46x;
 8 KB 4.30x -> 4.10x), matching the simulation estimate of <=13%. Real,
 worth fixing, changes no conclusion.
 
+## 19. Rounds 7-9: the thesis, supported
+
+### 19.1 No throughput cost (Section 4's outstanding check)
+
+hackbench and cyclictest across the tiers, n=5, randomised order. This
+was specified in Section 3.3 and never run, and it matters here because
+the mechanism works by *delaying* tasks -- an obvious route to buying
+latency wins with throughput on a benchmark suite that only measures
+latency.
+
+| condition | hackbench | vs eevdf | cyclictest avg |
+|---|---|---|---|
+| eevdf | 1.05s | 1.00x | 124us |
+| cms_none | 0.95s | 0.91x | 134us |
+| flat | 1.00s | 0.95x | 117us |
+| exact_penalty | 0.97s | 0.92x | 113us |
+| sketch_penalty | 0.95s | 0.90x | 119us |
+
+No regression anywhere; every scx variant matches or slightly beats
+EEVDF. cyclictest shows no meaningful separation (its absolute values
+are floored by this VM's timer delivery, so only the relative reading
+is usable). The mechanism does not pay for its latency behaviour in
+throughput.
+
+### 19.2 The memory thesis holds in the stable-identity regime
+
+Victim p99, stable workload, LRU map, n=8:
+
+| budget | none | exact_penalty | sketch_penalty |
+|---|---|---|---|
+| 32 KB | 77,952us | **10,272us** | 13,200us |
+| 16 KB | 77,824us | 42,240us | **9,888us** |
+| 8 KB | 71,552us | 68,608us *(inert)* | **12,192us** |
+| 2 KB | 72,704us | 67,456us *(inert)* | **13,184us** |
+
+The sketch delivers a 5-7x tail improvement over taking no action at
+**every** budget down to a 2.3 KB map. Exact matches it at 32 KB,
+degrades at 16 KB, and is statistically indistinguishable from `none`
+at 8 KB and below. At 8 KB the ranges do not overlap (sketch
+7,640-17,376us, exact 58,048-86,656us).
+
+**This is the claim the project set out to test**: approximate counting
+delivering scheduling benefit at a memory budget where exact counting
+cannot. Earlier rounds appeared to refute it because the discrimination
+metric could not distinguish a working tracker from an inert one, and
+because the churning regime -- where the mechanism fails for unrelated
+reasons -- was treated as representative.
+
+### 19.3 Exact's failure is not merely a BPF LRU artifact
+
+The plain-hash control separates implementation from capacity:
+
+| budget | exact (LRU_HASH) | exact (plain HASH) |
+|---|---|---|
+| 16 KB | 42,240us | **18,112us** |
+| 8 KB | 68,608us | 66,400us |
+| 2 KB | 67,456us | 72,960us |
+
+At 16 KB the plain hash is 2.3x better, so Section 18.1's LRU pathology
+reaches scheduling outcomes and not only tracked counts. But at 8 KB and
+below **both map types are inert**. A better eviction policy postpones
+the failure by roughly one budget step; it does not prevent it. Exact
+counting's collapse under a hard entry bound is real, not an artifact
+to be engineered away.
+
+### 19.4 Churning regime: exact never works at any budget
+
+With respawning identities, `exact_penalty` is statistically identical
+to `none` at every budget tested (110,976 vs 111,872us at 32 KB;
+124,032 vs 130,880us at 8 KB). The sketch does act (63,680 -> 35,456 ->
+25,248us as the budget shrinks) but goes blunt, degrading p50 to
+flat-like levels at narrow widths.
+
+So the two regimes give different answers and both belong in the paper:
+where identities persist, the sketch extends the usable memory range
+well below exact's floor; where they churn, neither structure produces a
+scheduler worth shipping.
+
+### 19.5 Width beats depth, replicated on real hardware
+
+Fixed 8 KB, stable regime, varying only the geometry:
+
+| geometry | p50 | p99 |
+|---|---|---|
+| sketch d2 w256 | 3,932us | **11,456us** |
+| sketch d1 w512 | 3,936us | 20,448us |
+| sketch d4 w128 | 4,432us | 19,968us |
+| sketch d8 w64 | 9,680us | 16,928us |
+| sketch d4 + rotate | 4,054us | 15,248us |
+| exact_ref | 3,904us | 63,232us *(inert)* |
+
+Phase 1's synthetic finding that width buys more accuracy than depth at
+a fixed budget **replicates on the kernel**. Depth 2 is optimal here,
+depth 8 is blunt (its p50 collapses to near-flat), and every geometry
+except depth 8 beats exact counting at this budget.
+
