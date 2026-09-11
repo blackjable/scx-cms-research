@@ -1404,9 +1404,49 @@ with throughput.
   same-identity concurrent path at all.
 
 - **Single VM, single CPU count, single workload shape.** No bare-metal
-  or cross-hardware validation. Given that the environment's timer floor
-  already invalidated one victim workload, environment-specific effects
-  should be assumed present until checked elsewhere.
+  or cross-hardware validation. Rather than leave that as a generic
+  caveat, the findings are sorted below by how much bare metal is
+  expected to change them. The sorting is a falsifiable prediction: if
+  someone re-runs this on real hardware and the wrong things move, the
+  reasoning here was wrong.
+
+  **Expected to survive.** The memory result -- exact counting failing
+  when its map cannot hold the live identity set, and the sketch's
+  footprint not growing with identity count -- is a capacity
+  relationship rather than a hardware one. The count-blind control
+  finding is a property of the mechanism's design. The identity-
+  stability constraint is structural. Median-latency equivalence
+  reflects the sketch usually estimating correctly.
+
+  **Expected to shift in magnitude.** Every absolute latency figure:
+  the ~65,000us do-nothing baseline is substantially inflated by
+  virtualisation and real numbers would be smaller. The `LRU_HASH`
+  cliff scales with core count, since BPF's per-CPU free lists grow
+  with CPUs -- the 42-to-85-entry threshold reported here is specific
+  to 4 CPUs and should not be quoted as general. And `rt-app` becomes
+  usable once the 1.7ms timer floor disappears, reopening the
+  audio-callback workload this environment forced us to abandon.
+
+  **Most at risk: the tail-latency penalty and the sporadic
+  excursions.** That finding rests on rare events, and a noisy
+  environment manufactures rare events. The p99 distributions here are
+  wide (CV 0.18 for exact counting, 0.40 for the sketch) and some of
+  that spread is plausibly virtualisation -- vCPU scheduling, timer
+  jitter, and the host migrating vCPUs between performance and
+  efficiency cores mid-run (see `results/ENVIRONMENT.md`).
+
+  Tighter distributions on bare metal cut both ways. Better resolving
+  power could make a real difference easier to demonstrate, failing the
+  equivalence test more decisively. Or, if virtualisation was
+  amplifying a small misranking into a 240,384us stall, the excursions
+  could shrink to something unremarkable.
+
+  The evidence favours the effect being real: the pre-registered
+  clustering check found the excursion confined to a single condition
+  while `exact_32k` in the same repetition measured a normal 10,032us,
+  which a host-level disturbance could not produce. But *real* and
+  *this large* are different claims and only the first is supported
+  here.
 
 - **The approach is not robust to adversarial or unfavorable churn
   patterns.** This is the most significant limitation found: a
