@@ -115,11 +115,16 @@ rather than to the disturbance.
 I'd guess this generalises well beyond my project. Schedulers track lots
 of things: run length, migration rate, waker-wakee locality, cache
 warmth, deadline slack. Each is used to make a decision that also
-perturbs scheduling in some non-neutral way. I don't know how many of
-those signals survive a count-blind control, because as far as I can
-tell nobody runs one.
+perturbs scheduling in some non-neutral way.
 
-Mine mostly didn't.
+This is just a placebo arm, and medicine worked out why you need one a
+long time ago: if your treatment does two things, comparing against
+nothing tells you the pair worked, not which half. The systems version
+is cheap and I don't see it in the evaluations I've read — including my
+own methodology, which specified four baselines and none of them this.
+
+So I don't know how many tracked signals survive a count-blind control.
+Mine mostly didn't, and that's one data point.
 
 ## What I'd tell myself
 

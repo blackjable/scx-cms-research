@@ -7,8 +7,10 @@ is neither small nor predictable.
 
 Probabilistic counting structures are the standard answer to this
 elsewhere in systems software — network telemetry, query planners,
-stream processing. As far as I can determine, nobody had tried one
-inside a scheduler.
+stream processing. A literature search before starting this turned up no
+`sched_ext` scheduler using approximate data structures for behavioural
+tracking — though absence of evidence and all that, and I'd genuinely
+like to hear about prior work if it exists.
 
 So I built one, and measured it. The short version:
 
@@ -198,7 +200,7 @@ wakers. Keying on `comm` sees them, but aggregates a multithreaded
 victim's threads into the heaviest waker on the system, so the mechanism
 penalises exactly the task it exists to protect.
 
-The requirement nobody writes down is that **identities persist across
+The requirement that goes unstated is that **identities persist across
 the tracking window** and match the granularity of the decision. Those
 are two separate properties, and task churn breaks the first while
 multithreading breaks the second.

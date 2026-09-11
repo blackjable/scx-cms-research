@@ -92,7 +92,8 @@ Anything in between trades one for the other. `tgid` would see through
 thread churn but not process respawning, and would still aggregate a
 multithreaded app.
 
-The real requirement — the one nobody writes down — is that **identities
+The real requirement — and I've not seen it stated, including in my own
+design — is that **identities
 persist across the tracking window and correspond to the granularity at
 which you want to make decisions.** Those are two separate properties,
 and workloads with high task turnover break the first while
@@ -122,11 +123,11 @@ Behaviour-tracking schedulers are having a moment, and sched_ext makes
 them easy to build. Most of the interesting ones accumulate some history
 per task and act on it.
 
-Every one of those carries this assumption. I've not seen it stated in
-any of them, including mine — I discovered it by running a workload
-where it failed, not by reasoning about the design. If your evaluation
-uses long-lived synthetic load (and most do, because it's the easy thing
-to write), you will never encounter it.
+Every one of those carries this assumption, mine included, and mine
+didn't state it either — I discovered it by running a workload where it
+failed, not by reasoning about the design. If your evaluation uses
+long-lived synthetic load, and most do because it's the easy thing to
+write, you will never encounter it.
 
 That's the part worth checking in your own work: not whether your
 tracking is accurate, but whether the thing you're tracking stays still

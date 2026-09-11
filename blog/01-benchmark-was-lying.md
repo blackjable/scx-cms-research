@@ -93,9 +93,18 @@ repetitions are for.
 ## Why I think this is common
 
 Nothing about the buggy version looks wrong. It's the obvious way to
-write the loop. It's deterministic, which feels like a virtue in a
-benchmark. Reviewers don't ask about it. I've never seen a scheduler
-paper mention condition ordering.
+write the loop, and it's deterministic, which feels like a virtue in a
+benchmark.
+
+What's odd is that randomising treatment order is *textbook*
+experimental design — it's how agricultural trials were run in the
+1920s, and it's mandatory in clinical work. The reason is exactly this
+one: without it, anything that varies systematically with position
+becomes confounded with the treatment.
+
+Systems benchmarking mostly doesn't do it. I'd be glad to be shown
+scheduler evaluations that randomise condition order and say so; I
+looked and didn't find them, and none of the harnesses I've read do it.
 
 And it's invisible in the results. There's no error, no warning, no
 outlier that stands out. Every number is internally consistent. You get
