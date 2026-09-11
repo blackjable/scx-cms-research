@@ -32,15 +32,27 @@ while the sketch still delivers a 3.65x tail improvement over inaction
 (n=20, non-overlapping). Replacing the LRU hash with a plain one
 postpones that failure by about one budget step but does not prevent it.
 
-The premium is real and was established by a pre-registered equivalence
-test rather than assumed away. Median latency is equivalent within 20%
-(90% CI [0.974, 1.060]); **tail latency is not** (90% CI [1.114,
-1.394], n=30 paired) -- the sketch is 11-39% worse on p99. A
-matched-memory control locates the cause: the sketch is also
-non-equivalent at the *same* budget as exact counting, so the premium is
-what approximation costs rather than what the memory saving costs. So
-the result is a trade, not a substitution: roughly a quarter of the
-memory, the same typical latency, a worse tail.
+The premium is real, was established by a pre-registered equivalence
+test rather than assumed away, and is not the flat tax it first appears
+to be. Median latency is equivalent within 20% (90% CI [0.974, 1.060]);
+tail latency is not (90% CI [1.114, 1.394] on the mean ratio, n=30
+paired). But the per-repetition ratios range from 0.69 to 3.08, with
+the sketch *better* than exact counting in 11 of 30 runs. The mean
+penalty is an artifact of a right-skewed distribution rather than a cost
+incurred every run.
+
+**What the sketch actually costs is predictability.** Exact counting's
+worst repetition is 1.8x its median (CV 0.18); the sketch at 8 KB
+reaches 2.5x (CV 0.40), and at 32 KB -- where its median ratio against
+exact is 1.03, essentially identical -- one repetition reached 24x. A
+matched-memory control locates the cause: the sketch is non-equivalent
+at the *same* budget as exact counting, so this is what approximation
+costs at any size, not what the memory saving costs.
+
+The result is therefore a trade whose shape matters: roughly a quarter
+of the memory, statistically identical typical latency, and a tail that
+is usually comparable and occasionally much worse. Unpredictability is
+harder to design around than a known tax.
 
 The result is bounded rather than general. Where task identities churn
 rather than persist, the exact tracker is inert at every budget tested
@@ -156,9 +168,11 @@ likely to recur in any scheduler evaluation:
    affecting scheduling at all, a sketch still delivers a 3.65x tail
    improvement over inaction (n=20, non-overlapping). It is not
    equivalent to exact counting: a pre-registered paired equivalence
-   test puts it 11-39% worse on p99 while equivalent on p50, and a
-   matched-memory control shows that premium is a property of
-   approximation rather than of the memory saving (Section 4.2.2). The
+   test puts the mean p99 ratio at 11-39% worse while equivalent on p50 --
+   though per-run ratios span 0.69x to 3.08x, so what the sketch costs
+   is variance rather than a flat penalty. A matched-memory control
+   shows that cost is a property of approximation rather than of the
+   memory saving (Section 4.2.2). The
    structures also fail in different kinds -- exact silently, reverting
    to the underlying policy; the sketch loudly, misdirecting it -- which
    matters as much as the memory figure when choosing between them.
