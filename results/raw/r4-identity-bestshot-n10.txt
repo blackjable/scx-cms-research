@@ -1,0 +1,103 @@
+/tmp/run_all.sh: line 2: 717563 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+########## MATRIX 1: identity + boost (n=10) ##########
+Round 4 matrix: identity
+workload: 128 respawning churn slots, lifetime 0.25s, schbench victim (same as round 3)
+n=10, condition order randomised, seed=1
+
+  ... repetition 1/10 done
+  ... repetition 2/10 done
+  ... repetition 3/10 done
+  ... repetition 4/10 done
+  ... repetition 5/10 done
+  ... repetition 6/10 done
+  ... repetition 7/10 done
+  ... repetition 8/10 done
+  ... repetition 9/10 done
+  ... repetition 10/10 done
+
+==================================================================================
+condition             p50 med       p50 range  p99 med         p99 range  discrim
+==================================================================================
+flat_ref                14336     13040-15632    30752       25056-35776    1.00x
+penalty_pid              3980       3732-4044    68608       58176-80256    3.60x
+penalty_comm            12416     10960-13232    28032       21728-34624    1.15x
+boost_pid                4000       3620-4152   115456      96128-141056    3.58x
+boost_comm               4004       3676-4020   100608      94592-108928    3.58x
+
+DISCRIM = flat_ref p50 / this row's p50. It measures how well the
+tracker separates the victim from churn, with the count-blind
+penalty as the zero point. 1.0x means no discrimination at all;
+below 1.0x means worse than not discriminating.
+
+KEY COMPARISON: penalty_comm vs penalty_pid on p99. If comm
+recovers the tail, the mechanism's failure in round 3 was
+identity turnover, not the mechanism. Also check whether boost
+beats penalty at all -- it has never been run before this.
+
+########## MATRIX 2: sketch best-shot at 8KB (n=10) ##########
+Round 4 matrix: bestshot
+workload: 128 respawning churn slots, lifetime 0.25s, schbench victim (same as round 3)
+n=10, condition order randomised, seed=1
+
+  ... repetition 1/10 done
+  ... repetition 2/10 done
+  ... repetition 3/10 done
+  ... repetition 4/10 done
+  ... repetition 5/10 done
+  ... repetition 6/10 done
+  ... repetition 7/10 done
+  ... repetition 8/10 done
+  ... repetition 9/10 done
+  ... repetition 10/10 done
+
+==================================================================================
+condition             p50 med       p50 range  p99 med         p99 range  discrim
+==================================================================================
+exact_ref                4012       3988-4136    98432      84096-197376    3.67x
+flat_ref                14736     14192-15856    34624       28832-44224    1.00x
+sketch_d1_w512           7512      2884-19168    54528       44992-61888    1.96x
+sketch_d2_w256          17920     16272-19808    40064       35008-67456    0.82x
+sketch_d4_w128          17184     15824-18784    31008       27488-48576    0.86x
+sketch_d8_w64           15584     15120-16112    24320       21664-32960    0.95x
+sketch_d4_rotate        17184     16544-17952    30304       24992-35648    0.86x
+
+DISCRIM = flat_ref p50 / this row's p50. It measures how well the
+tracker separates the victim from churn, with the count-blind
+penalty as the zero point. 1.0x means no discrimination at all;
+below 1.0x means worse than not discriminating.
+
+KEY COMPARISON: every sketch row vs exact_ref. If ANY sketch
+shape reaches exact's discrimination at this budget, round 3's
+refutation must be narrowed to 'this configuration' rather than
+stated about sketches generally.
+
+########## MATRIX 3: round 3 crossover budgets (n=20) ##########
+Round 3: identity-count scaling -- the memory question
+load held constant at 128 concurrent churn tasks; identity count varied by task lifetime
+
+condition order randomised per repetition, seed=2
+budgets matched on measured memlock; check the map column
+
+### budget ~32 KB   exact 341 entries   sketch 2x512x4 ###
+  flat             p50  14768us  p99   31168us  1.00x  p50 rng 13744-15632 p99 rng  26016-65664  map    35.6KB
+  exact_penalty    p50   3988us  p99   60864us  1.95x  p50 rng  3972-4084  p99 rng  52544-88192  map    35.6KB
+  sketch_penalty   p50   4184us  p99   57536us  1.85x  p50 rng  3932-5256  p99 rng  48832-75648  map    32.3KB
+
+### budget ~8 KB   exact 85 entries   sketch 2x128x4 ###
+  flat             p50  14544us  p99   31840us  1.00x  p50 rng 13648-16304 p99 rng  26208-35008  map     9.6KB
+  exact_penalty    p50   3992us  p99   98688us  3.10x  p50 rng  3972-4136  p99 rng  82304-111488 map     9.6KB
+  sketch_penalty   p50  16864us  p99   27840us  0.87x  p50 rng 16048-17504 p99 rng  25120-36672  map     8.3KB
+
+HOW TO READ THIS:
+  Compare sketch_penalty against exact_penalty AT EACH LIFETIME,
+  both relative to flat. The count-attributable benefit is the
+  gap from flat; the sketch's cost is how much of that gap it
+  fails to reproduce. Ranges overlapping = no difference shown.
+  Then compare the maps column: the sketch's whole claim is that
+  its number does not move as identities grow while exact's must.
+  If exact's quality holds at every scale AND its memory stays
+  affordable, the sketch is solving a problem this machine does
+  not have, and that is the finding.
+ALL DONE
+
+[exited with code 0]

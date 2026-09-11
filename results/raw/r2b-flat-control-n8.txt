@@ -1,0 +1,23 @@
+/tmp/run_flat.sh: line 2: 78924 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+
+==============================================================================
+Summary: median of 8 runs, victim wakeup latency
+==============================================================================
+  cms_none             p99   99072us (   n/a)  range  61760-110976  misses   0.0%  reach=100%
+  cms_exact_penalty    p99   12384us (   n/a)  range  11568- 15120  misses   0.0%  reach=100%
+  flat_2ms             p99   17824us (   n/a)  range  16736- 25952  misses   0.0%  reach=100%
+  flat_4ms             p99   17248us (   n/a)  range  15440- 20128  misses   0.0%  reach=100%
+  flat_8ms             p99   18880us (   n/a)  range  15472- 26912  misses   0.0%  reach=100%
+
+HOW TO READ THIS:
+  1. POSCTL_low_churn vs eevdf -- if removing most of the antagonist
+     does NOT improve the victim, this workload cannot detect
+     scheduling quality and every other row below is
+     uninterpretable. Check this FIRST.
+  2. cms_exact_penalty vs cms_none -- the gating question: does acting
+     on a perfect count help at all?
+  3. cms_sketch_penalty vs cms_exact_penalty -- the paper's hypothesis,
+     meaningful only if (2) showed something.
+  Ranges overlapping = no effect demonstrated, regardless of medians.
+
+[exited with code 0]

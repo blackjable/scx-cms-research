@@ -1,0 +1,33 @@
+/tmp/run_confirm_thesis.sh: line 2: 3513250 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+########## THESIS CONFIRMATION: stable, 16KB + 8KB, n=20, seed 21 ##########
+Round 3: identity-count scaling -- the memory question
+load held constant at 128 concurrent churn tasks; identity count varied by task lifetime
+
+condition order randomised per repetition, seed=21
+budgets matched on measured memlock; check the map column
+
+### budget ~16 KB   exact 170 entries   sketch 2x256x4 ###
+  none             p50   3880us  p99   65376us   --    p50 rng  2076-58816 p99 rng  62400-133888 map    18.2KB
+  flat             p50  11280us  p99   17440us  1.00x  p50 rng 10480-12112 p99 rng  15952-19936  map    18.2KB
+  exact_penalty    p50   4736us  p99   37312us  2.14x  p50 rng  3916-6216  p99 rng  16416-57920  map    18.2KB
+  sketch_penalty   p50   3944us  p99   11088us  0.64x  p50 rng  3620-6952  p99 rng   9488-25824  map    16.3KB
+
+### budget ~8 KB   exact 85 entries   sketch 2x128x4 ###
+  none             p50   3924us  p99   65696us   --    p50 rng  3260-3948  p99 rng  62656-110208 map     9.6KB
+  flat             p50  11104us  p99   16960us  1.00x  p50 rng 10800-12464 p99 rng  14320-21344  map     9.6KB
+  exact_penalty    p50   3924us  p99   62336us  3.68x  p50 rng  2132-3948  p99 rng  59072-135424 map     9.6KB
+  sketch_penalty   p50   4328us  p99   17984us  1.06x  p50 rng  3660-11920 p99 rng  12016-30752  map     8.3KB
+
+HOW TO READ THIS:
+  Compare sketch_penalty against exact_penalty AT EACH LIFETIME,
+  both relative to flat. The count-attributable benefit is the
+  gap from flat; the sketch's cost is how much of that gap it
+  fails to reproduce. Ranges overlapping = no difference shown.
+  Then compare the maps column: the sketch's whole claim is that
+  its number does not move as identities grow while exact's must.
+  If exact's quality holds at every scale AND its memory stays
+  affordable, the sketch is solving a problem this machine does
+  not have, and that is the finding.
+CONFIRM DONE
+
+[exited with code 0]

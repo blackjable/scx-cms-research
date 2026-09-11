@@ -1,0 +1,155 @@
+/tmp/run_overnight.sh: line 2: 3558836 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+########## O1: complete the budget table, stable, 32KB + 2KB, n=20 ##########
+Round 3: identity-count scaling -- the memory question
+load held constant at 128 concurrent churn tasks; identity count varied by task lifetime
+
+condition order randomised per repetition, seed=22
+budgets matched on measured memlock; check the map column
+
+### budget ~32 KB   exact 341 entries   sketch 2x512x4 ###
+  none             p50   3940us  p99   64320us   --    p50 rng  2116-3988  p99 rng  62016-116608 map    35.6KB
+  flat             p50  11120us  p99   16672us  1.00x  p50 rng 10768-11600 p99 rng  15856-18528  map    35.6KB
+  exact_penalty    p50   3932us  p99   10096us  0.61x  p50 rng  3764-4012  p99 rng   9424-12528  map    35.6KB
+  sketch_penalty   p50   3932us  p99    9952us  0.60x  p50 rng  3772-4028  p99 rng   9424-14032  map    32.3KB
+
+### budget ~2 KB   exact 21 entries   sketch 2x32x4 ###
+  none             p50   3888us  p99   64448us   --    p50 rng  2164-3988  p99 rng  61888-89984  map     3.1KB
+  flat             p50  10960us  p99   16896us  1.00x  p50 rng 10736-11696 p99 rng  15504-20064  map     3.1KB
+  exact_penalty    p50   3892us  p99   65024us  3.85x  p50 rng  3820-3964  p99 rng  59712-131328 map     3.1KB
+  sketch_penalty   p50   9936us  p99   13248us  0.78x  p50 rng  8944-11152 p99 rng  11696-14800  map     2.3KB
+
+HOW TO READ THIS:
+  Compare sketch_penalty against exact_penalty AT EACH LIFETIME,
+  both relative to flat. The count-attributable benefit is the
+  gap from flat; the sketch's cost is how much of that gap it
+  fails to reproduce. Ranges overlapping = no difference shown.
+  Then compare the maps column: the sketch's whole claim is that
+  its number does not move as identities grow while exact's must.
+  If exact's quality holds at every scale AND its memory stays
+  affordable, the sketch is solving a problem this machine does
+  not have, and that is the finding.
+
+########## O2: geometry sweep at n=20, stable, 8KB ##########
+Round 4 matrix: bestshot
+workload: 128 respawning churn slots, lifetime 60.0s, schbench victim (same as round 3)
+n=20, condition order randomised, seed=1
+
+  ... repetition 1/20 done
+  ... repetition 2/20 done
+  ... repetition 3/20 done
+  ... repetition 4/20 done
+  ... repetition 5/20 done
+  ... repetition 6/20 done
+  ... repetition 7/20 done
+  ... repetition 8/20 done
+  ... repetition 9/20 done
+  ... repetition 10/20 done
+  ... repetition 11/20 done
+  ... repetition 12/20 done
+  ... repetition 13/20 done
+  ... repetition 14/20 done
+  ... repetition 15/20 done
+  ... repetition 16/20 done
+  ... repetition 17/20 done
+  ... repetition 18/20 done
+  ... repetition 19/20 done
+  ... repetition 20/20 done
+
+==================================================================================
+condition             p50 med       p50 range  p99 med         p99 range  discrim
+==================================================================================
+exact_ref                3916       3860-3956    61760      57792-105600    2.78x
+flat_ref                10880     10704-11408    16928       15728-18464    1.00x
+sketch_d1_w512           3900       3836-3948    12208        8912-27040    2.79x
+sketch_d2_w256           3900       3820-7464    10144        8976-25504    2.79x
+sketch_d4_w128           4008      3820-11088    18624        9072-29216    2.71x
+sketch_d8_w64            9504      4712-11728    15344       12016-19424    1.14x
+sketch_d4_rotate         4224      3852-11504    16704       10832-23776    2.58x
+
+DISCRIM = flat_ref p50 / this row's p50. It measures how well the
+tracker separates the victim from churn, with the count-blind
+penalty as the zero point. 1.0x means no discrimination at all;
+below 1.0x means worse than not discriminating.
+
+KEY COMPARISON: every sketch row vs exact_ref. If ANY sketch
+shape reaches exact's discrimination at this budget, round 3's
+refutation must be narrowed to 'this configuration' rather than
+stated about sketches generally.
+
+########## O3: geometry sweep at n=20, stable, 2KB (does d2 still win?) ##########
+Round 4 matrix: bestshot
+workload: 128 respawning churn slots, lifetime 60.0s, schbench victim (same as round 3)
+n=20, condition order randomised, seed=1
+
+  ... repetition 1/20 done
+  ... repetition 2/20 done
+  ... repetition 3/20 done
+  ... repetition 4/20 done
+  ... repetition 5/20 done
+  ... repetition 6/20 done
+  ... repetition 7/20 done
+  ... repetition 8/20 done
+  ... repetition 9/20 done
+  ... repetition 10/20 done
+  ... repetition 11/20 done
+  ... repetition 12/20 done
+  ... repetition 13/20 done
+  ... repetition 14/20 done
+  ... repetition 15/20 done
+  ... repetition 16/20 done
+  ... repetition 17/20 done
+  ... repetition 18/20 done
+  ... repetition 19/20 done
+  ... repetition 20/20 done
+
+==================================================================================
+condition             p50 med       p50 range  p99 med         p99 range  discrim
+==================================================================================
+exact_ref                3908       2140-4824    65920      59584-110720    2.80x
+flat_ref                10928     10736-12016    17184       15312-23840    1.00x
+sketch_d1_w128           6336      3852-11120    17152       13104-31648    1.72x
+sketch_d2_w64            9584      3844-11696    15200       13360-22240    1.14x
+sketch_d4_w32            9920      9072-10768    13408       11440-16176    1.10x
+sketch_d8_w16           10800     10768-10864    12688       11152-14672    1.01x
+sketch_d4_rotate        10080      8944-10768    13136       12208-14896    1.08x
+
+DISCRIM = flat_ref p50 / this row's p50. It measures how well the
+tracker separates the victim from churn, with the count-blind
+penalty as the zero point. 1.0x means no discrimination at all;
+below 1.0x means worse than not discriminating.
+
+KEY COMPARISON: every sketch row vs exact_ref. If ANY sketch
+shape reaches exact's discrimination at this budget, round 3's
+refutation must be narrowed to 'this configuration' rather than
+stated about sketches generally.
+
+########## O4: churning regime confirmation, n=20 ##########
+Round 3: identity-count scaling -- the memory question
+load held constant at 128 concurrent churn tasks; identity count varied by task lifetime
+
+condition order randomised per repetition, seed=23
+budgets matched on measured memlock; check the map column
+
+### budget ~16 KB   exact 170 entries   sketch 2x256x4 ###
+  none             p50   3964us  p99  116480us   --    p50 rng  3940-3988  p99 rng 104576-137984 map    18.2KB
+  flat             p50  14512us  p99   35584us  1.00x  p50 rng 13488-16112 p99 rng  30688-51520  map    18.2KB
+  exact_penalty    p50   3956us  p99   98688us  2.77x  p50 rng  3924-3988  p99 rng  77440-114816 map    18.2KB
+  sketch_penalty   p50  18112us  p99   41856us  1.18x  p50 rng 16608-19616 p99 rng  35136-52288  map    16.3KB
+
+### budget ~8 KB   exact 85 entries   sketch 2x128x4 ###
+  none             p50   3984us  p99  118912us   --    p50 rng  3748-4136  p99 rng 100480-128128 map     9.6KB
+  flat             p50  14704us  p99   35392us  1.00x  p50 rng 13680-16272 p99 rng  31008-45760  map     9.6KB
+  exact_penalty    p50   3980us  p99  112768us  3.19x  p50 rng  3860-4060  p99 rng 101760-128896 map     9.6KB
+  sketch_penalty   p50  17696us  p99   30784us  0.87x  p50 rng 16240-18464 p99 rng  26784-47552  map     8.3KB
+
+HOW TO READ THIS:
+  Compare sketch_penalty against exact_penalty AT EACH LIFETIME,
+  both relative to flat. The count-attributable benefit is the
+  gap from flat; the sketch's cost is how much of that gap it
+  fails to reproduce. Ranges overlapping = no difference shown.
+  Then compare the maps column: the sketch's whole claim is that
+  its number does not move as identities grow while exact's must.
+  If exact's quality holds at every scale AND its memory stays
+  affordable, the sketch is solving a problem this machine does
+  not have, and that is the finding.
+OVERNIGHT DONE

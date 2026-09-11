@@ -1,0 +1,103 @@
+/tmp/run_final.sh: line 2: 85221 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+Phase 6 round 2: mixed workload (audio-callback victim + churn)
+victim: 2000us work every 10000us; churn: 128 tasks @ 200.0/s burning 200us each
+  churn CPU demand ~= 5.1 CPUs (machine has 4)
+
+penalty_ns = 20287 (supplied)
+
+### repetition 1/15 ###
+  cms_none             wu_p50=  3524us wu_p99=  65664us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  3588us wu_p99=  12784us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  3676us wu_p99=  32288us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 11504us wu_p99=  16544us misses=  0.0% reach=100%
+### repetition 2/15 ###
+  cms_none             wu_p50=  3740us wu_p99=  88192us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  3756us wu_p99=  11440us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  4536us wu_p99=  18144us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 11504us wu_p99=  15408us misses=  0.0% reach=100%
+### repetition 3/15 ###
+  cms_none             wu_p50=  5208us wu_p99= 111232us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  4004us wu_p99=  12592us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  3900us wu_p99=  10768us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 12080us wu_p99=  16608us misses=  0.0% reach=100%
+### repetition 4/15 ###
+  cms_none             wu_p50=  3916us wu_p99=  75136us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  3940us wu_p99=  16928us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  3916us wu_p99=  10576us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 12048us wu_p99=  16016us misses=  0.0% reach=100%
+### repetition 5/15 ###
+  cms_none             wu_p50=  4028us wu_p99= 157952us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  4012us wu_p99=  13744us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  3972us wu_p99=  11952us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 11728us wu_p99=  17120us misses=  0.0% reach=100%
+### repetition 6/15 ###
+  cms_none             wu_p50=  3972us wu_p99=  66176us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  4060us wu_p99=  16864us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  5064us wu_p99=  23520us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 11760us wu_p99=  15920us misses=  0.0% reach=100%
+### repetition 7/15 ###
+  cms_none             wu_p50=  4104us wu_p99=  85120us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  3964us wu_p99=  11568us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  3972us wu_p99=  12464us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 12560us wu_p99=  16304us misses=  0.0% reach=100%
+### repetition 8/15 ###
+  cms_none             wu_p50=  4044us wu_p99=  85120us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  4104us wu_p99=  19424us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  4120us wu_p99=  17248us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 12624us wu_p99=  26080us misses=  0.0% reach=100%
+### repetition 9/15 ###
+  cms_none             wu_p50=  3948us wu_p99=  64064us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  4012us wu_p99=  17440us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  3956us wu_p99=  12880us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 11600us wu_p99=  29600us misses=  0.0% reach=100%
+### repetition 10/15 ###
+  cms_none             wu_p50=  3940us wu_p99=  66176us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  3956us wu_p99=  12112us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  3916us wu_p99=  29792us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 11760us wu_p99=  17632us misses=  0.0% reach=100%
+### repetition 11/15 ###
+  cms_none             wu_p50=  3948us wu_p99= 107648us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  4012us wu_p99=  14160us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  6008us wu_p99=  20384us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 11952us wu_p99=  15632us misses=  0.0% reach=100%
+### repetition 12/15 ###
+  cms_none             wu_p50=  3964us wu_p99= 118144us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  3980us wu_p99=  11664us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  4012us wu_p99=  12432us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 12528us wu_p99=  15344us misses=  0.0% reach=100%
+### repetition 13/15 ###
+  cms_none             wu_p50=  3932us wu_p99=  96896us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  3964us wu_p99=  21664us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  4052us wu_p99=  19040us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 11120us wu_p99=  17888us misses=  0.0% reach=100%
+### repetition 14/15 ###
+  cms_none             wu_p50=  2156us wu_p99=  94848us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  3940us wu_p99=  10928us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  4044us wu_p99=  11216us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 11376us wu_p99=  16544us misses=  0.0% reach=100%
+### repetition 15/15 ###
+  cms_none             wu_p50=  3948us wu_p99= 139520us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  3964us wu_p99=  12336us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  4068us wu_p99=  10992us misses=  0.0% reach=100%
+  flat_4ms             wu_p50= 12400us wu_p99=  19424us misses=  0.0% reach=100%
+
+==============================================================================
+Summary: median of 15 runs, victim wakeup latency
+==============================================================================
+  cms_none             p99   88192us (   n/a)  range  64064-157952  misses   0.0%  reach=100%
+  cms_exact_penalty    p99   12784us (   n/a)  range  10928- 21664  misses   0.0%  reach=100%
+  cms_sketch_penalty   p99   12880us (   n/a)  range  10576- 32288  misses   0.0%  reach=100%
+  flat_4ms             p99   16544us (   n/a)  range  15344- 29600  misses   0.0%  reach=100%
+
+HOW TO READ THIS:
+  1. POSCTL_low_churn vs eevdf -- if removing most of the antagonist
+     does NOT improve the victim, this workload cannot detect
+     scheduling quality and every other row below is
+     uninterpretable. Check this FIRST.
+  2. cms_exact_penalty vs cms_none -- the gating question: does acting
+     on a perfect count help at all?
+  3. cms_sketch_penalty vs cms_exact_penalty -- the paper's hypothesis,
+     meaningful only if (2) showed something.
+  Ranges overlapping = no effect demonstrated, regardless of medians.
+
+[exited with code 0]

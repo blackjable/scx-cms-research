@@ -1,0 +1,76 @@
+/tmp/run_r5.sh: line 2: 2062613 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+########## A: inflation vs budget, both regimes (n=3) ##########
+Round 5: measured sketch inflation, both identity regimes
+compare mode runs BOTH trackers over the same wakeup stream,
+so exact_mean and sketch_mean describe identical queries.
+
+### regime: stable  (~128 identities) ###
+    budget   cells     exact    sketch  inflation  max_over  underest
+     128KB   16384     366.7     366.7      1.00x         0      1195
+      64KB    8192     363.1     363.5      1.00x         0       153
+      32KB    4096     365.9     366.9      1.00x         0       154
+      16KB    2048     299.3     366.6      1.25x         0      2726
+       8KB    1024     193.7     434.9      2.42x         0         0
+       4KB     512       1.5     613.7    399.13x         0         0
+       2KB     256       1.0    1042.6   1042.60x         0         0
+
+### regime: churning(~5000 identities) ###
+    budget   cells     exact    sketch  inflation  max_over  underest
+     128KB   16384     220.2     220.4      1.00x         0      1583
+      64KB    8192     220.8     222.4      1.01x         0         0
+      32KB    4096     219.8     230.8      1.04x         0         0
+      16KB    2048      79.2     271.9      3.39x         0         0
+       8KB    1024      90.1     352.3      3.89x         0         0
+       4KB     512       2.5     532.9    212.68x         0         0
+       2KB     256       1.7     881.3    518.41x         0         0
+
+HOW TO READ THIS:
+  inflation 1.0x = the sketch agrees with exact counting.
+  If inflation is near 1.0 in the stable regime at a budget where
+  round 3 saw the sketch collapse, then identity count -- not the
+  byte budget -- is the variable that breaks it, and the paper's
+  'loses at every budget' framing is wrong as stated.
+  underest MUST be 0: a non-zero value means the never-undercount
+  guarantee was violated on real kernel data, which would be a
+  correctness bug, not an accuracy result.
+
+########## B: scheduling outcome, STABLE identities (n=8) ##########
+Round 3: identity-count scaling -- the memory question
+load held constant at 128 concurrent churn tasks; identity count varied by task lifetime
+
+condition order randomised per repetition, seed=3
+budgets matched on measured memlock; check the map column
+
+### budget ~128 KB   exact 1365 entries   sketch 2x2048x4 ###
+  flat             p50  11344us  p99   16896us  1.00x  p50 rng 10832-11792 p99 rng  15728-17568  map   139.6KB
+  exact_penalty    p50   3912us  p99   11216us  0.66x  p50 rng  3884-4020  p99 rng   9744-22816  map   139.6KB
+  sketch_penalty   p50   3904us  p99   10992us  0.65x  p50 rng  3876-4004  p99 rng  10096-15056  map   128.3KB
+
+### budget ~32 KB   exact 341 entries   sketch 2x512x4 ###
+  flat             p50  11344us  p99   17856us  1.00x  p50 rng 10832-12400 p99 rng  16800-24672  map    35.6KB
+  exact_penalty    p50   3916us  p99   11184us  0.63x  p50 rng  3884-4036  p99 rng   9712-21728  map    35.6KB
+  sketch_penalty   p50   3916us  p99   10224us  0.57x  p50 rng  3876-5256  p99 rng   9392-13264  map    32.3KB
+
+### budget ~16 KB   exact 170 entries   sketch 2x256x4 ###
+  flat             p50  11760us  p99   17088us  1.00x  p50 rng 11344-12336 p99 rng  15856-29984  map    18.2KB
+  exact_penalty    p50   4392us  p99   40640us  2.38x  p50 rng  3980-6392  p99 rng  16144-58304  map    18.2KB
+  sketch_penalty   p50   3948us  p99   11616us  0.68x  p50 rng  3916-4360  p99 rng   9328-21472  map    16.3KB
+
+### budget ~8 KB   exact 85 entries   sketch 2x128x4 ###
+  flat             p50  11552us  p99   17248us  1.00x  p50 rng 10992-12112 p99 rng  15216-25120  map     9.6KB
+  exact_penalty    p50   3964us  p99   63616us  3.69x  p50 rng  2148-4052  p99 rng  60864-106368 map     9.6KB
+  sketch_penalty   p50   7812us  p99   17248us  1.00x  p50 rng  4020-11632 p99 rng  13008-30688  map     8.3KB
+
+HOW TO READ THIS:
+  Compare sketch_penalty against exact_penalty AT EACH LIFETIME,
+  both relative to flat. The count-attributable benefit is the
+  gap from flat; the sketch's cost is how much of that gap it
+  fails to reproduce. Ranges overlapping = no difference shown.
+  Then compare the maps column: the sketch's whole claim is that
+  its number does not move as identities grow while exact's must.
+  If exact's quality holds at every scale AND its memory stays
+  affordable, the sketch is solving a problem this machine does
+  not have, and that is the finding.
+ALL DONE
+
+[exited with code 0]

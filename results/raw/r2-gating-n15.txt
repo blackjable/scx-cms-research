@@ -1,0 +1,42 @@
+  cms_sketch_penalty   wu_p50=  3924us wu_p99=  17056us misses=  0.0% reach=100%
+### repetition 12/15 ###
+  eevdf                wu_p50= 30880us wu_p99= 269824us misses=  0.0%
+  cms_none             wu_p50=  4488us wu_p99=  87168us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  4028us wu_p99=  11344us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  3940us wu_p99=  13424us misses=  0.0% reach=100%
+### repetition 13/15 ###
+  eevdf                wu_p50= 30176us wu_p99= 225024us misses=  0.0%
+  cms_none             wu_p50=  3948us wu_p99= 140032us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  3924us wu_p99=  11440us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  3996us wu_p99=  11952us misses=  0.0% reach=100%
+### repetition 14/15 ###
+  eevdf                wu_p50= 29536us wu_p99= 221440us misses=  0.0%
+  cms_none             wu_p50=  4092us wu_p99=  87680us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  4004us wu_p99=  12368us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  5576us wu_p99=  16304us misses=  0.0% reach=100%
+### repetition 15/15 ###
+  eevdf                wu_p50= 30304us wu_p99= 250624us misses=  0.0%
+  cms_none             wu_p50=  3948us wu_p99=  66432us misses=  0.0% reach=100%
+  cms_exact_penalty    wu_p50=  3924us wu_p99=  17824us misses=  0.0% reach=100%
+  cms_sketch_penalty   wu_p50=  4012us wu_p99=  11792us misses=  0.0% reach=100%
+
+==============================================================================
+Summary: median of 15 runs, victim wakeup latency
+==============================================================================
+  eevdf                p99  250624us ( 1.00x)  range 208128-343552  misses   0.0%
+  cms_none             p99   82304us ( 0.33x)  range  63808-165632  misses   0.0%  reach=100%
+  cms_exact_penalty    p99   12016us ( 0.05x)  range  11152- 19040  misses   0.0%  reach=100%
+  cms_sketch_penalty   p99   13456us ( 0.05x)  range  10928- 27168  misses   0.0%  reach=100%
+
+HOW TO READ THIS:
+  1. POSCTL_low_churn vs eevdf -- if removing most of the antagonist
+     does NOT improve the victim, this workload cannot detect
+     scheduling quality and every other row below is
+     uninterpretable. Check this FIRST.
+  2. cms_exact_penalty vs cms_none -- the gating question: does acting
+     on a perfect count help at all?
+  3. cms_sketch_penalty vs cms_exact_penalty -- the paper's hypothesis,
+     meaningful only if (2) showed something.
+  Ranges overlapping = no effect demonstrated, regardless of medians.
+
+[exited with code 0]

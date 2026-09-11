@@ -1,0 +1,104 @@
+/tmp/run_r6.sh: line 2: 2569187 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+Round 6: sketch fixes and the map-type control
+compare mode; exact and sketch figures describe identical queries
+
+########## regime: stable ##########
+
+### 32 KB -- exact 341 entries, sketch 2x512x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline          361.2    361.5   1.00x    461   z0/3520/24083/174980/27006/0
+  hash_mix          362.9    365.7   1.01x    448   z0/2884/20632/178464/28139/0
+  conservative      362.2    362.5   1.00x    153   z0/2292/12995/182717/28140/0
+  both              361.7    362.0   1.00x    890   z0/3024/14062/183584/27474/0
+  plain_map         300.8    369.5   1.23x    153   z86563/2137/13446/100718/27744/0
+
+### 16 KB -- exact 170 entries, sketch 2x256x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline          310.2    372.5   1.21x    116   z0/15921/35603/155727/23273/0
+  hash_mix          311.3    376.8   1.19x    154   z0/21085/32804/153813/24049/0
+  conservative      340.2    362.4   1.07x   1749   z0/18636/28617/156720/27609/0
+  both              341.2    366.4   1.08x    197   z0/12714/37807/154692/24665/0
+  plain_map         199.7    372.5   1.82x      0   z176512/1528/10615/15347/27549/0
+
+### 8 KB -- exact 85 entries, sketch 2x128x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline          184.2    430.1   2.35x      0   z0/195248/1125/7734/26748/0
+  hash_mix          189.9    439.8   2.32x      0   z0/195259/799/7401/27295/0
+  conservative      178.6    440.9   2.52x      0   z0/196067/649/7549/27017/0
+  both              186.1    363.7   1.95x    882   z0/195731/922/7506/27121/0
+  plain_map         192.4    420.6   2.19x      0   z188822/778/6159/7116/27976/0
+
+### 4 KB -- exact 42 entries, sketch 2x64x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline            1.6    621.3 388.31x      0   z7/225216/3228/0/0/0
+  hash_mix            1.8    588.6 321.28x      0   z6/223857/2636/363/0/0
+  conservative        1.4    584.6 416.79x      0   z12/229499/1062/0/0/0
+  both                1.4    370.4 263.36x      0   z10/228196/1615/0/0/0
+  plain_map         189.8    607.3   3.39x      0   z189072/373/2389/8935/27462/0
+
+### 2 KB -- exact 21 entries, sketch 2x32x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline            1.0   1031.51031.50x      0   z0/229241/358/0/0/0
+  hash_mix            1.0    929.2 928.30x      0   z1/229908/280/0/0/0
+  conservative        1.0    894.2 894.20x      0   z0/226452/243/0/0/0
+  both                1.1    536.7 487.91x      0   z0/225188/375/0/0/0
+  plain_map           0.2   1055.45064.50x      0   z190973/218/1226/7373/27689/0
+########## regime: churning ##########
+
+### 32 KB -- exact 341 entries, sketch 2x512x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline          224.0    233.0   1.04x      0   z0/43281/101606/12113/22209/0
+  hash_mix          220.7    230.9   1.05x      0   z0/41184/106645/11473/22407/0
+  conservative      221.5    227.7   1.02x      0   z0/40846/104252/11571/21973/0
+  both              223.0    228.2   1.02x      0   z0/42566/98948/12207/21979/0
+  plain_map         210.0    232.8   1.11x      0   z130800/6078/7012/11890/22772/0
+
+### 16 KB -- exact 170 entries, sketch 2x256x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline           97.4    272.0   2.79x      0   z0/80661/74068/26386/1259/0
+  hash_mix          104.7    257.3   2.46x      0   z0/73763/79597/21595/7516/0
+  conservative      103.3    257.7   2.40x      0   z0/78973/66646/26134/293/0
+  both              106.7    242.0   2.27x      0   z0/68720/85595/19702/9081/0
+  plain_map         207.1    269.4   1.29x      0   z139522/4066/1621/11758/22103/0
+
+### 8 KB -- exact 85 entries, sketch 2x128x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline           80.8    347.8   4.30x      0   z0/136206/7760/22941/2523/0
+  hash_mix           76.9    319.0   4.10x      0   z3/144876/7750/22610/2754/0
+  conservative       89.0    306.2   3.59x      0   z3/142997/6798/24242/2054/0
+  both               95.6    264.3   2.78x      0   z0/147076/6997/21367/4496/0
+  plain_map         205.6    343.0   1.68x      0   z137889/1932/1204/12127/21356/0
+
+### 4 KB -- exact 42 entries, sketch 2x64x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline            3.1    506.4 168.90x      0   z4/173135/7621/692/0/0
+  hash_mix            3.1    449.7 145.74x      0   z5/169110/9150/550/0/0
+  conservative        3.1    417.9 134.81x      0   z5/166721/8103/445/0/0
+  both                3.0    312.2 103.07x      0   z4/167720/8850/462/0/0
+  plain_map         213.9    515.6   2.42x      0   z142478/808/1166/11494/22447/0
+
+### 2 KB -- exact 21 entries, sketch 2x32x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline            1.8    852.3 473.61x      0   z2/176567/2391/428/0/0
+  hash_mix            1.9    722.7 389.58x      0   z4/167728/2501/434/0/0
+  conservative        1.7    708.8 416.94x      0   z1/180698/2067/401/0/0
+  both                1.7    437.3 254.47x      0   z0/181585/1653/442/0/0
+  plain_map         208.0    820.9   3.91x      0   z137839/300/910/12187/21643/0
+
+HOW TO READ THIS:
+  conservative vs baseline: does conservative update reduce the
+    sketch's overestimate? If yes, the negative result applies
+    only to the standard construction.
+  hash_mix vs baseline: is the power-of-two modulo costing
+    accuracy on real data, as simulation predicted (<=13%)?
+  plain_map vs baseline (exact column): if exact stops
+    collapsing without an LRU, the collapse was the LRU
+    implementation rather than capacity.
+  under MUST be 0. Conservative update preserves
+    never-undercount only if its read-min-write is atomic;
+    a non-zero value means the spin lock is not doing its job.
+  distribution buckets: zero/1-9/10-99/100-999/1k-10k/10k+ of
+    the EXACT count seen per query.
+R6 DONE
+
+[exited with code 0]

@@ -1,0 +1,51 @@
+discrim lookup fixed
+ok
+/tmp/run_headline.sh: line 2: 330834 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+########## HEADLINE: single matrix, n=20, stable identities ##########
+Round 4 matrix: headline
+workload: 128 respawning churn slots, lifetime 60.0s, schbench victim (same as round 3)
+n=20, condition order randomised, seed=31
+
+  ... repetition 1/20 done
+  ... repetition 2/20 done
+  ... repetition 3/20 done
+  ... repetition 4/20 done
+  ... repetition 5/20 done
+  ... repetition 6/20 done
+  ... repetition 7/20 done
+  ... repetition 8/20 done
+  ... repetition 9/20 done
+  ... repetition 10/20 done
+  ... repetition 11/20 done
+  ... repetition 12/20 done
+  ... repetition 13/20 done
+  ... repetition 14/20 done
+  ... repetition 15/20 done
+  ... repetition 16/20 done
+  ... repetition 17/20 done
+  ... repetition 18/20 done
+  ... repetition 19/20 done
+  ... repetition 20/20 done
+
+==================================================================================
+condition             p50 med       p50 range  p99 med         p99 range  discrim
+==================================================================================
+none_ref_32k             3912      2042-59840    65440      61376-635904    2.82x
+flat_ref_32k            11040     10576-12048    16864       15696-17952    1.00x
+exact_32k                3892       3524-4184    10144        9520-22816    2.84x
+exact_8k                 3908       3596-4092    63680      56640-100736    2.82x
+sketch_32k_d2            3892       3532-4076    10064        9360-22496    2.84x
+sketch_8k_d2             3924       3572-8104    11344        8720-29088    2.81x
+
+DISCRIM = flat_ref p50 / this row's p50. It measures how well the
+tracker separates the victim from churn, with the count-blind
+penalty as the zero point. 1.0x means no discrimination at all;
+below 1.0x means worse than not discriminating.
+
+KEY COMPARISON: every sketch row vs exact_ref. If ANY sketch
+shape reaches exact's discrimination at this budget, round 3's
+refutation must be narrowed to 'this configuration' rather than
+stated about sketches generally.
+HEADLINE DONE
+
+[exited with code 0]

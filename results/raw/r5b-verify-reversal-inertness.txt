@@ -1,0 +1,63 @@
+/tmp/run_verify.sh: line 2: 2184926 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+########## VERIFY 1: stable identities, reversal rows, n=15 seed 4 ##########
+Round 3: identity-count scaling -- the memory question
+load held constant at 128 concurrent churn tasks; identity count varied by task lifetime
+
+condition order randomised per repetition, seed=4
+budgets matched on measured memlock; check the map column
+
+### budget ~16 KB   exact 170 entries   sketch 2x256x4 ###
+  none             p50   3900us  p99   63808us   --    p50 rng  3540-4012  p99 rng  62016-93568  map    18.2KB
+  flat             p50  11152us  p99   17312us  1.00x  p50 rng 10480-12080 p99 rng  15184-23328  map    18.2KB
+  exact_penalty    p50   4456us  p99   25184us  1.45x  p50 rng  3924-6248  p99 rng  17056-47040  map    18.2KB
+  sketch_penalty   p50   3940us  p99   10992us  0.63x  p50 rng  3716-5608  p99 rng   9648-47168  map    16.3KB
+
+### budget ~8 KB   exact 85 entries   sketch 2x128x4 ###
+  none             p50   3948us  p99   78976us   --    p50 rng  2148-57152 p99 rng  62400-738304 map     9.6KB
+  flat             p50  11376us  p99   17312us  1.00x  p50 rng 10992-12336 p99 rng  15088-32672  map     9.6KB
+  exact_penalty    p50   3948us  p99   71808us  4.15x  p50 rng  3924-54336 p99 rng  58432-160512 map     9.6KB
+  sketch_penalty   p50   5320us  p99   14064us  0.81x  p50 rng  3500-11984 p99 rng  10608-29856  map     8.3KB
+
+HOW TO READ THIS:
+  Compare sketch_penalty against exact_penalty AT EACH LIFETIME,
+  both relative to flat. The count-attributable benefit is the
+  gap from flat; the sketch's cost is how much of that gap it
+  fails to reproduce. Ranges overlapping = no difference shown.
+  Then compare the maps column: the sketch's whole claim is that
+  its number does not move as identities grow while exact's must.
+  If exact's quality holds at every scale AND its memory stays
+  affordable, the sketch is solving a problem this machine does
+  not have, and that is the finding.
+
+########## VERIFY 2: churning identities, inertness check, n=8 seed 5 ##########
+Round 3: identity-count scaling -- the memory question
+load held constant at 128 concurrent churn tasks; identity count varied by task lifetime
+
+condition order randomised per repetition, seed=5
+budgets matched on measured memlock; check the map column
+
+### budget ~8 KB   exact 85 entries   sketch 2x128x4 ###
+  none             p50   3940us  p99  113024us   --    p50 rng  3916-5784  p99 rng 106880-159488 map     9.6KB
+  flat             p50  15632us  p99   35904us  1.00x  p50 rng 14640-17056 p99 rng  30816-99456  map     9.6KB
+  exact_penalty    p50   3936us  p99  100096us  2.79x  p50 rng  3924-4044  p99 rng  84864-108416 map     9.6KB
+  sketch_penalty   p50  17088us  p99   42176us  1.17x  p50 rng 16240-17760 p99 rng  28000-50752  map     8.3KB
+
+### budget ~2 KB   exact 21 entries   sketch 2x32x4 ###
+  none             p50   3960us  p99  112896us   --    p50 rng  3940-4052  p99 rng 102272-144128 map     3.1KB
+  flat             p50  14560us  p99   32064us  1.00x  p50 rng 13968-15408 p99 rng  30240-65216  map     3.1KB
+  exact_penalty    p50   3960us  p99  106496us  3.32x  p50 rng  3948-4076  p99 rng  92032-124544 map     3.1KB
+  sketch_penalty   p50  14864us  p99   23840us  0.74x  p50 rng 14448-15920 p99 rng  20576-31648  map     2.3KB
+
+HOW TO READ THIS:
+  Compare sketch_penalty against exact_penalty AT EACH LIFETIME,
+  both relative to flat. The count-attributable benefit is the
+  gap from flat; the sketch's cost is how much of that gap it
+  fails to reproduce. Ranges overlapping = no difference shown.
+  Then compare the maps column: the sketch's whole claim is that
+  its number does not move as identities grow while exact's must.
+  If exact's quality holds at every scale AND its memory stays
+  affordable, the sketch is solving a problem this machine does
+  not have, and that is the finding.
+ALL DONE
+
+[exited with code 0]

@@ -1,0 +1,39 @@
+/tmp/run_r3.sh: line 2: 149088 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+Round 3: identity-count scaling -- the memory question
+load held constant at 128 concurrent churn tasks; identity count varied by task lifetime
+
+condition order randomised per repetition, seed=1
+budgets matched on measured memlock; check the map column
+
+### budget ~128 KB   exact 1365 entries   sketch 2x2048x4 ###
+  flat             p50  14224us  p99   30176us  1.00x  p50 rng 12976-15536 p99 rng  28064-33728  map   139.6KB
+  exact_penalty    p50   3820us  p99   65120us  2.16x  p50 rng  3572-3908  p99 rng  54080-73856  map   139.6KB
+  sketch_penalty   p50   3832us  p99   67328us  2.23x  p50 rng  3636-4060  p99 rng  56512-86912  map   128.3KB
+
+### budget ~32 KB   exact 341 entries   sketch 2x512x4 ###
+  flat             p50  14448us  p99   30464us  1.00x  p50 rng 13744-14896 p99 rng  27808-36544  map    35.6KB
+  exact_penalty    p50   3996us  p99   65440us  2.15x  p50 rng  2220-4104  p99 rng  51520-83584  map    35.6KB
+  sketch_penalty   p50   4600us  p99   58688us  1.93x  p50 rng  3892-5496  p99 rng  51264-65664  map    32.3KB
+
+### budget ~8 KB   exact 85 entries   sketch 2x128x4 ###
+  flat             p50  14208us  p99   33776us  1.00x  p50 rng 13712-15952 p99 rng  29088-38848  map     9.6KB
+  exact_penalty    p50   4004us  p99  102784us  3.04x  p50 rng  3836-4084  p99 rng  89216-128896 map     9.6KB
+  sketch_penalty   p50  17056us  p99   30560us  0.90x  p50 rng 16144-17824 p99 rng  26464-37184  map     8.3KB
+
+### budget ~2 KB   exact 21 entries   sketch 2x32x4 ###
+  flat             p50  14000us  p99   34240us  1.00x  p50 rng 13328-14928 p99 rng  28704-38592  map     3.1KB
+  exact_penalty    p50   3892us  p99   96256us  2.81x  p50 rng  3836-3932  p99 rng  86400-119424 map     3.1KB
+  sketch_penalty   p50  14448us  p99   20576us  0.60x  p50 rng 14160-14672 p99 rng  19424-22368  map     2.3KB
+
+HOW TO READ THIS:
+  Compare sketch_penalty against exact_penalty AT EACH LIFETIME,
+  both relative to flat. The count-attributable benefit is the
+  gap from flat; the sketch's cost is how much of that gap it
+  fails to reproduce. Ranges overlapping = no difference shown.
+  Then compare the maps column: the sketch's whole claim is that
+  its number does not move as identities grow while exact's must.
+  If exact's quality holds at every scale AND its memory stays
+  affordable, the sketch is solving a problem this machine does
+  not have, and that is the finding.
+
+[exited with code 0]

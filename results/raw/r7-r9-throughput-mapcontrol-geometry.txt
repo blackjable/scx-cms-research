@@ -1,0 +1,187 @@
+/tmp/run_r7plus.sh: line 2: 2907821 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+########## R7: throughput + cyclictest across tiers ##########
+Round 7: throughput and RT-wakeup checks across the tiers
+hackbench: yes   cyclictest: yes
+hackbench -g 10 -l 1000, n=5
+
+  ... repetition 1/5
+  ... repetition 2/5
+  ... repetition 3/5
+  ... repetition 4/5
+  ... repetition 5/5
+
+========================================================================
+condition           hackbench s  vs eevdf  ct avg us  ct max us
+========================================================================
+eevdf                      1.05     1.00x        124       3315
+cms_none                   0.95     0.91x        134       3845
+flat                       1.00     0.95x        117       3582
+exact_penalty              0.97     0.92x        113       4755
+sketch_penalty             0.95     0.90x        119       1629
+
+HOW TO READ THIS:
+  hackbench is a THROUGHPUT measure: lower is better, and a
+  penalty tier above 1.0x vs eevdf is buying its latency wins
+  with throughput. That belongs beside the latency results, not
+  in a footnote.
+  cyclictest absolute values are floored by this VM's timer
+  delivery (~1.7ms, Section 4.2); read the columns for relative
+  differences between schedulers only.
+
+########## R8a: scheduling outcome, LRU map, STABLE ##########
+Round 3: identity-count scaling -- the memory question
+load held constant at 128 concurrent churn tasks; identity count varied by task lifetime
+
+condition order randomised per repetition, seed=11
+budgets matched on measured memlock; check the map column
+
+### budget ~32 KB   exact 341 entries   sketch 2x512x4 ###
+  none             p50   3928us  p99   77952us   --    p50 rng  3540-4232  p99 rng  63552-166144 map    35.6KB
+  flat             p50  11760us  p99   16584us  1.00x  p50 rng 10608-12624 p99 rng  14736-17888  map    35.6KB
+  exact_penalty    p50   3932us  p99   10272us  0.62x  p50 rng  3692-3964  p99 rng   9008-20256  map    35.6KB
+  sketch_penalty   p50   3960us  p99   13200us  0.80x  p50 rng  3836-3988  p99 rng  10096-18208  map    32.3KB
+
+### budget ~16 KB   exact 170 entries   sketch 2x256x4 ###
+  none             p50   3916us  p99   77824us   --    p50 rng  2140-3948  p99 rng  61504-139008 map    18.2KB
+  flat             p50  11712us  p99   16680us  1.00x  p50 rng 10992-12368 p99 rng  14320-18528  map    18.2KB
+  exact_penalty    p50   5032us  p99   42240us  2.53x  p50 rng  3940-6152  p99 rng  30496-49728  map    18.2KB
+  sketch_penalty   p50   3908us  p99    9888us  0.59x  p50 rng  3892-3972  p99 rng   9328-15408  map    16.3KB
+
+### budget ~8 KB   exact 85 entries   sketch 2x128x4 ###
+  none             p50   3940us  p99   71552us   --    p50 rng  3196-4004  p99 rng  65664-91264  map     9.6KB
+  flat             p50  11728us  p99   17504us  1.00x  p50 rng 10992-12176 p99 rng  16016-18656  map     9.6KB
+  exact_penalty    p50   3936us  p99   68608us  3.92x  p50 rng  3924-3996  p99 rng  58048-86656  map     9.6KB
+  sketch_penalty   p50   4328us  p99   12192us  0.70x  p50 rng  3916-11024 p99 rng   7640-17376  map     8.3KB
+
+### budget ~2 KB   exact 21 entries   sketch 2x32x4 ###
+  none             p50   3912us  p99   72704us   --    p50 rng  3900-3956  p99 rng  63296-79744  map     3.1KB
+  flat             p50  11408us  p99   18080us  1.00x  p50 rng 11152-11728 p99 rng  17120-18848  map     3.1KB
+  exact_penalty    p50   3912us  p99   67456us  3.73x  p50 rng  3900-3964  p99 rng  61760-146176 map     3.1KB
+  sketch_penalty   p50  10064us  p99   13184us  0.73x  p50 rng  9776-10992 p99 rng  12080-15792  map     2.3KB
+
+HOW TO READ THIS:
+  Compare sketch_penalty against exact_penalty AT EACH LIFETIME,
+  both relative to flat. The count-attributable benefit is the
+  gap from flat; the sketch's cost is how much of that gap it
+  fails to reproduce. Ranges overlapping = no difference shown.
+  Then compare the maps column: the sketch's whole claim is that
+  its number does not move as identities grow while exact's must.
+  If exact's quality holds at every scale AND its memory stays
+  affordable, the sketch is solving a problem this machine does
+  not have, and that is the finding.
+
+########## R8b: scheduling outcome, PLAIN map, STABLE ##########
+Round 3: identity-count scaling -- the memory question
+load held constant at 128 concurrent churn tasks; identity count varied by task lifetime
+
+condition order randomised per repetition, seed=11
+budgets matched on measured memlock; check the map column
+
+### budget ~32 KB   exact 341 entries   sketch 2x512x4 ###
+  none             p50   3912us  p99   68736us   --    p50 rng  3900-3964  p99 rng  64960-165632 map    35.6KB
+  flat             p50  11424us  p99   17728us  1.00x  p50 rng 10960-11984 p99 rng  16544-33600  map    35.6KB
+  exact_penalty    p50   3920us  p99   10048us  0.57x  p50 rng  3908-4076  p99 rng   9680-13456  map    35.6KB
+  sketch_penalty   p50   3924us  p99    9728us  0.55x  p50 rng  3900-4092  p99 rng   9200-19104  map    32.3KB
+
+### budget ~16 KB   exact 170 entries   sketch 2x256x4 ###
+  none             p50   3940us  p99   76672us   --    p50 rng  3908-3948  p99 rng  63040-112768 map    18.2KB
+  flat             p50  11520us  p99   17472us  1.00x  p50 rng 10928-12048 p99 rng  16736-19680  map    18.2KB
+  exact_penalty    p50   6824us  p99   18112us  1.04x  p50 rng  6712-11312 p99 rng  15728-43584  map    18.2KB
+  sketch_penalty   p50   3928us  p99   11024us  0.63x  p50 rng  3916-4084  p99 rng   9456-18976  map    16.3KB
+
+### budget ~8 KB   exact 85 entries   sketch 2x128x4 ###
+  none             p50   3940us  p99   75904us   --    p50 rng  3900-3964  p99 rng  61632-97408  map     9.6KB
+  flat             p50  11520us  p99   17824us  1.00x  p50 rng 10928-12144 p99 rng  16080-21216  map     9.6KB
+  exact_penalty    p50   3924us  p99   66400us  3.73x  p50 rng  2140-32288 p99 rng  58048-150784 map     9.6KB
+  sketch_penalty   p50   4704us  p99   14592us  0.82x  p50 rng  3876-11056 p99 rng   8152-28000  map     8.3KB
+
+### budget ~2 KB   exact 21 entries   sketch 2x32x4 ###
+  none             p50   3936us  p99   74368us   --    p50 rng  3916-3956  p99 rng  64320-85632  map     3.1KB
+  flat             p50  11808us  p99   16648us  1.00x  p50 rng 11312-12240 p99 rng  15088-21472  map     3.1KB
+  exact_penalty    p50   3928us  p99   72960us  4.38x  p50 rng  3892-3948  p99 rng  63552-136448 map     3.1KB
+  sketch_penalty   p50   9936us  p99   13056us  0.78x  p50 rng  8976-11056 p99 rng  12176-14352  map     2.3KB
+
+HOW TO READ THIS:
+  Compare sketch_penalty against exact_penalty AT EACH LIFETIME,
+  both relative to flat. The count-attributable benefit is the
+  gap from flat; the sketch's cost is how much of that gap it
+  fails to reproduce. Ranges overlapping = no difference shown.
+  Then compare the maps column: the sketch's whole claim is that
+  its number does not move as identities grow while exact's must.
+  If exact's quality holds at every scale AND its memory stays
+  affordable, the sketch is solving a problem this machine does
+  not have, and that is the finding.
+
+########## R8c: scheduling outcome, PLAIN map, CHURNING ##########
+Round 3: identity-count scaling -- the memory question
+load held constant at 128 concurrent churn tasks; identity count varied by task lifetime
+
+condition order randomised per repetition, seed=12
+budgets matched on measured memlock; check the map column
+
+### budget ~32 KB   exact 341 entries   sketch 2x512x4 ###
+  none             p50   3944us  p99  111872us   --    p50 rng  3916-3996  p99 rng 100480-132864 map    35.6KB
+  flat             p50  14304us  p99   34880us  1.00x  p50 rng 13584-15760 p99 rng  30496-45376  map    35.6KB
+  exact_penalty    p50   3940us  p99  110976us  3.18x  p50 rng  3916-3980  p99 rng  98176-116864 map    35.6KB
+  sketch_penalty   p50   4200us  p99   63680us  1.83x  p50 rng  3980-5048  p99 rng  56768-86912  map    32.3KB
+
+### budget ~8 KB   exact 85 entries   sketch 2x128x4 ###
+  none             p50   3980us  p99  130880us   --    p50 rng  2268-4152  p99 rng  99968-160512 map     9.6KB
+  flat             p50  14608us  p99   38016us  1.00x  p50 rng 13904-15408 p99 rng  34240-48832  map     9.6KB
+  exact_penalty    p50   4000us  p99  124032us  3.26x  p50 rng  3980-4104  p99 rng 112000-136448 map     9.6KB
+  sketch_penalty   p50  17568us  p99   35456us  0.93x  p50 rng 16864-18592 p99 rng  30880-75392  map     8.3KB
+
+### budget ~2 KB   exact 21 entries   sketch 2x32x4 ###
+  none             p50   4008us  p99  118144us   --    p50 rng  3972-4092  p99 rng 108160-125312 map     3.1KB
+  flat             p50  14864us  p99   34864us  1.00x  p50 rng 13456-15696 p99 rng  30752-40768  map     3.1KB
+  exact_penalty    p50   4000us  p99  122496us  3.51x  p50 rng  2212-4168  p99 rng 115840-136448 map     3.1KB
+  sketch_penalty   p50  15520us  p99   25248us  0.72x  p50 rng 15376-16208 p99 rng  21088-30816  map     2.3KB
+
+HOW TO READ THIS:
+  Compare sketch_penalty against exact_penalty AT EACH LIFETIME,
+  both relative to flat. The count-attributable benefit is the
+  gap from flat; the sketch's cost is how much of that gap it
+  fails to reproduce. Ranges overlapping = no difference shown.
+  Then compare the maps column: the sketch's whole claim is that
+  its number does not move as identities grow while exact's must.
+  If exact's quality holds at every scale AND its memory stays
+  affordable, the sketch is solving a problem this machine does
+  not have, and that is the finding.
+
+########## R9: sketch geometry sweep, STABLE regime ##########
+Round 4 matrix: bestshot
+workload: 128 respawning churn slots, lifetime 60.0s, schbench victim (same as round 3)
+n=10, condition order randomised, seed=1
+
+  ... repetition 1/10 done
+  ... repetition 2/10 done
+  ... repetition 3/10 done
+  ... repetition 4/10 done
+  ... repetition 5/10 done
+  ... repetition 6/10 done
+  ... repetition 7/10 done
+  ... repetition 8/10 done
+  ... repetition 9/10 done
+  ... repetition 10/10 done
+
+==================================================================================
+condition             p50 med       p50 range  p99 med         p99 range  discrim
+==================================================================================
+exact_ref                3904       3876-4012    63232       61504-88448    2.95x
+flat_ref                11504     11056-12432    17344       16144-23968    1.00x
+sketch_d1_w512           3936       3812-6696    20448        9072-34240    2.92x
+sketch_d2_w256           3932       3876-7832    11456        8656-22688    2.93x
+sketch_d4_w128           4432       4036-7608    19968       10032-26592    2.60x
+sketch_d8_w64            9680      8304-10192    16928       12976-22816    1.19x
+sketch_d4_rotate         4054      3836-11216    15248        9392-32544    2.84x
+
+DISCRIM = flat_ref p50 / this row's p50. It measures how well the
+tracker separates the victim from churn, with the count-blind
+penalty as the zero point. 1.0x means no discrimination at all;
+below 1.0x means worse than not discriminating.
+
+KEY COMPARISON: every sketch row vs exact_ref. If ANY sketch
+shape reaches exact's discrimination at this budget, round 3's
+refutation must be narrowed to 'this configuration' rather than
+stated about sketches generally.
+ALL DONE
