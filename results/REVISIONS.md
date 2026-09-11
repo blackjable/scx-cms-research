@@ -116,3 +116,43 @@ is what could have been said after each of the previous six rounds. The
 defence against a seventh revision is not confidence; it is that the
 final runs were structured so specific predictions could fail, and the
 raw output is archived here so someone else can check whether they did.
+
+---
+
+## 8. "Sketch at 8 KB is equivalent to exact at 32 KB"
+
+**Withdrawn:** a pre-registered equivalence test refuted it.
+**Cause:** claiming equivalence from overlapping ranges. Overlap shows a
+difference was not *detected*; it is not evidence that none exists,
+particularly when both distributions are wide.
+
+A paired TOST at n=30 with a ±20% margin declared in advance
+(`PREREGISTRATION_equivalence.md`, committed before the data existed)
+put the 90% CI on the p99 log-ratio at **[1.114, 1.394]** — entirely
+outside the margin on the upper side. Parametric and bootstrap agreed.
+
+**What it revealed.** The matched-memory control failed too:
+`sketch_32k_d2` vs `exact_32k`, at the *same* budget, is also not
+equivalent on p99 (CI [0.995, 1.448]). So the tail penalty is a property
+of the sketch rather than a cost of the memory saving. One repetition
+shows the mechanism plainly — `sketch_32k_d2` reached 240,384us, 24x its
+own median, with no other condition disturbed in that repetition.
+
+Median latency *is* equivalent (CI [0.974, 1.060]). The sketch matches
+exact on the typical case and loses on the tail.
+
+**The corrected claim:** the sketch continues to function at a budget
+where exact counting does not, at the cost of roughly 17% worse tail
+latency and with equivalent median latency. A trade, not a free lunch.
+
+**Original:** `raw/headline-single-matrix-n20.txt` (where the ranges
+overlapped)
+**Correction:** `raw/equivalence-n30-prereg.txt`
+
+**Note on how this one was caught.** Unlike the previous seven, this
+revision came from a test written specifically so that it could fail,
+with its margin, metric, analysis and falsification clause committed
+before any data was collected. The margin was deliberately set tighter
+than the difference already observed. That is the only reason the
+result changed rather than being confirmed by a test built to agree
+with it.
