@@ -91,50 +91,52 @@ counts forever while everything that arrives later is invisible. In my
 measurements 83% of queries returned zero while a locked-in minority
 carried counts in the thousands.
 
-### A third mode I missed the first time
+### A third mode I thought I'd found, and hadn't
 
-I originally wrote this post with two failure modes. There's a third,
-and it's the one I'd now worry about most.
+I originally added a third failure mode here, and then measured it
+properly and had to take it out. The retraction is worth keeping
+because the mistake is easy to make.
 
-Even when a sketch is *adequately* provisioned — not blunt, not
-overwhelmed, discriminating normally — it occasionally mis-ranks a small
-number of individual events badly. In one repetition out of thirty, at a
-budget where the sketch was performing identically to exact counting,
-the victim's p99 hit **240,384µs**: twenty-four times that condition's
-own median.
+In one repetition out of thirty, a sketch that was otherwise performing
+identically to exact counting returned a victim p99 of **240,384µs** —
+twenty-four times its own median — with its median completely normal. It
+looked like a distinct failure mode: rare, severe, and invisible to any
+typical-case monitoring.
 
-Here's what makes it nasty:
+I attributed it to the sketch because it affected only that one
+condition in that repetition, and reasoned that an environmental
+disturbance would have hit several.
 
-```
-                  p50        p99
-exact counting  3,844us    10,032us
-sketch          3,828us   240,384us
-```
+**That reasoning is wrong.** Conditions run *sequentially*, one after
+another. A host hiccup lasting a few seconds therefore hits exactly one
+condition — the signature I treated as exonerating is precisely what an
+environmental disturbance produces.
 
-**The median was perfectly normal.** Identical to exact counting's,
-identical to the do-nothing baseline's. The structure had not stopped
-discriminating — it was working correctly for essentially every wakeup,
-and then a handful of them waited a quarter of a second.
+A dedicated run, 60 repetitions per condition, settled it:
 
-So the three modes are:
-
-| mode | what you see | can you detect it? |
+| condition | excursions (>3x baseline median) | worst |
 |---|---|---|
-| **silent** (exact, over capacity) | mechanism quietly stops acting | only by comparing against a do-nothing baseline |
-| **loud** (sketch, badly over capacity) | median collapses, everything penalised equally | yes — the median moves |
-| **sporadic** (sketch, any capacity) | median normal, rare catastrophic tail events | **no** — nothing in typical-case monitoring moves |
+| **exact counting** | **1/60** | **4.0x** |
+| sketch, depth 2 | 1/60 | 3.0x |
+| sketch, depth 4 | 3/60 | 5.7x |
+| sketch, depth 8 | 1/60 | 3.6x |
+| sketch @ 8 KB | 1/60 | 2.3x |
 
-The third is the worst for an operator, because every dashboard you'd
-normally watch says the system is healthy. A collision inflates one
-task's count on one occasion, it gets deprioritised severely, and a
-quarter of a second disappears — while your median, your mean, and your
-p90 all look exactly as they should.
+**Exact counting has them at the same rate.** The 24x never recurred
+across 360 further measurements. Whatever produces these excursions —
+this VM, this workload, the host migrating a vCPU mid-run — belongs to
+the environment, not to approximation.
 
-And unlike the first two, it doesn't go away with a bigger map. It's a
-property of hashing collisions being probabilistic: make the table
-larger and you make it rarer, not absent.
+So there are two failure modes, not three. I'd have published a
+confident and wrong third one on the strength of a single outlier and a
+check that tested the wrong thing.
 
-### Why this framing is more useful than accuracy
+Worth noting the check *was* specified in advance, which is usually the
+defence against this. Pre-registration guarantees you didn't pick the
+test to fit the data. It does not guarantee the test measures what you
+claim.
+
+### Why this framing is more useful than accuracy### Why this framing is more useful than accuracy
 
 If you compare these structures on error at a given size, you get a
 table of numbers that depends on your workload and tells you little
@@ -143,25 +145,16 @@ about what happens when your assumptions break.
 If you compare them on **failure mode**, you get a design rule:
 
 > Silent failure degrades to your underlying policy. Loud failure
-> actively misdirects it. Sporadic failure misdirects it rarely, and
-> tells you nothing.
+> actively misdirects it.
 
 A scheduler that stops adjusting is a scheduler you still understand. A
 scheduler confidently penalising the wrong tasks is worse than one doing
-nothing, but at least the damage is visible in aggregate. A scheduler
-that behaves correctly 999 times and catastrophically on the thousandth
-is the one that will survive your evaluation and then surprise you in
-production.
+nothing, and it will look fine in any metric that doesn't happen to
+watch the victim.
 
 So the question to ask of a bounded counting structure isn't *which is
 more accurate at 8 KB*. It's **what does this do when it runs out of
-room, can I tell from the outside that it has, and does it fail all at
-once or occasionally?**
-
-That last clause is the one I'd have skipped a week ago. It's also the
-one that decides whether a structure is safe to put in a scheduler,
-because "usually fine" is not a property you can reason about when the
-exceptions are invisible.
+room, and can I tell from the outside that it has?**
 
 ## A footnote on conservative update
 

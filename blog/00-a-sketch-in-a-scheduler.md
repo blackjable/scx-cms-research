@@ -168,21 +168,15 @@ it is what a Count-Min Sketch costs at any size, because collisions
 occasionally inflate a task's count and produce a bad scheduling
 decision that exact counting would not make.
 
-One repetition showed it starkly, and the detail that matters is *which*
-number moved:
+One repetition produced a 240,384µs excursion, twenty-four times its own
+median, and I initially wrote that up as a sketch-specific failure mode.
+A dedicated run at 60 repetitions per condition withdrew it: **exact
+counting shows excursions at the same rate** (1 in 60, worst 4.0x), and
+the 24x never recurred across 360 further measurements. Whatever causes
+them belongs to the environment, not to approximation.
 
-```
-                  p50        p99
-exact counting  3,844us    10,032us
-sketch          3,828us   240,384us
-```
-
-240,384µs — twenty-four times that condition's own median — **with the
-median completely normal.** The sketch had not stopped telling tasks
-apart. It was working correctly for essentially every wakeup, and then a
-handful of them waited a quarter of a second.
-
-That is a failure mode no typical-case monitoring will ever show you.
+What survives is the ordinary variance difference, which is smaller and
+less dramatic than the outlier suggested.
 
 Which reframes the result. You are not trading memory for tail latency.
 You are paying a tail penalty for approximation, and separately getting

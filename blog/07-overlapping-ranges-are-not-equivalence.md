@@ -104,13 +104,13 @@ produce a scheduling decision exact counting wouldn't make. One
 repetition showed it plainly: 240,384µs, twenty-four times that
 condition's own median, with nothing else in that repetition disturbed.
 
-Worth being precise about what that run looked like, because it isn't
-what I first assumed. Its **median was 3,828µs — completely normal**,
-matching exact counting's 3,844µs to within half a percent. The sketch
-had not lost the ability to tell tasks apart. It was working correctly
-for essentially every wakeup, and then a handful of them waited a
-quarter of a second. A failure invisible to anything watching the
-typical case.
+A footnote on that outlier, added after I measured it properly: I
+initially treated it as a sketch-specific failure mode. A follow-up run
+at 60 repetitions per condition showed exact counting producing
+excursions at the same rate, and the 24x never recurred. It belongs to
+the environment rather than to the sketch. The equivalence result does
+not depend on it — the mean ratio is driven by the bulk of the
+distribution, not by one point.
 
 Without that control I'd have reported a true number attached to the
 wrong explanation.
