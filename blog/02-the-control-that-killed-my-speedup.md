@@ -146,5 +146,5 @@ credit for.
 | both re-measured under randomised ordering (n=20) | [`r2d-randomised-order-n20.txt`](../results/raw/r2d-randomised-order-n20.txt) |
 
 The control is `--mechanism flat` in
-[`flat.bpf.c`](../../repo/scheds/experimental/scx_cms/src/bpf/mechanisms/flat.bpf.c),
+[`flat.bpf.c`](https://github.com/blackjable/scx-cms/blob/main/src/bpf/mechanisms/flat.bpf.c),
 roughly forty lines.

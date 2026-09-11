@@ -34,13 +34,30 @@ so summaries can be recomputed rather than trusted.
 Runs that produced conclusions later retracted are kept deliberately. The
 wrong answers are part of the record.
 
+## Repositories
+
+- **https://github.com/blackjable/scx-cms-research** — this repository: paper, posts, harnesses, raw data
+- **https://github.com/blackjable/scx-cms** — the scheduler itself
+
+Both are private for now. **The posts link to data that is not yet
+publicly readable**, so they cannot be published until at least this
+repository is made public. A post citing unreachable data is worse than
+one citing none: it implies a verifiability that isn't there.
+
 ## A note on publishing these
 
-Links here are repo-relative and resolve when browsing the repository. If
-the posts are published anywhere else, those links need rewriting to
-absolute URLs — `../results/` and `../benchmark/` are the two prefixes to
-find and replace, plus `../../repo/` for links into the scheduler source.
+Links within posts are repo-relative and resolve when browsing this
+repository on GitHub. Links into the scheduler source are absolute,
+because it lives in a separate repository.
 
-**Push the code and data first, then fix the links, then publish the
-posts.** A post citing data nobody can reach is worse than one citing
-none, because it implies verifiability that isn't there.
+If the posts are published anywhere other than GitHub — Medium, a
+personal blog — the relative links need absolutising. The two prefixes
+to find and replace:
+
+```
+../results/    -> https://github.com/blackjable/scx-cms-research/blob/main/results/
+../benchmark/  -> https://github.com/blackjable/scx-cms-research/blob/main/benchmark/
+```
+
+Order of operations, which matters: **make the repositories public,
+verify the links resolve, then publish the posts.**
