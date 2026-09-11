@@ -103,8 +103,16 @@ medicine has a name for precisely my failure: **carryover**, the effect
 of one treatment persisting into the next. Crossover trials randomise or
 counterbalance treatment order specifically to control it.
 
-So the fix I arrived at by debugging is a century-old standard practice
-in other experimental fields, and I reinvented it badly and late.
+I didn't know that when I fixed it. I found the thing by running into
+it: two matrices disagreed, I chased the discrepancy for hours assuming
+one was noise, and eventually worked out that position in the sequence
+was doing the work. The fix followed from the diagnosis. Only later did
+I learn it already had a name, and that the name is old.
+
+Which is, I think, the usual order. You find the edge of something by
+walking into it, and the label comes after. Reading about carryover
+would not have made me believe a 55% swing was possible from condition
+ordering alone; measuring it did.
 
 I don't know how common the mistake is in systems benchmarking — I
 haven't surveyed the literature and I'm not going to claim a pattern I
