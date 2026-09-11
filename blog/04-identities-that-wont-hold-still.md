@@ -120,8 +120,10 @@ don't know the answer.
 ## The broader point
 
 Behaviour-tracking schedulers are having a moment, and sched_ext makes
-them easy to build. Most of the interesting ones accumulate some history
-per task and act on it.
+them easy to build. I built one without once asking what "per task"
+committed me to, and I doubt I'm unusual in that — the abstraction is so
+natural that the assumption inside it is invisible until a workload
+breaks it.
 
 Every one of those carries this assumption, mine included, and mine
 didn't state it either — I discovered it by running a workload where it

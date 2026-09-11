@@ -12,8 +12,14 @@ point, the conclusion that the hypothesis was refuted — and, twice near
 the end, claims I had already written up as final.
 
 None of them failed because the hypothesis was wrong. Every one failed
-because an instrument was wrong. That pattern is the thing worth writing
-about.
+because an instrument was wrong — and each instrument was wrong in a way
+that experimental design worked out decades ago and I had simply never
+encountered.
+
+That's the pattern worth writing about, and it's why I'm writing it as
+someone who didn't know rather than someone warning you. I came to this
+knowing how to write a scheduler and nothing at all about how to measure
+one.
 
 ## The retractions
 
@@ -220,8 +226,15 @@ attributable to the signal rather than the disturbance.
 once, via a pre-registration, and it was the only time I caught myself
 about to accept a favourable result whose framing had already failed.
 
-None of that is novel advice. What surprised me is how much of it I
-only adopted after being burned, despite knowing all of it beforehand.
+None of that is novel advice. Most of it is a century old and I'd met
+none of it. I adopted each piece the day after it would have saved me,
+which is an expensive way to learn but does make the lessons stick.
+
+If you're in the same position — comfortable with the systems, hazy on
+the method — the good news is that the fixes are all small. A do-nothing
+condition is one line. Randomising order is six. Writing your margin
+down before you look costs nothing at all. The cost isn't in applying
+them, it's in not knowing they exist.
 
 ## Data
 

@@ -1,6 +1,18 @@
 # Blog series: a Count-Min Sketch in a Linux scheduler
 
-Eight posts. Post 00 is the result; the rest are what it took to trust it.
+Eight posts. Post 00 is the result; the rest are what it took to trust
+it.
+
+I came to this knowing how to write a scheduler and nothing about how to
+measure one. That turned out to be the harder half: ten claims made and
+withdrawn, almost all of them because an instrument was wrong rather
+than because the idea was. Each fix — a control condition, randomised
+ordering, an equivalence test — is standard practice somewhere else and
+was new to me.
+
+So these are written from the position of someone who didn't know, for
+anyone else who came to benchmarking through code rather than through a
+statistics course. The mistakes are the content.
 
 | # | post | stands alone? |
 |---|---|---|

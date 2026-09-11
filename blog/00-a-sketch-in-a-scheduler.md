@@ -12,7 +12,9 @@ stream processing. A literature search before starting this turned up no
 tracking — though absence of evidence and all that, and I'd genuinely
 like to hear about prior work if it exists.
 
-So I built one, and measured it. The short version:
+So I built one and measured it — and then spent considerably longer
+learning how to measure it properly, which turned out to be the harder
+half. The short version of the result:
 
 > **A Count-Min Sketch at 8.3 KB keeps working at a memory budget where
 > exact per-task counters have stopped working entirely.** Typical

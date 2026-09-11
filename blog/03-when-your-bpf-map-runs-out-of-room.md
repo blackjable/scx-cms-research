@@ -3,10 +3,11 @@
 Every BPF scheduler that keeps per-task state eventually faces the same
 question: what happens when there are more tasks than you budgeted for?
 
-I ended up measuring this properly, by accident, while testing something
-else. Two findings came out of it. One is a trap in a map type that
-sched_ext programs use constantly. The other is a way of thinking about
-bounded state that I found more useful than any accuracy figure.
+I ended up measuring this by accident, while testing something else, and
+found two things I hadn't expected. One is a trap in a map type that
+sched_ext programs use constantly — I'd assumed it behaved as its name
+suggests, and at small sizes it doesn't. The other is a way of thinking
+about bounded state that I found more useful than any accuracy figure.
 
 ## Finding 1: `LRU_HASH` stops being an LRU when it's small
 

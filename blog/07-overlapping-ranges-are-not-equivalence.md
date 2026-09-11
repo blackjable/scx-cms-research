@@ -9,8 +9,8 @@ separate them.
 Then I ran a test designed to check equivalence directly, and it said
 they were 11–39% different.
 
-Both results are correct. They answer different questions, and I had
-been reading the answer to one as the answer to the other.
+Both results are correct. They answer different questions, and I didn't
+know there were two questions.
 
 ## The thing I was doing wrong
 

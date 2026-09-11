@@ -1,11 +1,12 @@
 # My scheduler benchmark was lying to me for four rounds
 
-I spent a day measuring a Linux scheduler and reached four conclusions.
-Then I found a bug in my benchmark harness, re-ran everything, and one
-of those conclusions reversed.
+I have no training in experimental design. I write systems code, I
+wanted to know whether a scheduler idea worked, so I built a benchmark
+harness the obvious way and started measuring.
 
-The bug was six lines of Python, and I suspect it's in a lot of
-benchmark harnesses. Here it is.
+It lied to me for four rounds. The bug was six lines of Python, and the
+thing it taught me has a name that's been in textbooks since the 1920s.
+I just didn't know it.
 
 ## The setup
 
@@ -164,6 +165,11 @@ They had tight ranges, they replicated across repetitions, and they told
 a clean story. Internal consistency is not evidence that you're
 measuring the right thing — it's only evidence that you're measuring the
 same wrong thing reliably.
+
+If you also came to benchmarking through code rather than through a
+stats course, this is the one I'd fix first. Not because it's the
+subtlest mistake available, but because it's the one I made without any
+sense that I was making a choice at all.
 
 ## Data
 

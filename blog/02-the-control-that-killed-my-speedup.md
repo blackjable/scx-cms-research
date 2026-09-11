@@ -117,9 +117,11 @@ of things: run length, migration rate, waker-wakee locality, cache
 warmth, deadline slack. Each is used to make a decision that also
 perturbs scheduling in some non-neutral way.
 
-This is just a placebo arm, and medicine worked out why you need one a
-long time ago: if your treatment does two things, comparing against
-nothing tells you the pair worked, not which half.
+What I'd built, without knowing the term, was an experiment missing its
+placebo arm. Medicine worked out why you need one a long time ago: if
+your treatment does two things, comparing against nothing tells you the
+pair worked, not which half. I'd have nodded along to that stated
+abstractly. I did not spot it in my own design.
 
 I'm not going to claim nobody does this in systems work — I haven't
 surveyed the field. What I can report is my own case, which is the

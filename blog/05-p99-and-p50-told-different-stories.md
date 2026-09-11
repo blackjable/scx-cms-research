@@ -47,7 +47,9 @@ evaluation rewards blunt instruments, because degrading everything
 uniformly also compresses the tail.*
 
 It sounds right. It's the kind of thing that would make a good talk
-slide. And when I checked it against my own data, it didn't hold up.
+slide. It was also the first interesting-sounding generalisation I'd
+reached in this project, and I was pleased with it. Then I checked it
+against my own data and it didn't hold up.
 
 I went back through every comparison I'd run and asked: would p99 alone
 have given the *wrong ranking*?
