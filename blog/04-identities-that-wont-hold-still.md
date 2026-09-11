@@ -131,3 +131,11 @@ to write), you will never encounter it.
 That's the part worth checking in your own work: not whether your
 tracking is accurate, but whether the thing you're tracking stays still
 long enough to be worth tracking at all.
+
+## Data
+
+| claim | file |
+|---|---|
+| pid vs comm, penalty vs boost (n=10) | [`r4-identity-bestshot-n10.txt`](../results/raw/r4-identity-bestshot-n10.txt) |
+| identity turnover rates, measured not assumed | [`r5-inflation-and-stable-sweep.txt`](../results/raw/r5-inflation-and-stable-sweep.txt) |
+| both structures failing under churn (n=20) | [`o1-o4-budget-geometry-churning-n20.txt`](../results/raw/o1-o4-budget-geometry-churning-n20.txt) |

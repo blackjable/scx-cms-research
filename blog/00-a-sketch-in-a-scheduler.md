@@ -234,3 +234,26 @@ answers, is archived alongside the code.
 
 I've written the failures up separately, because they turned out to be
 more generally useful than the result.
+
+## Data
+
+Every figure in this post comes from an archived run. Raw harness output,
+unedited, including the parameters each run printed at startup:
+
+| claim | file |
+|---|---|
+| the headline table (all six conditions, one interleaved matrix, n=20) | [`headline-single-matrix-n20.txt`](../results/raw/headline-single-matrix-n20.txt) |
+| the equivalence test and per-repetition ratios (n=30) | [`equivalence-n30-prereg.txt`](../results/raw/equivalence-n30-prereg.txt) |
+| the ratio distribution replication, and excursion rates (n=60) | [`excursion-rate-n60.txt`](../results/raw/excursion-rate-n60.txt) |
+| where each structure stops working, across budgets | [`thesis-confirmation-n20.txt`](../results/raw/thesis-confirmation-n20.txt), [`o1-o4-budget-geometry-churning-n20.txt`](../results/raw/o1-o4-budget-geometry-churning-n20.txt) |
+| the geometry sweep | [`o1-o4-budget-geometry-churning-n20.txt`](../results/raw/o1-o4-budget-geometry-churning-n20.txt) |
+| identity churn breaking the mechanism | [`r4-identity-bestshot-n10.txt`](../results/raw/r4-identity-bestshot-n10.txt) |
+
+The equivalence test was pre-registered before the data existed:
+[`PREREGISTRATION_equivalence.md`](../benchmark/PREREGISTRATION_equivalence.md),
+analysed by [`analyse_equivalence.py`](../benchmark/analyse_equivalence.py).
+
+Ten claims were made and withdrawn on the way to this one. Each is
+recorded with the file that produced it and the file that overturned it:
+[`REVISIONS.md`](../results/REVISIONS.md). Measurement environment:
+[`ENVIRONMENT.md`](../results/ENVIRONMENT.md).

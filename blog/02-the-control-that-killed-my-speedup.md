@@ -136,3 +136,15 @@ the other.
 Controls are not a statistical formality. They're how you find out which
 of the several things your treatment does is the thing you're claiming
 credit for.
+
+## Data
+
+| claim | file |
+|---|---|
+| the original 6.8x against `mechanism=none` | [`r2-count-attributable-n15.txt`](../results/raw/r2-count-attributable-n15.txt) |
+| the count-blind control, swept at 2/4/8ms | [`r2b-flat-control-n8.txt`](../results/raw/r2b-flat-control-n8.txt) |
+| both re-measured under randomised ordering (n=20) | [`r2d-randomised-order-n20.txt`](../results/raw/r2d-randomised-order-n20.txt) |
+
+The control is `--mechanism flat` in
+[`flat.bpf.c`](../../repo/scheds/experimental/scx_cms/src/bpf/mechanisms/flat.bpf.c),
+roughly forty lines.

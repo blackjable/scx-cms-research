@@ -123,3 +123,11 @@ that matters — but because:
 That last one is the check I'd actually recommend. It requires having a
 blunt control in your matrix, which most evaluations don't. Without it
 you have no reference for what "stopped discriminating" looks like.
+
+## Data
+
+| claim | file |
+|---|---|
+| the count-blind mechanism's median cost | [`r2d-randomised-order-n20.txt`](../results/raw/r2d-randomised-order-n20.txt) |
+| the 2 KB sketch improving p99 while p50 collapsed | [`o1-o4-budget-geometry-churning-n20.txt`](../results/raw/o1-o4-budget-geometry-churning-n20.txt) |
+| the per-repetition ratio spread a median conceals | [`equivalence-n30-prereg.txt`](../results/raw/equivalence-n30-prereg.txt), [`excursion-rate-n60.txt`](../results/raw/excursion-rate-n60.txt) |

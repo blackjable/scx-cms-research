@@ -191,3 +191,16 @@ measuring, and of a global lock on a per-wakeup hot path.
 I mention it because "just use conservative update" is the natural
 response to a sketch overestimating, and on this platform it isn't
 available.
+
+## Data
+
+| claim | file |
+|---|---|
+| `LRU_HASH` vs plain `HASH` at identical capacity | [`r6-sketch-variants-n3.txt`](../results/raw/r6-sketch-variants-n3.txt) |
+| the same control on scheduling outcomes | [`r7-r9-throughput-mapcontrol-geometry.txt`](../results/raw/r7-r9-throughput-mapcontrol-geometry.txt) |
+| the withdrawn third failure mode (n=60 per condition) | [`excursion-rate-n60.txt`](../results/raw/excursion-rate-n60.txt) |
+| conservative update measurements | [`r6-sketch-variants-n3.txt`](../results/raw/r6-sketch-variants-n3.txt) |
+
+The LRU cliff scales with CPU count; this machine had 4. See
+[`ENVIRONMENT.md`](../results/ENVIRONMENT.md) before quoting the
+42-to-85-entry threshold anywhere.

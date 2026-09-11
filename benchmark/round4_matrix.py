@@ -214,12 +214,45 @@ def build_excursion_matrix(args, common):
     ]
 
 
+def build_victim_matrix(args, common):
+    """Does the result depend on the victim's shape?
+
+    Every measurement in this project uses one victim configuration:
+    schbench with 4 worker threads at 100 requests per second. The
+    headline -- a sketch at 8.3 KB matching what exact counting needs
+    35.6 KB for -- has been replicated across sample sizes, seeds and
+    two independent runs, but never against a different victim.
+
+    That is the largest remaining gap that hardware would not fix, and
+    the most plausible way the headline could still be wrong: a property
+    of one benchmark configuration rather than of the approach.
+
+    The scheduler conditions are held fixed at the three that carry the
+    claim. The VICTIM varies, which means this cannot be run as a single
+    interleaved matrix -- the victim is a property of the measurement,
+    not of a condition. Each victim shape therefore gets its own
+    internally-interleaved matrix, and the comparison of interest is
+    within each shape rather than across them.
+    """
+    pen = ["--penalty-ns", str(args.penalty_ns)]
+    return [
+        ("none_ref", ["--tracker", "exact", "--mechanism", "none",
+                      "--max-tracked", "341"] + common),
+        ("exact_32k", ["--tracker", "exact", "--mechanism", "penalty",
+                       "--max-tracked", "341"] + pen + common),
+        ("sketch_8k_d2", ["--tracker", "sketch", "--mechanism", "penalty",
+                          "--sketch-width", "256",
+                          "--sketch-depth", "2"] + pen + common),
+    ]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("matrix",
-                    choices=["identity", "bestshot", "headline", "excursion"])
+                    choices=["identity", "bestshot", "headline", "excursion",
+                             "victim"])
     ap.add_argument("--duration", type=int, default=10)
     ap.add_argument("--slots", type=int, default=128)
     ap.add_argument("--lifetime", type=float, default=0.25)
@@ -245,7 +278,7 @@ def main() -> int:
 
     scx_cms = r2._find("scx-target/debug/scx_cms")
     common = ["--window-ms", str(args.window_ms)]
-    if args.matrix in ("bestshot", "headline", "excursion"):
+    if args.matrix in ("bestshot", "headline", "excursion", "victim"):
         common = ["--identity-key", "pid"] + common
 
     if args.matrix == "identity":
@@ -254,6 +287,8 @@ def main() -> int:
         conds = build_headline_matrix(args, common)
     elif args.matrix == "excursion":
         conds = build_excursion_matrix(args, common)
+    elif args.matrix == "victim":
+        conds = build_victim_matrix(args, common)
     else:
         conds = build_bestshot_matrix(args, common)
 

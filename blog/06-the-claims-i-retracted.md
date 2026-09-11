@@ -222,3 +222,14 @@ about to accept a favourable result whose framing had already failed.
 
 None of that is novel advice. What surprised me is how much of it I
 only adopted after being burned, despite knowing all of it beforehand.
+
+## Data
+
+Every retraction is recorded with the file that produced it and the file
+that overturned it: [`REVISIONS.md`](../results/REVISIONS.md).
+
+The full archive is [`results/raw/`](../results/raw/), catalogued in
+[`MANIFEST.md`](../results/MANIFEST.md), which labels which runs carry
+the ordering bias and which predate the do-nothing reference condition.
+Those runs are kept deliberately — the wrong answers are as much a part
+of the record as the right ones.

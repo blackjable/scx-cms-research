@@ -153,3 +153,16 @@ The last one is the one I'd most want to pass on. I added the
 matched-memory control for completeness, expecting a boring
 confirmation. It failed, and in failing told me my explanation for the
 headline number had been wrong the whole time.
+
+## Data
+
+| claim | file |
+|---|---|
+| the overlapping ranges that looked like equivalence | [`headline-single-matrix-n20.txt`](../results/raw/headline-single-matrix-n20.txt) |
+| the equivalence test that refuted it (n=30) | [`equivalence-n30-prereg.txt`](../results/raw/equivalence-n30-prereg.txt) |
+| the outlier shown to be environmental (n=60) | [`excursion-rate-n60.txt`](../results/raw/excursion-rate-n60.txt) |
+
+Pre-registration, committed before the data existed:
+[`PREREGISTRATION_equivalence.md`](../benchmark/PREREGISTRATION_equivalence.md).
+Analysis, committed before the run finished:
+[`analyse_equivalence.py`](../benchmark/analyse_equivalence.py).

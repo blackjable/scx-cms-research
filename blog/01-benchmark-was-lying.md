@@ -140,3 +140,15 @@ They had tight ranges, they replicated across repetitions, and they told
 a clean story. Internal consistency is not evidence that you're
 measuring the right thing — it's only evidence that you're measuring the
 same wrong thing reliably.
+
+## Data
+
+| claim | file |
+|---|---|
+| the biased run (fixed condition order) | [`r2c-prereg-n20.txt`](../results/raw/r2c-prereg-n20.txt) |
+| the same comparison after randomising order | [`r2d-randomised-order-n20.txt`](../results/raw/r2d-randomised-order-n20.txt) |
+| the two matrices that disagreed, exposing the bug | [`r2-count-attributable-n15.txt`](../results/raw/r2-count-attributable-n15.txt) |
+
+Files carrying the ordering bias are labelled as such in the archive
+manifest: [`MANIFEST.md`](../results/MANIFEST.md). They are kept rather
+than dropped, because the retractions they caused are part of the record.
