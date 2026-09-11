@@ -1,4 +1,4 @@
-# Seven claims I retracted in one day
+# Eight claims I retracted
 
 I set out to test whether a Count-Min Sketch could replace exact
 per-task counters in a Linux scheduler, saving memory without hurting
@@ -6,8 +6,10 @@ scheduling quality.
 
 The answer turned out to be yes — equivalent scheduling quality at 4.3x
 less memory. But between forming the hypothesis and confirming it, I
-announced and then withdrew seven separate conclusions, including, at
-one point, the conclusion that the hypothesis was refuted.
+announced and then withdrew eight separate conclusions, including, at
+one point, the conclusion that the hypothesis was refuted — and, at the
+very end, the precise form of the claim I'd just spent a day
+confirming.
 
 None of them failed because the hypothesis was wrong. Every one failed
 because an instrument was wrong. That pattern is the thing worth writing
@@ -54,6 +56,13 @@ from 15x to 4.3x.
 survived. The evidence for it didn't. The two numbers came from
 *different runs* — and I'll come back to this one, because it's the
 worst of the seven.
+
+**8. "The sketch is equivalent to exact counting at 4x less memory."**
+The memory saving held. *Equivalent* did not. I'd inferred it from
+overlapping measurement ranges, which show a difference was not
+detected, not that none exists. A pre-registered equivalence test at
+n=30 put the sketch 11–39% worse on tail latency, with equivalent
+median. The corrected claim is a trade rather than a substitution.
 
 ## The pattern
 
@@ -140,8 +149,18 @@ you now have a specific prediction to test, not that you're done.
 
 ## What it cost, and what it bought
 
-Roughly a day. Seven announcements withdrawn, one of them a claim that
-the whole project had failed.
+Roughly a day. Eight announcements withdrawn — one of them a claim that
+the whole project had failed, and the last of them arriving after I had
+already written the result up as final.
+
+The eighth is the only one caught by a test built specifically so that
+it could fail: margin, metric, analysis and falsification clause all
+committed before the data existed, with the margin set tighter than the
+difference already observed. Every previous revision was caught by
+accident — a disagreement between two runs, a control added for
+completeness, someone asking how confident I really was. That one was
+caught on purpose, which is the only part of this record I'd describe as
+methodologically sound rather than lucky.
 
 What it bought: the final result is one I believe. The memory claim is
 n=20 with non-overlapping ranges, the geometry that achieves it is
