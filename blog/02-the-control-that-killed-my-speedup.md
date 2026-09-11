@@ -119,9 +119,15 @@ perturbs scheduling in some non-neutral way.
 
 This is just a placebo arm, and medicine worked out why you need one a
 long time ago: if your treatment does two things, comparing against
-nothing tells you the pair worked, not which half. The systems version
-is cheap and I don't see it in the evaluations I've read — including my
-own methodology, which specified four baselines and none of them this.
+nothing tells you the pair worked, not which half.
+
+I'm not going to claim nobody does this in systems work — I haven't
+surveyed the field. What I can report is my own case, which is the
+uncomfortable one: I derived four baseline tiers from current sched_ext
+evaluation practice, thought carefully about them, and not one varied
+only whether the signal was used. The gap wasn't an oversight against a
+standard I knew about. I didn't think of it until the number looked too
+good.
 
 So I don't know how many tracked signals survive a count-blind control.
 Mine mostly didn't, and that's one data point.

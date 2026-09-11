@@ -96,15 +96,22 @@ Nothing about the buggy version looks wrong. It's the obvious way to
 write the loop, and it's deterministic, which feels like a virtue in a
 benchmark.
 
-What's odd is that randomising treatment order is *textbook*
-experimental design — it's how agricultural trials were run in the
-1920s, and it's mandatory in clinical work. The reason is exactly this
-one: without it, anything that varies systematically with position
-becomes confounded with the treatment.
+What struck me afterwards is that this problem is thoroughly solved
+elsewhere. Randomising the order of treatments is textbook experimental
+design, going back to Fisher's agricultural work in the 1920s. And
+medicine has a name for precisely my failure: **carryover**, the effect
+of one treatment persisting into the next. Crossover trials randomise or
+counterbalance treatment order specifically to control it.
 
-Systems benchmarking mostly doesn't do it. I'd be glad to be shown
-scheduler evaluations that randomise condition order and say so; I
-looked and didn't find them, and none of the harnesses I've read do it.
+So the fix I arrived at by debugging is a century-old standard practice
+in other experimental fields, and I reinvented it badly and late.
+
+I don't know how common the mistake is in systems benchmarking — I
+haven't surveyed the literature and I'm not going to claim a pattern I
+haven't measured. What I can say is that my own harness had it, the
+consequence was invisible in the results, and if you've written a
+benchmark loop that iterates conditions in a fixed order then you have
+it too.
 
 And it's invisible in the results. There's no error, no warning, no
 outlier that stands out. Every number is internally consistent. You get
