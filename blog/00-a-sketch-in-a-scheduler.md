@@ -1,4 +1,4 @@
-# A Count-Min Sketch in a Linux scheduler saved 4x the memory
+# A Count-Min Sketch in a Linux scheduler: 4x less memory, 17% worse tail
 
 A BPF scheduler that adapts to task behaviour has to remember something
 about each task, and that memory grows with the number of distinct tasks
@@ -12,10 +12,11 @@ inside a scheduler.
 
 So I built one, and measured it. The short version:
 
-> **A Count-Min Sketch at 8.3 KB produced the same scheduling outcome as
-> exact per-task counters at 35.6 KB.** Same median wakeup latency to
-> within 1%, same tail to within 12% with overlapping ranges, both a
-> ~6.4x tail improvement over not acting at all. 4.3x less memory.
+> **A Count-Min Sketch at 8.3 KB keeps working at a memory budget where
+> exact per-task counters have stopped working entirely — at the cost of
+> about 17% worse tail latency.** Median latency is equivalent within
+> 20% (tested). Tail latency is not: the sketch is 11–39% worse on a
+> paired test at n=30. It is a trade, not a free lunch.
 
 Below that budget the story gets more interesting, because the two
 structures stop working at different points and fail in different ways.
@@ -64,8 +65,13 @@ part matters more than it sounds — see below.)
 
 Three things in that table.
 
-**The sketch at 8.3 KB matches exact counting at 35.6 KB.** Medians
-agree within 1%, tails within 12% with overlapping ranges.
+**The sketch at 8.3 KB works; exact counting at 9.6 KB does not.** But
+"works" needs qualifying, and the qualification only appeared when I
+tested it properly. Those overlapping p99 ranges look like equivalence
+and are not: a paired equivalence test at n=30, with the margin declared
+before the run, put the sketch **11–39% worse on p99** with equivalent
+p50. Overlapping ranges mean a difference was not detected, not that
+none exists.
 
 **Exact counting at 9.6 KB does not work at all.** Its p99 of 63,680µs
 sits on top of the do-nothing baseline's 65,440µs. It hasn't degraded —
@@ -114,6 +120,25 @@ called that a success.
 So the question to ask about a bounded counting structure isn't which is
 more accurate at a given size. It's **at what size does each stop
 working, and can you tell from outside when it has.**
+
+## The tail penalty is the sketch's, not the memory saving's
+
+The most useful number in the whole study came from a control I nearly
+didn't bother running: the sketch at *matched* memory, 32 KB against
+exact's 32 KB.
+
+It's also not equivalent on p99. Same budget, same everything, still a
+heavier tail. So the 17% is not what you pay for the memory saving — it
+is what a Count-Min Sketch costs at any size, because collisions
+occasionally inflate a task's count and produce a bad scheduling
+decision that exact counting would not make. One repetition showed it
+starkly: 240,384µs, twenty-four times that condition's own median, with
+nothing else in that repetition disturbed.
+
+Which reframes the result. You are not trading memory for tail latency.
+You are paying a tail penalty for approximation, and separately getting
+a memory saving — and if your budget is large enough for exact counting
+to work, the sketch has nothing to offer you.
 
 ## Geometry is not a detail
 
