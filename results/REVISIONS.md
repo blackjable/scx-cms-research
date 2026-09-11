@@ -207,3 +207,46 @@ here only so a future run knows where to look.
 
 **Original:** `raw/equivalence-n30-prereg.txt` (the single 24x outlier)
 **Correction:** `raw/excursion-rate-n60.txt`
+
+---
+
+## 10. "The tail penalty is intrinsic to approximation, not a cost of the memory saving"
+
+**Withdrawn:** at matched memory the two structures are
+indistinguishable.
+**Cause:** built on a single outlier, in a control that failed for
+reasons unrelated to what it was controlling for.
+
+The matched-memory comparison (`sketch_32k_d2` vs `exact_32k`) failed
+its equivalence test, and that failure was read as showing the tail
+premium is what approximation costs at any size. The failure was driven
+by the 240,384us observation now known to be environmental (revision 9).
+
+With that understood, the matched-memory medians agree across two
+independent runs at **1.03x and 1.04x**. Give the sketch the same memory
+and it performs the same. The tail premium is the price of the memory
+saving.
+
+**Also corrected here: the "predictability" framing.** The claim that
+the sketch's cost is variance rather than magnitude rested on run A's
+per-condition CVs (exact 0.18, sketch 0.40). Run B inverts them (exact
+0.43, sketch 0.35). Per-condition variance is outlier-driven and does
+not replicate.
+
+What *does* replicate, closely, is the shape of the per-repetition
+ratio:
+
+| | run A (n=30) | run B (n=60) |
+|---|---|---|
+| median ratio | 1.18x | 1.14x |
+| sketch better | 37% | 40% |
+| sketch >50% worse | 30% | 33% |
+
+So the honest characterisation is neither "17% worse" nor "less
+predictable" but: **typically ~15% worse, with about 40% of runs better
+and about a third more than 50% worse.** Reporting the median ratio
+conceals that -- the same error as reporting p99 without p50, applied
+one level up to a summary statistic.
+
+**Original:** `raw/equivalence-n30-prereg.txt`
+**Correction:** `raw/excursion-rate-n60.txt` plus re-analysis of both

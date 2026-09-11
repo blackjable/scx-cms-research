@@ -33,26 +33,23 @@ while the sketch still delivers a 3.65x tail improvement over inaction
 postpones that failure by about one budget step but does not prevent it.
 
 The premium is real, was established by a pre-registered equivalence
-test rather than assumed away, and is not the flat tax it first appears
-to be. Median latency is equivalent within 20% (90% CI [0.974, 1.060]);
-tail latency is not (90% CI [1.114, 1.394] on the mean ratio, n=30
-paired). But the per-repetition ratios range from 0.69 to 3.08, with
-the sketch *better* than exact counting in 11 of 30 runs. The mean
-penalty is an artifact of a right-skewed distribution rather than a cost
-incurred every run.
+test rather than assumed away, and does not arrive as a steady tax.
+Median latency is equivalent within 20% (90% CI [0.974, 1.060]); tail
+latency is not (90% CI [1.114, 1.394] on the mean ratio, n=30 paired).
+But the per-repetition ratios replicate across two independent runs
+with a shape a mean conceals: median 1.18x and 1.14x, with the sketch
+**better than exact counting in 37% and 40% of repetitions** and more
+than 50% worse in 30% and 33%. What 4x less memory buys is not a
+predictable premium but a coin weighted slightly against you.
 
-**What the sketch actually costs is predictability.** Exact counting's
-worst repetition is 1.8x its median (CV 0.18); the sketch at 8 KB
-reaches 2.5x (CV 0.40), and at 32 KB -- where its median ratio against
-exact is 1.03, essentially identical -- one repetition reached 24x. A
-matched-memory control locates the cause: the sketch is non-equivalent
-at the *same* budget as exact counting, so this is what approximation
-costs at any size, not what the memory saving costs.
-
-The result is therefore a trade whose shape matters: roughly a quarter
+A matched-memory control locates the cost. At the *same* budget the two
+structures are indistinguishable (1.03x and 1.04x across the two runs),
+so the tail premium is the price of the memory saving rather than an
+intrinsic cost of approximating. The result is therefore a trade whose shape matters: roughly a quarter
 of the memory, statistically identical typical latency, and a tail that
-is usually comparable and occasionally much worse. Unpredictability is
-harder to design around than a known tax.
+is worse on average and considerably noisier. A distribution in which a
+third of runs are 50% worse is harder to design around than a known
+premium of the same mean.
 
 The result is bounded rather than general. Where task identities churn
 rather than persist, the exact tracker is inert at every budget tested
