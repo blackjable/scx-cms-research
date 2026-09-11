@@ -1,4 +1,4 @@
-# Nine claims I retracted
+# Eleven claims I retracted
 
 I set out to test whether a Count-Min Sketch could replace exact
 per-task counters in a Linux scheduler, saving memory without hurting
@@ -7,9 +7,9 @@ scheduling quality.
 The answer turned out to be a qualified yes — 4x less memory, identical
 typical latency, a worse and noisier tail. But between forming the
 hypothesis and arriving at that, I
-announced and then withdrew nine separate conclusions, including, at one
-point, the conclusion that the hypothesis was refuted — and, twice near
-the end, claims I had already written up as final.
+announced and then withdrew eleven separate conclusions, including, at
+one point, the conclusion that the hypothesis was refuted — and, more
+than once near the end, claims I had already written up as final.
 
 None of them failed because the hypothesis was wrong. Every one failed
 because an instrument was wrong — and each instrument was wrong in a way
@@ -79,6 +79,22 @@ measured it: at sixty repetitions per condition, **exact counting
 produces the same excursions at the same rate**, and the 24x never
 recurred across 360 further measurements. It belongs to the
 environment, not to the sketch.
+
+**10. "The tail penalty is intrinsic to approximation, not the price of
+the memory saving."** I'd built this on a control that failed — sketch
+at 32 KB against exact at 32 KB, same budget, still not equivalent. A
+failing control feels like a finding, so I treated it as one. It had
+failed because of the single outlier from retraction 9. With that
+understood, matched-memory medians agree at 1.03x and 1.04x across two
+runs. Give the sketch the same memory and it performs the same. The
+tail cost is what you pay for using less memory, which is what I'd
+assumed before the control appeared to overturn it.
+
+**11. "I looked for scheduler evaluations that randomise condition order
+and didn't find them."** I didn't look. This one isn't a measurement
+error — it's a sentence I wrote into a draft of post 01, asserting a
+literature search that never happened, while trying to make a weak claim
+sound stronger. A reader asked whether it was true. It wasn't.
 
 ## The pattern
 
@@ -165,9 +181,9 @@ you now have a specific prediction to test, not that you're done.
 
 ## What it cost, and what it bought
 
-Roughly a day. Nine announcements withdrawn — one of them a claim that
-the whole project had failed, and the last two arriving after I had
-already written the result up as final and published the explanation.
+Roughly a day. Eleven announcements withdrawn — one of them a claim that
+the whole project had failed, several arriving after I had written the
+result up as final, and one that was never a measurement at all.
 
 The eighth is the only one caught by a test built specifically so that
 it could fail: margin, metric, analysis and falsification clause all
@@ -206,6 +222,28 @@ It also produced findings I'd never have gone looking for — the
 `LRU_HASH` cliff, the count-blind control, the ordering bias — all of
 which are useful to people who don't care about count-min sketches at
 all.
+
+## The one no instrument would have caught
+
+Retraction 11 sits apart from the others and I nearly left it out of
+this list, which is itself a reason to include it.
+
+The first ten were measurement errors. Each was caught by something —
+a control, a reference condition, a larger sample, two runs disagreeing.
+Those are mechanisms, and they work whether or not you're paying
+attention.
+
+Number 11 was me writing something untrue because it made a weak
+argument sound better. No control catches that. No sample size helps.
+The only thing that caught it was a reader asking, of one sentence,
+*"is that a true statement?"*
+
+I find that the most uncomfortable item here, because every defence I'd
+built over the preceding day — randomised ordering, do-nothing
+references, pre-registered margins — was aimed at stopping me fooling
+myself with data. None of it was aimed at stopping me writing a
+convenient sentence about the literature. The rigour was all pointed at
+the measurements and none of it at the prose describing them.
 
 ## If I were starting again
 
