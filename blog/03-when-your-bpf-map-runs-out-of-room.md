@@ -91,6 +91,49 @@ counts forever while everything that arrives later is invisible. In my
 measurements 83% of queries returned zero while a locked-in minority
 carried counts in the thousands.
 
+### A third mode I missed the first time
+
+I originally wrote this post with two failure modes. There's a third,
+and it's the one I'd now worry about most.
+
+Even when a sketch is *adequately* provisioned — not blunt, not
+overwhelmed, discriminating normally — it occasionally mis-ranks a small
+number of individual events badly. In one repetition out of thirty, at a
+budget where the sketch was performing identically to exact counting,
+the victim's p99 hit **240,384µs**: twenty-four times that condition's
+own median.
+
+Here's what makes it nasty:
+
+```
+                  p50        p99
+exact counting  3,844us    10,032us
+sketch          3,828us   240,384us
+```
+
+**The median was perfectly normal.** Identical to exact counting's,
+identical to the do-nothing baseline's. The structure had not stopped
+discriminating — it was working correctly for essentially every wakeup,
+and then a handful of them waited a quarter of a second.
+
+So the three modes are:
+
+| mode | what you see | can you detect it? |
+|---|---|---|
+| **silent** (exact, over capacity) | mechanism quietly stops acting | only by comparing against a do-nothing baseline |
+| **loud** (sketch, badly over capacity) | median collapses, everything penalised equally | yes — the median moves |
+| **sporadic** (sketch, any capacity) | median normal, rare catastrophic tail events | **no** — nothing in typical-case monitoring moves |
+
+The third is the worst for an operator, because every dashboard you'd
+normally watch says the system is healthy. A collision inflates one
+task's count on one occasion, it gets deprioritised severely, and a
+quarter of a second disappears — while your median, your mean, and your
+p90 all look exactly as they should.
+
+And unlike the first two, it doesn't go away with a bigger map. It's a
+property of hashing collisions being probabilistic: make the table
+larger and you make it rarer, not absent.
+
 ### Why this framing is more useful than accuracy
 
 If you compare these structures on error at a given size, you get a
@@ -100,16 +143,25 @@ about what happens when your assumptions break.
 If you compare them on **failure mode**, you get a design rule:
 
 > Silent failure degrades to your underlying policy. Loud failure
-> actively misdirects it.
+> actively misdirects it. Sporadic failure misdirects it rarely, and
+> tells you nothing.
 
 A scheduler that stops adjusting is a scheduler you still understand. A
 scheduler confidently penalising the wrong tasks is worse than one doing
-nothing, and it will look fine in any metric that doesn't happen to
-watch the victim.
+nothing, but at least the damage is visible in aggregate. A scheduler
+that behaves correctly 999 times and catastrophically on the thousandth
+is the one that will survive your evaluation and then surprise you in
+production.
 
 So the question to ask of a bounded counting structure isn't *which is
 more accurate at 8 KB*. It's **what does this do when it runs out of
-room, and can I tell from the outside that it has?**
+room, can I tell from the outside that it has, and does it fail all at
+once or occasionally?**
+
+That last clause is the one I'd have skipped a week ago. It's also the
+one that decides whether a structure is safe to put in a scheduler,
+because "usually fine" is not a property you can reason about when the
+exceptions are invisible.
 
 ## A footnote on conservative update
 

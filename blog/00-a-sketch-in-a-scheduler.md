@@ -163,12 +163,26 @@ didn't bother running: the sketch at *matched* memory, 32 KB against
 exact's 32 KB.
 
 It's also not equivalent on p99. Same budget, same everything, still a
-heavier tail. So the 17% is not what you pay for the memory saving — it
-is what a Count-Min Sketch costs at any size, because collisions
+heavier tail. So the penalty is not what you pay for the memory saving —
+it is what a Count-Min Sketch costs at any size, because collisions
 occasionally inflate a task's count and produce a bad scheduling
-decision that exact counting would not make. One repetition showed it
-starkly: 240,384µs, twenty-four times that condition's own median, with
-nothing else in that repetition disturbed.
+decision that exact counting would not make.
+
+One repetition showed it starkly, and the detail that matters is *which*
+number moved:
+
+```
+                  p50        p99
+exact counting  3,844us    10,032us
+sketch          3,828us   240,384us
+```
+
+240,384µs — twenty-four times that condition's own median — **with the
+median completely normal.** The sketch had not stopped telling tasks
+apart. It was working correctly for essentially every wakeup, and then a
+handful of them waited a quarter of a second.
+
+That is a failure mode no typical-case monitoring will ever show you.
 
 Which reframes the result. You are not trading memory for tail latency.
 You are paying a tail penalty for approximation, and separately getting
