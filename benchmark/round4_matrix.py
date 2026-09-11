@@ -223,6 +223,13 @@ def main() -> int:
                 continue
             acc[name]["p50"].append(r["wu_p50"])
             acc[name]["p99"].append(r["wu_p99"])
+            # Per-repetition values, emitted so a PAIRED analysis is
+            # possible afterwards. Conditions are interleaved within each
+            # repetition, so pairing is a property of the design; without
+            # these lines only unpaired summaries survive, and an
+            # equivalence test on medians alone is far weaker.
+            print(f"  REP {rep} {name} p50={r['wu_p50']} p99={r['wu_p99']}",
+                  flush=True)
         print(f"  ... repetition {rep + 1}/{args.repeat} done", flush=True)
 
     flat_key = next((k for k in acc if k.startswith("flat_ref")), None)
