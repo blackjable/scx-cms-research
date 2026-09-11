@@ -93,32 +93,41 @@ inside. So it isn't "the sketch is worse." It's "the sketch matches on
 typical latency and loses on the tail," which is a specific, actionable
 thing to know.
 
-**The matched-memory control is the diagnostic.** Sketch at 32 KB versus
-exact at 32 KB — same budget, no memory saving involved — is *also* not
-equivalent on p99.
+**The matched-memory control is the diagnostic** — and it taught me
+something only after I'd misread it once.
 
-That relocates the cause entirely. I'd assumed the tail penalty was what
-I paid for using less memory. It isn't. It's what approximation costs at
-any size, because collisions occasionally inflate one task's count and
-produce a scheduling decision exact counting wouldn't make. One
-repetition showed it plainly: 240,384µs, twenty-four times that
-condition's own median, with nothing else in that repetition disturbed.
+Sketch at 32 KB versus exact at 32 KB — same budget, no memory saving
+involved — also failed the equivalence test. I concluded the tail
+penalty was intrinsic to approximation rather than a cost of the memory
+saving, and wrote that up.
 
-A footnote on that outlier, added after I measured it properly: I
-initially treated it as a sketch-specific failure mode. A follow-up run
-at 60 repetitions per condition showed exact counting producing
-excursions at the same rate, and the 24x never recurred. It belongs to
-the environment rather than to the sketch. The equivalence result does
-not depend on it — the mean ratio is driven by the bulk of the
-distribution, not by one point.
+It was wrong, and one data point caused it. That comparison's mean was
+dragged by a single 240,384µs outlier, which a later run at 60
+repetitions per condition showed to be environmental — exact counting
+produces such excursions at the same rate, and it never recurred.
 
-Without that control I'd have reported a true number attached to the
-wrong explanation.
+With the outlier understood, the matched-memory medians agree across
+two independent runs at **1.03x and 1.04x**. Give the sketch the same
+memory as exact counting and it performs the same. The tail cost is
+what you pay for using less memory, exactly as I'd assumed before the
+control appeared to overturn it.
+
+Two lessons, and the second is the one I'd underrate:
+
+**A control that fails is not automatically informative.** Mine failed
+for a reason that had nothing to do with the comparison, and I built an
+explanation on it because a failing control feels like a finding.
+
+**An equivalence test is still a mean-based test.** TOST told me
+correctly that I could not claim equivalence. It did not tell me that
+one observation in thirty was doing the work, and I did not look until a
+later run forced me to.
 
 ## Why this is worth the trouble
 
-The honest version of my result — *4x less memory, same median latency,
-11–39% worse tail* — is more useful than "equivalent" would have been,
+The honest version of my result — *4x less memory, same typical latency,
+a worse and much noisier tail* — is more useful than "equivalent" would
+have been,
 and it's the version someone can act on. If you're memory-constrained,
 that's a trade you can evaluate. If you're not, the sketch has nothing
 to offer you, and "equivalent" would have obscured that.

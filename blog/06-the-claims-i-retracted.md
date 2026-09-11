@@ -4,8 +4,9 @@ I set out to test whether a Count-Min Sketch could replace exact
 per-task counters in a Linux scheduler, saving memory without hurting
 scheduling quality.
 
-The answer turned out to be yes — equivalent scheduling quality at 4.3x
-less memory. But between forming the hypothesis and confirming it, I
+The answer turned out to be a qualified yes — 4x less memory, identical
+typical latency, a worse and noisier tail. But between forming the
+hypothesis and arriving at that, I
 announced and then withdrew nine separate conclusions, including, at one
 point, the conclusion that the hypothesis was refuted — and, twice near
 the end, claims I had already written up as final.
