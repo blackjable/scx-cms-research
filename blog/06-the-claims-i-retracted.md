@@ -1,0 +1,144 @@
+# Six claims I retracted in one day
+
+I set out to test whether a Count-Min Sketch could replace exact
+per-task counters in a Linux scheduler, saving memory without hurting
+scheduling quality.
+
+The answer turned out to be yes — equivalent scheduling quality at 4.3x
+less memory. But between forming the hypothesis and confirming it, I
+announced and then withdrew six separate conclusions, including, at one
+point, the conclusion that the hypothesis was refuted.
+
+None of them failed because the hypothesis was wrong. Every one failed
+because an instrument was wrong. That pattern is the thing worth writing
+about.
+
+## The retractions
+
+**1. "Seed rotation mitigates the collision attack at heavy volume."**
+Looked clear on one run. Didn't replicate on the second.
+
+**2. "+34.7% improvement."** At n=5. At n=15 it was −1.7%. Ordinary
+small-sample optimism, and the only one on this list that more
+repetitions would have caught.
+
+**3. "Acting on the tracked count improves tail latency 6.8x."** Real,
+replicated, non-overlapping ranges at n=20. Then I built a control that
+applied the same vtime perturbation while ignoring the tracked count
+entirely, and it reproduced about 82% of the improvement. The comparison
+had been measuring "does perturbing scheduling help" and I'd been
+reading it as "does tracking wakeups help."
+
+**4. "The sketch has a ~10% severe failure rate."** Two of twenty runs
+showed the protected task getting catastrophically mis-scheduled. I had
+a mechanism for it — hash collisions inflating the victim's count — and
+called it the most policy-relevant sketch finding I'd made. After fixing
+an unrelated benchmark bug, it was zero of twenty. It had been an
+artifact of condition ordering.
+
+**5. "Exact counting beats the sketch at every memory budget."** The
+metric was a discrimination ratio measured against a count-blind
+baseline. That baseline is *worse than taking no action at all*, so a
+tracker that had quietly stopped working scored just as well as one
+working perfectly. Adding a do-nothing reference condition — which the
+sweep had never included — showed that at small budgets the exact
+tracker wasn't discriminating. It was inert.
+
+**6. "The sketch works down to 2.3 KB."** It improved the tail there,
+5x over doing nothing. But its median had collapsed to the level of the
+blunt control, meaning it had stopped telling tasks apart and was just
+perturbing everything. Genuine working range: 8 KB. My memory claim went
+from 15x to 4.3x.
+
+## The pattern
+
+Reading them together, the striking thing is that more data would have
+saved me from exactly one — number 2.
+
+The rest were instrument failures:
+
+- **A benchmark harness that ran conditions in fixed order**, so
+  carryover from one condition landed on the same neighbour every
+  repetition. Systematic bias that repetitions cannot average away. Same
+  configuration measured 21,664µs or 14,000µs depending on what preceded
+  it.
+- **A metric that couldn't distinguish "working" from "doing nothing"**,
+  because its reference point was worse than doing nothing.
+- **A ratio whose denominator was collapsing**, so an "inflation" figure
+  of 1,043x turned out to be 2.6x once measured against truth rather
+  than against a dying comparator.
+- **A workload model wrong by 4x**, which I patched twice with better
+  reasoning before instrumenting the thing and discovering the
+  distribution was bimodal.
+- **A BPF map that wasn't doing what its name says.** `LRU_HASH` below
+  about 85 entries on a 4-core machine stops behaving like an LRU —
+  mean retained count of 1.6 where a plain hash at identical capacity
+  gives 189.8. That made exact counting look intrinsically worse than
+  it is.
+
+Every fix came from adding a control or an instrument. None came from
+running more repetitions of the same measurement.
+
+## The one that bothers me
+
+Number 4 is the one I think about.
+
+The others were disappointing results that I attacked properly — I ran
+controls, raised sample sizes, and at one point voided my own
+pre-registration when it failed its gating condition.
+
+Number 4 was an *interesting* result. It came with a plausible
+mechanism. Collisions inflating the protected task's count was exactly
+what the theory predicted, so when the data showed it, the mechanism
+felt like confirmation rather than something still to be tested. I
+accepted it at n=20 with visibly less scrutiny than I'd applied to
+results I didn't like — and I'd explicitly predicted it was the finding
+*least* likely to be an ordering artifact, right before it turned out to
+be one.
+
+That's not a sample-size problem and no statistical discipline catches
+it. Asymmetric skepticism is invisible from the inside, because at each
+moment you're applying what feels like the appropriate level of rigour.
+The asymmetry only shows up when you line the decisions up afterwards.
+
+The practical defence I've landed on: **have a mechanism and treat it as
+a reason for more scrutiny, not less.** A plausible causal story means
+you now have a specific prediction to test, not that you're done.
+
+## What it cost, and what it bought
+
+Roughly a day. Six announcements withdrawn, one of them a claim that the
+whole project had failed.
+
+What it bought: the final result is one I believe. The memory claim is
+n=20 with non-overlapping ranges, the geometry that achieves it is
+measured rather than defaulted, the regime where it stops holding is
+stated in the claim, and the failure modes of both structures are
+characterised.
+
+It also produced findings I'd never have gone looking for — the
+`LRU_HASH` cliff, the count-blind control, the ordering bias — all of
+which are useful to people who don't care about count-min sketches at
+all.
+
+## If I were starting again
+
+**Put a do-nothing condition in every matrix.** Without it you cannot
+tell a working mechanism from a stopped one, because both leave your
+protected workload alone.
+
+**Put a blunt control in every matrix** — the same intervention applied
+without the information. It tells you what fraction of your result is
+attributable to the signal rather than the disturbance.
+
+**Randomise condition order**, and print the seed.
+
+**Instrument before you infer.** I spent three rounds reasoning about a
+4x discrepancy that one histogram resolved in a single run.
+
+**Write down what would falsify each claim, before the run.** I did this
+once, via a pre-registration, and it was the only time I caught myself
+about to accept a favourable result whose framing had already failed.
+
+None of that is novel advice. What surprised me is how much of it I
+only adopted after being burned, despite knowing all of it beforehand.
