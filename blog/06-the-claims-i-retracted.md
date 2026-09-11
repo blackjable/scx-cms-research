@@ -1,4 +1,4 @@
-# Eight claims I retracted
+# Nine claims I retracted
 
 I set out to test whether a Count-Min Sketch could replace exact
 per-task counters in a Linux scheduler, saving memory without hurting
@@ -6,10 +6,9 @@ scheduling quality.
 
 The answer turned out to be yes — equivalent scheduling quality at 4.3x
 less memory. But between forming the hypothesis and confirming it, I
-announced and then withdrew eight separate conclusions, including, at
-one point, the conclusion that the hypothesis was refuted — and, at the
-very end, the precise form of the claim I'd just spent a day
-confirming.
+announced and then withdrew nine separate conclusions, including, at one
+point, the conclusion that the hypothesis was refuted — and, twice near
+the end, claims I had already written up as final.
 
 None of them failed because the hypothesis was wrong. Every one failed
 because an instrument was wrong. That pattern is the thing worth writing
@@ -63,6 +62,16 @@ overlapping measurement ranges, which show a difference was not
 detected, not that none exists. A pre-registered equivalence test at
 n=30 put the sketch 11–39% worse on tail latency, with equivalent
 median. The corrected claim is a trade rather than a substitution.
+
+**9. "The sketch has a rare, severe failure mode invisible to normal
+monitoring."** I found one run in thirty where a sketch performing
+normally returned a tail latency twenty-four times its own median, with
+its typical-case latency untouched. It looked like a distinct and
+rather alarming failure mode, so I wrote it into three posts. Then I
+measured it: at sixty repetitions per condition, **exact counting
+produces the same excursions at the same rate**, and the 24x never
+recurred across 360 further measurements. It belongs to the
+environment, not to the sketch.
 
 ## The pattern
 
@@ -149,18 +158,36 @@ you now have a specific prediction to test, not that you're done.
 
 ## What it cost, and what it bought
 
-Roughly a day. Eight announcements withdrawn — one of them a claim that
-the whole project had failed, and the last of them arriving after I had
-already written the result up as final.
+Roughly a day. Nine announcements withdrawn — one of them a claim that
+the whole project had failed, and the last two arriving after I had
+already written the result up as final and published the explanation.
 
 The eighth is the only one caught by a test built specifically so that
 it could fail: margin, metric, analysis and falsification clause all
 committed before the data existed, with the margin set tighter than the
 difference already observed. Every previous revision was caught by
 accident — a disagreement between two runs, a control added for
-completeness, someone asking how confident I really was. That one was
-caught on purpose, which is the only part of this record I'd describe as
-methodologically sound rather than lucky.
+completeness, someone asking how confident I really was.
+
+And then the ninth punctured my satisfaction about that.
+
+The outlier in retraction 9 came with a *pre-registered* check meant to
+rule out an environmental cause: I'd specified in advance that I would
+report whether outliers clustered across conditions within a
+repetition, reasoning that a host-level disturbance would disturb
+several. Only one condition was affected, so I concluded the sketch was
+responsible.
+
+**Conditions run sequentially.** A disturbance lasting a few seconds
+hits exactly one of them. The signature I had declared exonerating was
+precisely what an environmental cause produces. I'd written the check
+in advance and it was simply the wrong check.
+
+That's the distinction I'd underweighted: pre-registration guarantees
+you didn't choose your test to fit the data. It does not guarantee your
+test measures what you think it measures. The first is a defence
+against motivated reasoning; nothing defends against being wrong about
+the mechanism except measuring it.
 
 What it bought: the final result is one I believe. The memory claim is
 n=20 with non-overlapping ranges, the geometry that achieves it is
