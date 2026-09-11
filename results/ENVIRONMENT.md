@@ -49,6 +49,42 @@ battery gauge are exposed to the guest, so energy -- the established
 motivation for tracking wakeup frequency, and the direction this work
 most wants to go next -- could not be measured at all.
 
+## An uncontrolled variable: the host is heterogeneous
+
+The M4 host has **10 physical cores -- 4 performance and 6 efficiency**.
+The guest's 4 vCPUs are scheduled onto those by macOS, and nothing in
+the guest controls or observes which class they land on. The assignment
+may also change during a run as the host rebalances.
+
+This is an uncontrolled variable in **every measurement in this
+archive**. It plausibly contributes to the wide p99 ranges seen
+throughout, since a vCPU migrating from a performance core to an
+efficiency core mid-run would inflate latency for reasons having nothing
+to do with the scheduler being tested.
+
+It also offers an alternative explanation for the sporadic tail
+excursions attributed to sketch collisions: a host-level scheduling
+hiccup would produce the same signature from inside the guest.
+
+**That alternative is ruled out for the excursion actually observed**,
+by a check specified in advance rather than chosen afterwards. A
+host-level disturbance would affect whichever conditions were running
+near that moment, so the pre-registration required reporting whether
+outliers cluster across conditions within a repetition. They did not:
+in the repetition where `sketch_32k_d2` reached 240,384us, `exact_32k`
+measured a wholly unremarkable 10,032us. The disturbance was confined to
+one condition, which a host hiccup cannot produce.
+
+The general limitation stands regardless: this environment cannot
+isolate the guest from host scheduling decisions, and bare metal would
+remove the question rather than answer it.
+
+**This also rules out running experiments in parallel VMs.** Two guests
+of 4 vCPUs each would need 8 of the host's 10 cores, forcing at least
+four vCPUs onto efficiency cores, and `vz` offers no physical-core
+pinning to prevent it. The two VMs would be measuring different
+hardware, with the assignment shifting under them.
+
 ## Workload constants
 
 Unless a run's own header says otherwise:

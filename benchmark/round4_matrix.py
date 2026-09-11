@@ -163,11 +163,63 @@ def build_headline_matrix(args, common):
     ]
 
 
+def build_excursion_matrix(args, common):
+    """How often does the sketch fail sporadically, and does anything help?
+
+    The equivalence run produced one repetition in thirty where a sketch
+    at a budget it was otherwise handling fine returned a victim p99 of
+    240,384us -- twenty-four times its own median -- with its MEDIAN
+    completely normal. Not blunting, not capacity exhaustion: a handful
+    of individual wakeups mis-ranked badly while everything else worked.
+
+    One in thirty is a point estimate with a confidence interval wide
+    enough to span "deploy it" and "never deploy it", and this is the
+    failure mode least visible to ordinary monitoring, so its rate is
+    worth measuring directly rather than inferring.
+
+    Two mitigations are tested, both plausible and both previously
+    evaluated against the wrong metric:
+
+      DEPTH. Depth 2 was selected because it wins on median p99. But
+      depth is a minimum over more rows, so more rows means more chances
+      that at least one cell is uncontaminated. Depth may be worse on
+      average and better on the worst case; that tradeoff was never
+      examined, only one side of it chosen.
+
+      SEED ROTATION. Previously tested against accidental collisions and
+      found not to help the MEAN, which is the wrong test for it. If the
+      protected task collides with a heavy waker, rotation dissolves that
+      pairing at the next window boundary rather than letting it persist.
+      Its value, if any, is entirely in the tail.
+
+    exact_32k is included as the floor: whatever excursion rate it shows
+    is the environment's, not the sketch's.
+    """
+    pen = ["--penalty-ns", str(args.penalty_ns)]
+    sk = ["--tracker", "sketch", "--mechanism", "penalty"]
+    return [
+        ("exact_32k", ["--tracker", "exact", "--mechanism", "penalty",
+                       "--max-tracked", "341"] + pen + common),
+        ("sketch_32k_d2", sk + ["--sketch-width", "1024",
+                                "--sketch-depth", "2"] + pen + common),
+        ("sketch_32k_d4", sk + ["--sketch-width", "512",
+                                "--sketch-depth", "4"] + pen + common),
+        ("sketch_32k_d8", sk + ["--sketch-width", "256",
+                                "--sketch-depth", "8"] + pen + common),
+        ("sketch_32k_d2_rot", sk + ["--sketch-width", "1024",
+                                    "--sketch-depth", "2",
+                                    "--seed-rotation"] + pen + common),
+        ("sketch_8k_d2", sk + ["--sketch-width", "256",
+                               "--sketch-depth", "2"] + pen + common),
+    ]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("matrix", choices=["identity", "bestshot", "headline"])
+    ap.add_argument("matrix",
+                    choices=["identity", "bestshot", "headline", "excursion"])
     ap.add_argument("--duration", type=int, default=10)
     ap.add_argument("--slots", type=int, default=128)
     ap.add_argument("--lifetime", type=float, default=0.25)
@@ -193,13 +245,15 @@ def main() -> int:
 
     scx_cms = r2._find("scx-target/debug/scx_cms")
     common = ["--window-ms", str(args.window_ms)]
-    if args.matrix in ("bestshot", "headline"):
+    if args.matrix in ("bestshot", "headline", "excursion"):
         common = ["--identity-key", "pid"] + common
 
     if args.matrix == "identity":
         conds = build_identity_matrix(args, common)
     elif args.matrix == "headline":
         conds = build_headline_matrix(args, common)
+    elif args.matrix == "excursion":
+        conds = build_excursion_matrix(args, common)
     else:
         conds = build_bestshot_matrix(args, common)
 
