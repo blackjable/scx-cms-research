@@ -1,0 +1,449 @@
+/tmp/run_excursion.sh: line 2: 416647 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+########## EXCURSION RATE: n=60, 10s runs, seed 51 ##########
+Round 4 matrix: excursion
+workload: 128 respawning churn slots, lifetime 60.0s, schbench victim (same as round 3)
+n=60, condition order randomised, seed=51
+
+  REP 0 sketch_32k_d8 p50=3540 p99=16240
+  REP 0 sketch_32k_d4 p50=3516 p99=10352
+  REP 0 exact_32k p50=3548 p99=10672
+  REP 0 sketch_8k_d2 p50=3564 p99=9520
+  REP 0 sketch_32k_d2_rot p50=3628 p99=10032
+  REP 0 sketch_32k_d2 p50=3620 p99=11984
+  ... repetition 1/60 done
+  REP 1 exact_32k p50=3644 p99=11344
+  REP 1 sketch_32k_d2 p50=3716 p99=10576
+  REP 1 sketch_8k_d2 p50=3932 p99=12624
+  REP 1 sketch_32k_d8 p50=3724 p99=10576
+  REP 1 sketch_32k_d4 p50=3748 p99=9072
+  REP 1 sketch_32k_d2_rot p50=3812 p99=10032
+  ... repetition 2/60 done
+  REP 2 exact_32k p50=3908 p99=11376
+  REP 2 sketch_32k_d2 p50=3948 p99=18720
+  REP 2 sketch_32k_d8 p50=3884 p99=11088
+  REP 2 sketch_32k_d4 p50=3812 p99=9904
+  REP 2 sketch_32k_d2_rot p50=3972 p99=19808
+  REP 2 sketch_8k_d2 p50=3836 p99=13168
+  ... repetition 3/60 done
+  REP 3 sketch_32k_d2 p50=3852 p99=12912
+  REP 3 exact_32k p50=4004 p99=9968
+  REP 3 sketch_32k_d2_rot p50=3868 p99=10000
+  REP 3 sketch_8k_d2 p50=3916 p99=9936
+  REP 3 sketch_32k_d4 p50=3892 p99=11024
+  REP 3 sketch_32k_d8 p50=3908 p99=11216
+  ... repetition 4/60 done
+  REP 4 sketch_32k_d8 p50=4044 p99=9456
+  REP 4 sketch_32k_d2 p50=3908 p99=10768
+  REP 4 sketch_32k_d2_rot p50=3956 p99=11664
+  REP 4 sketch_32k_d4 p50=3916 p99=10256
+  REP 4 sketch_8k_d2 p50=3956 p99=8368
+  REP 4 exact_32k p50=3980 p99=15568
+  ... repetition 5/60 done
+  REP 5 exact_32k p50=3972 p99=10672
+  REP 5 sketch_32k_d2_rot p50=4068 p99=10000
+  REP 5 sketch_32k_d8 p50=3996 p99=11088
+  REP 5 sketch_32k_d4 p50=3980 p99=10288
+  REP 5 sketch_32k_d2 p50=3940 p99=16272
+  REP 5 sketch_8k_d2 p50=5592 p99=18656
+  ... repetition 6/60 done
+  REP 6 sketch_8k_d2 p50=4036 p99=10544
+  REP 6 sketch_32k_d2_rot p50=3932 p99=9840
+  REP 6 exact_32k p50=3932 p99=11056
+  REP 6 sketch_32k_d2 p50=3956 p99=10608
+  REP 6 sketch_32k_d8 p50=3964 p99=11216
+  REP 6 sketch_32k_d4 p50=4104 p99=14576
+  ... repetition 7/60 done
+  REP 7 sketch_8k_d2 p50=4360 p99=22496
+  REP 7 sketch_32k_d4 p50=3956 p99=10608
+  REP 7 sketch_32k_d2_rot p50=4084 p99=10672
+  REP 7 exact_32k p50=4084 p99=10704
+  REP 7 sketch_32k_d8 p50=3948 p99=9840
+  REP 7 sketch_32k_d2 p50=4012 p99=9840
+  ... repetition 8/60 done
+  REP 8 sketch_32k_d4 p50=3972 p99=11632
+  REP 8 sketch_32k_d2 p50=3948 p99=10672
+  REP 8 sketch_32k_d8 p50=4092 p99=10896
+  REP 8 exact_32k p50=3980 p99=10384
+  REP 8 sketch_32k_d2_rot p50=4036 p99=11920
+  REP 8 sketch_8k_d2 p50=3972 p99=12528
+  ... repetition 9/60 done
+  REP 9 sketch_32k_d4 p50=3972 p99=11728
+  REP 9 sketch_32k_d2 p50=4052 p99=10064
+  REP 9 sketch_8k_d2 p50=3980 p99=10256
+  REP 9 sketch_32k_d2_rot p50=3996 p99=10736
+  REP 9 sketch_32k_d8 p50=3940 p99=10224
+  REP 9 exact_32k p50=3980 p99=18336
+  ... repetition 10/60 done
+  REP 10 sketch_8k_d2 p50=9680 p99=17056
+  REP 10 sketch_32k_d2_rot p50=4060 p99=23648
+  REP 10 sketch_32k_d4 p50=4036 p99=9488
+  REP 10 sketch_32k_d2 p50=3980 p99=10032
+  REP 10 sketch_32k_d8 p50=3948 p99=9488
+  REP 10 exact_32k p50=3940 p99=28512
+  ... repetition 11/60 done
+  REP 11 sketch_32k_d2_rot p50=3924 p99=9456
+  REP 11 sketch_32k_d2 p50=4036 p99=25952
+  REP 11 sketch_32k_d4 p50=4044 p99=9936
+  REP 11 exact_32k p50=4028 p99=12176
+  REP 11 sketch_8k_d2 p50=4360 p99=19232
+  REP 11 sketch_32k_d8 p50=3924 p99=12880
+  ... repetition 12/60 done
+  REP 12 sketch_32k_d2 p50=3956 p99=10096
+  REP 12 sketch_32k_d2_rot p50=3916 p99=10224
+  REP 12 sketch_32k_d4 p50=3924 p99=11088
+  REP 12 sketch_32k_d8 p50=3940 p99=9552
+  REP 12 exact_32k p50=3916 p99=10096
+  REP 12 sketch_8k_d2 p50=3932 p99=10032
+  ... repetition 13/60 done
+  REP 13 sketch_8k_d2 p50=3908 p99=33472
+  REP 13 sketch_32k_d2 p50=4028 p99=10160
+  REP 13 sketch_32k_d4 p50=4052 p99=20448
+  REP 13 exact_32k p50=3940 p99=10448
+  REP 13 sketch_32k_d2_rot p50=3932 p99=10832
+  REP 13 sketch_32k_d8 p50=3924 p99=9520
+  ... repetition 14/60 done
+  REP 14 sketch_8k_d2 p50=4052 p99=11088
+  REP 14 sketch_32k_d4 p50=3940 p99=8688
+  REP 14 sketch_32k_d2 p50=3988 p99=10288
+  REP 14 exact_32k p50=3988 p99=9936
+  REP 14 sketch_32k_d8 p50=3916 p99=11120
+  REP 14 sketch_32k_d2_rot p50=3948 p99=11280
+  ... repetition 15/60 done
+  REP 15 sketch_8k_d2 p50=5272 p99=27296
+  REP 15 sketch_32k_d2 p50=3948 p99=8848
+  REP 15 sketch_32k_d4 p50=3972 p99=10192
+  REP 15 sketch_32k_d8 p50=3948 p99=10416
+  REP 15 exact_32k p50=4052 p99=22688
+  REP 15 sketch_32k_d2_rot p50=3956 p99=10320
+  ... repetition 16/60 done
+  REP 16 sketch_8k_d2 p50=3948 p99=9712
+  REP 16 sketch_32k_d4 p50=3924 p99=9968
+  REP 16 exact_32k p50=3940 p99=10928
+  REP 16 sketch_32k_d2_rot p50=4036 p99=12112
+  REP 16 sketch_32k_d8 p50=3940 p99=9776
+  REP 16 sketch_32k_d2 p50=3948 p99=12208
+  ... repetition 17/60 done
+  REP 17 exact_32k p50=3956 p99=10704
+  REP 17 sketch_32k_d2 p50=3932 p99=8944
+  REP 17 sketch_32k_d2_rot p50=3940 p99=10032
+  REP 17 sketch_8k_d2 p50=3924 p99=10512
+  REP 17 sketch_32k_d8 p50=3900 p99=14928
+  REP 17 sketch_32k_d4 p50=3924 p99=10224
+  ... repetition 18/60 done
+  REP 18 exact_32k p50=4068 p99=11888
+  REP 18 sketch_8k_d2 p50=5784 p99=20832
+  REP 18 sketch_32k_d8 p50=3948 p99=11312
+  REP 18 sketch_32k_d4 p50=4104 p99=21344
+  REP 18 sketch_32k_d2_rot p50=3972 p99=10736
+  REP 18 sketch_32k_d2 p50=3988 p99=13456
+  ... repetition 19/60 done
+  REP 19 exact_32k p50=3956 p99=13488
+  REP 19 sketch_32k_d2_rot p50=3940 p99=10832
+  REP 19 sketch_8k_d2 p50=4120 p99=14384
+  REP 19 sketch_32k_d2 p50=3948 p99=9968
+  REP 19 sketch_32k_d8 p50=3948 p99=9680
+  REP 19 sketch_32k_d4 p50=4028 p99=10096
+  ... repetition 20/60 done
+  REP 20 sketch_32k_d8 p50=3940 p99=9328
+  REP 20 sketch_32k_d2_rot p50=3916 p99=11440
+  REP 20 sketch_8k_d2 p50=3916 p99=10064
+  REP 20 sketch_32k_d4 p50=4012 p99=10224
+  REP 20 exact_32k p50=3932 p99=9840
+  REP 20 sketch_32k_d2 p50=3980 p99=12112
+  ... repetition 21/60 done
+  REP 21 sketch_32k_d2_rot p50=3924 p99=9744
+  REP 21 exact_32k p50=3948 p99=10288
+  REP 21 sketch_32k_d4 p50=3916 p99=9616
+  REP 21 sketch_32k_d8 p50=4052 p99=19808
+  REP 21 sketch_32k_d2 p50=3900 p99=13264
+  REP 21 sketch_8k_d2 p50=3908 p99=9424
+  ... repetition 22/60 done
+  REP 22 exact_32k p50=3916 p99=11152
+  REP 22 sketch_32k_d2 p50=3948 p99=9744
+  REP 22 sketch_32k_d8 p50=3932 p99=11088
+  REP 22 sketch_32k_d4 p50=3924 p99=13680
+  REP 22 sketch_8k_d2 p50=6952 p99=18336
+  REP 22 sketch_32k_d2_rot p50=4068 p99=11984
+  ... repetition 23/60 done
+  REP 23 sketch_32k_d4 p50=3932 p99=11440
+  REP 23 exact_32k p50=4076 p99=18720
+  REP 23 sketch_32k_d2 p50=4104 p99=17568
+  REP 23 sketch_32k_d2_rot p50=3956 p99=9552
+  REP 23 sketch_32k_d8 p50=3924 p99=10640
+  REP 23 sketch_8k_d2 p50=6648 p99=18208
+  ... repetition 24/60 done
+  REP 24 exact_32k p50=3956 p99=10480
+  REP 24 sketch_32k_d8 p50=3916 p99=12112
+  REP 24 sketch_32k_d2_rot p50=3940 p99=10576
+  REP 24 sketch_32k_d2 p50=4044 p99=16416
+  REP 24 sketch_32k_d4 p50=3956 p99=10544
+  REP 24 sketch_8k_d2 p50=3972 p99=10320
+  ... repetition 25/60 done
+  REP 25 exact_32k p50=3940 p99=10704
+  REP 25 sketch_32k_d2_rot p50=3956 p99=9968
+  REP 25 sketch_32k_d2 p50=4036 p99=13616
+  REP 25 sketch_32k_d4 p50=4200 p99=14544
+  REP 25 sketch_8k_d2 p50=4536 p99=14480
+  REP 25 sketch_32k_d8 p50=4004 p99=10960
+  ... repetition 26/60 done
+  REP 26 exact_32k p50=3964 p99=10000
+  REP 26 sketch_8k_d2 p50=3956 p99=9584
+  REP 26 sketch_32k_d2 p50=3956 p99=10480
+  REP 26 sketch_32k_d8 p50=3940 p99=12720
+  REP 26 sketch_32k_d4 p50=3956 p99=10576
+  REP 26 sketch_32k_d2_rot p50=4012 p99=10704
+  ... repetition 27/60 done
+  REP 27 sketch_32k_d2 p50=3980 p99=12432
+  REP 27 sketch_32k_d4 p50=3940 p99=10832
+  REP 27 sketch_8k_d2 p50=3932 p99=9136
+  REP 27 exact_32k p50=3932 p99=10448
+  REP 27 sketch_32k_d2_rot p50=3924 p99=12048
+  REP 27 sketch_32k_d8 p50=3996 p99=9616
+  ... repetition 28/60 done
+  REP 28 sketch_32k_d4 p50=3932 p99=10544
+  REP 28 exact_32k p50=4068 p99=13072
+  REP 28 sketch_32k_d2_rot p50=3948 p99=9968
+  REP 28 sketch_8k_d2 p50=7128 p99=22304
+  REP 28 sketch_32k_d2 p50=3940 p99=10064
+  REP 28 sketch_32k_d8 p50=3940 p99=10736
+  ... repetition 29/60 done
+  REP 29 sketch_8k_d2 p50=5640 p99=17760
+  REP 29 sketch_32k_d2 p50=3924 p99=10608
+  REP 29 exact_32k p50=3916 p99=10224
+  REP 29 sketch_32k_d4 p50=4076 p99=11280
+  REP 29 sketch_32k_d2_rot p50=3932 p99=17952
+  REP 29 sketch_32k_d8 p50=3932 p99=10320
+  ... repetition 30/60 done
+  REP 30 sketch_32k_d8 p50=4036 p99=10800
+  REP 30 sketch_32k_d2_rot p50=4004 p99=10768
+  REP 30 sketch_32k_d2 p50=3956 p99=10672
+  REP 30 sketch_8k_d2 p50=4584 p99=13712
+  REP 30 sketch_32k_d4 p50=4004 p99=10640
+  REP 30 exact_32k p50=3940 p99=10160
+  ... repetition 31/60 done
+  REP 31 sketch_32k_d2 p50=3940 p99=9424
+  REP 31 sketch_8k_d2 p50=4856 p99=16416
+  REP 31 sketch_32k_d4 p50=4068 p99=13424
+  REP 31 sketch_32k_d8 p50=4020 p99=12240
+  REP 31 sketch_32k_d2_rot p50=5128 p99=15664
+  REP 31 exact_32k p50=4060 p99=13776
+  ... repetition 32/60 done
+  REP 32 sketch_32k_d8 p50=4092 p99=13200
+  REP 32 sketch_32k_d2 p50=3932 p99=12496
+  REP 32 sketch_32k_d2_rot p50=4152 p99=19616
+  REP 32 exact_32k p50=4012 p99=42816
+  REP 32 sketch_8k_d2 p50=4052 p99=9552
+  REP 32 sketch_32k_d4 p50=3924 p99=10288
+  ... repetition 33/60 done
+  REP 33 sketch_32k_d4 p50=3940 p99=10224
+  REP 33 sketch_32k_d2 p50=4808 p99=17376
+  REP 33 sketch_32k_d8 p50=4060 p99=13744
+  REP 33 exact_32k p50=3916 p99=10672
+  REP 33 sketch_8k_d2 p50=3924 p99=11248
+  REP 33 sketch_32k_d2_rot p50=4200 p99=13968
+  ... repetition 34/60 done
+  REP 34 sketch_8k_d2 p50=4200 p99=15024
+  REP 34 sketch_32k_d8 p50=4052 p99=11472
+  REP 34 sketch_32k_d4 p50=4084 p99=35904
+  REP 34 sketch_32k_d2_rot p50=4060 p99=12912
+  REP 34 exact_32k p50=4060 p99=10288
+  REP 34 sketch_32k_d2 p50=4044 p99=13072
+  ... repetition 35/60 done
+  REP 35 sketch_32k_d4 p50=4044 p99=13360
+  REP 35 sketch_8k_d2 p50=3908 p99=15696
+  REP 35 exact_32k p50=4020 p99=14352
+  REP 35 sketch_32k_d2 p50=3892 p99=9808
+  REP 35 sketch_32k_d8 p50=3908 p99=10544
+  REP 35 sketch_32k_d2_rot p50=4004 p99=10416
+  ... repetition 36/60 done
+  REP 36 sketch_32k_d4 p50=4036 p99=23008
+  REP 36 sketch_32k_d2_rot p50=4004 p99=10096
+  REP 36 exact_32k p50=3900 p99=13968
+  REP 36 sketch_8k_d2 p50=4440 p99=18144
+  REP 36 sketch_32k_d2 p50=4120 p99=25888
+  REP 36 sketch_32k_d8 p50=4184 p99=10384
+  ... repetition 37/60 done
+  REP 37 sketch_32k_d2 p50=3916 p99=11088
+  REP 37 sketch_32k_d2_rot p50=3916 p99=10064
+  REP 37 sketch_32k_d4 p50=3924 p99=10288
+  REP 37 exact_32k p50=3900 p99=10256
+  REP 37 sketch_8k_d2 p50=3900 p99=9648
+  REP 37 sketch_32k_d8 p50=3940 p99=10608
+  ... repetition 38/60 done
+  REP 38 sketch_32k_d2 p50=3868 p99=16800
+  REP 38 sketch_32k_d8 p50=3876 p99=16608
+  REP 38 sketch_32k_d2_rot p50=3860 p99=11440
+  REP 38 sketch_8k_d2 p50=4020 p99=14800
+  REP 38 sketch_32k_d4 p50=3924 p99=11632
+  REP 38 exact_32k p50=4036 p99=9712
+  ... repetition 39/60 done
+  REP 39 sketch_32k_d2_rot p50=4036 p99=11600
+  REP 39 sketch_32k_d4 p50=4440 p99=29472
+  REP 39 sketch_32k_d8 p50=4184 p99=13296
+  REP 39 sketch_8k_d2 p50=3956 p99=13264
+  REP 39 exact_32k p50=3932 p99=10256
+  REP 39 sketch_32k_d2 p50=3980 p99=10192
+  ... repetition 40/60 done
+  REP 40 sketch_32k_d2_rot p50=3916 p99=11888
+  REP 40 sketch_32k_d4 p50=3916 p99=11088
+  REP 40 exact_32k p50=4536 p99=17120
+  REP 40 sketch_8k_d2 p50=4076 p99=15120
+  REP 40 sketch_32k_d8 p50=4028 p99=11248
+  REP 40 sketch_32k_d2 p50=4920 p99=15184
+  ... repetition 41/60 done
+  REP 41 sketch_32k_d4 p50=3932 p99=14224
+  REP 41 sketch_8k_d2 p50=4028 p99=22688
+  REP 41 exact_32k p50=4904 p99=13072
+  REP 41 sketch_32k_d2 p50=3892 p99=9552
+  REP 41 sketch_32k_d2_rot p50=3956 p99=10640
+  REP 41 sketch_32k_d8 p50=4036 p99=10736
+  ... repetition 42/60 done
+  REP 42 sketch_32k_d8 p50=5000 p99=15824
+  REP 42 sketch_32k_d4 p50=4036 p99=30112
+  REP 42 exact_32k p50=5144 p99=18016
+  REP 42 sketch_8k_d2 p50=8784 p99=17696
+  REP 42 sketch_32k_d2_rot p50=3876 p99=14448
+  REP 42 sketch_32k_d2 p50=3892 p99=11760
+  ... repetition 43/60 done
+  REP 43 sketch_8k_d2 p50=3972 p99=13456
+  REP 43 sketch_32k_d2 p50=3892 p99=9840
+  REP 43 sketch_32k_d4 p50=4312 p99=62016
+  REP 43 sketch_32k_d8 p50=3980 p99=12848
+  REP 43 exact_32k p50=4504 p99=15152
+  REP 43 sketch_32k_d2_rot p50=4084 p99=14320
+  ... repetition 44/60 done
+  REP 44 sketch_32k_d2 p50=5928 p99=19360
+  REP 44 sketch_32k_d4 p50=3900 p99=31264
+  REP 44 sketch_32k_d8 p50=5176 p99=12752
+  REP 44 sketch_8k_d2 p50=3940 p99=13040
+  REP 44 exact_32k p50=4312 p99=15024
+  REP 44 sketch_32k_d2_rot p50=3884 p99=13520
+  ... repetition 45/60 done
+  REP 45 sketch_32k_d2 p50=3876 p99=10992
+  REP 45 sketch_32k_d8 p50=3956 p99=11184
+  REP 45 exact_32k p50=4552 p99=16416
+  REP 45 sketch_32k_d2_rot p50=5768 p99=15024
+  REP 45 sketch_8k_d2 p50=4052 p99=23328
+  REP 45 sketch_32k_d4 p50=3900 p99=11024
+  ... repetition 46/60 done
+  REP 46 sketch_32k_d2 p50=3876 p99=13872
+  REP 46 sketch_8k_d2 p50=6024 p99=21216
+  REP 46 sketch_32k_d8 p50=4028 p99=11024
+  REP 46 exact_32k p50=3964 p99=11792
+  REP 46 sketch_32k_d4 p50=3948 p99=13168
+  REP 46 sketch_32k_d2_rot p50=4012 p99=9872
+  ... repetition 47/60 done
+  REP 47 sketch_32k_d2_rot p50=3868 p99=15664
+  REP 47 sketch_8k_d2 p50=6968 p99=26848
+  REP 47 sketch_32k_d4 p50=3924 p99=12464
+  REP 47 sketch_32k_d8 p50=3868 p99=11664
+  REP 47 exact_32k p50=3868 p99=10800
+  REP 47 sketch_32k_d2 p50=3884 p99=10768
+  ... repetition 48/60 done
+  REP 48 sketch_32k_d4 p50=3900 p99=10640
+  REP 48 sketch_32k_d2_rot p50=4004 p99=10160
+  REP 48 sketch_32k_d2 p50=3932 p99=11280
+  REP 48 sketch_32k_d8 p50=4004 p99=11632
+  REP 48 sketch_8k_d2 p50=4060 p99=13488
+  REP 48 exact_32k p50=4856 p99=27296
+  ... repetition 49/60 done
+  REP 49 sketch_32k_d4 p50=3892 p99=9712
+  REP 49 exact_32k p50=3884 p99=10512
+  REP 49 sketch_32k_d2 p50=3876 p99=13648
+  REP 49 sketch_32k_d8 p50=3876 p99=10000
+  REP 49 sketch_32k_d2_rot p50=3876 p99=21664
+  REP 49 sketch_8k_d2 p50=3972 p99=9584
+  ... repetition 50/60 done
+  REP 50 sketch_32k_d4 p50=3916 p99=10576
+  REP 50 sketch_32k_d2_rot p50=5384 p99=16176
+  REP 50 sketch_8k_d2 p50=5256 p99=20768
+  REP 50 exact_32k p50=3972 p99=10384
+  REP 50 sketch_32k_d2 p50=5192 p99=17440
+  REP 50 sketch_32k_d8 p50=4392 p99=40000
+  ... repetition 51/60 done
+  REP 51 sketch_32k_d2 p50=3900 p99=15824
+  REP 51 sketch_8k_d2 p50=3900 p99=10224
+  REP 51 sketch_32k_d2_rot p50=3908 p99=9904
+  REP 51 exact_32k p50=3900 p99=10288
+  REP 51 sketch_32k_d4 p50=3892 p99=10864
+  REP 51 sketch_32k_d8 p50=3892 p99=16928
+  ... repetition 52/60 done
+  REP 52 exact_32k p50=4036 p99=10608
+  REP 52 sketch_8k_d2 p50=7864 p99=17696
+  REP 52 sketch_32k_d2_rot p50=3924 p99=10736
+  REP 52 sketch_32k_d2 p50=3916 p99=10032
+  REP 52 sketch_32k_d4 p50=3916 p99=12752
+  REP 52 sketch_32k_d8 p50=3956 p99=10000
+  ... repetition 53/60 done
+  REP 53 sketch_32k_d4 p50=4028 p99=9808
+  REP 53 sketch_32k_d2_rot p50=3916 p99=10704
+  REP 53 sketch_32k_d2 p50=3892 p99=10032
+  REP 53 sketch_8k_d2 p50=11792 p99=18592
+  REP 53 exact_32k p50=3892 p99=10032
+  REP 53 sketch_32k_d8 p50=3884 p99=11312
+  ... repetition 54/60 done
+  REP 54 sketch_8k_d2 p50=3884 p99=16800
+  REP 54 sketch_32k_d8 p50=3884 p99=10032
+  REP 54 sketch_32k_d2_rot p50=3876 p99=9872
+  REP 54 sketch_32k_d2 p50=3876 p99=10192
+  REP 54 exact_32k p50=3884 p99=10288
+  REP 54 sketch_32k_d4 p50=3884 p99=10224
+  ... repetition 55/60 done
+  REP 55 sketch_32k_d4 p50=3876 p99=11696
+  REP 55 sketch_8k_d2 p50=6408 p99=17184
+  REP 55 exact_32k p50=4052 p99=10928
+  REP 55 sketch_32k_d2 p50=4664 p99=15728
+  REP 55 sketch_32k_d2_rot p50=3892 p99=9328
+  REP 55 sketch_32k_d8 p50=3892 p99=9936
+  ... repetition 56/60 done
+  REP 56 sketch_32k_d4 p50=3964 p99=9584
+  REP 56 sketch_32k_d2_rot p50=3956 p99=11856
+  REP 56 sketch_32k_d2 p50=3892 p99=11024
+  REP 56 sketch_8k_d2 p50=3900 p99=22368
+  REP 56 exact_32k p50=3932 p99=9968
+  REP 56 sketch_32k_d8 p50=4036 p99=9872
+  ... repetition 57/60 done
+  REP 57 sketch_8k_d2 p50=5416 p99=17504
+  REP 57 sketch_32k_d2_rot p50=3924 p99=17184
+  REP 57 sketch_32k_d4 p50=3900 p99=11088
+  REP 57 sketch_32k_d8 p50=3876 p99=10032
+  REP 57 sketch_32k_d2 p50=3868 p99=11952
+  REP 57 exact_32k p50=3860 p99=9488
+  ... repetition 58/60 done
+  REP 58 exact_32k p50=3860 p99=11216
+  REP 58 sketch_32k_d4 p50=3844 p99=9552
+  REP 58 sketch_32k_d2_rot p50=3860 p99=10608
+  REP 58 sketch_32k_d2 p50=3860 p99=13616
+  REP 58 sketch_32k_d8 p50=3948 p99=10288
+  REP 58 sketch_8k_d2 p50=3964 p99=10096
+  ... repetition 59/60 done
+  REP 59 sketch_32k_d2 p50=4872 p99=33984
+  REP 59 exact_32k p50=3908 p99=10864
+  REP 59 sketch_32k_d4 p50=5256 p99=35648
+  REP 59 sketch_32k_d8 p50=3900 p99=9872
+  REP 59 sketch_32k_d2_rot p50=4052 p99=12848
+  REP 59 sketch_8k_d2 p50=5528 p99=19040
+  ... repetition 60/60 done
+
+==================================================================================
+condition             p50 med       p50 range  p99 med         p99 range  discrim
+==================================================================================
+exact_32k                3956       3548-5144    10752        9488-42816     --
+sketch_32k_d2            3948       3620-5928    11184        8848-33984     --
+sketch_32k_d4            3940       3516-5256    10848        8688-62016     --
+sketch_32k_d8            3948       3540-5176    10992        9328-40000     --
+sketch_32k_d2_rot        3952       3628-5768    10752        9328-23648     --
+sketch_8k_d2             4044      3564-11792    14640        8368-33472     --
+
+DISCRIM = flat_ref p50 / this row's p50. It measures how well the
+tracker separates the victim from churn, with the count-blind
+penalty as the zero point. 1.0x means no discrimination at all;
+below 1.0x means worse than not discriminating.
+
+KEY COMPARISON: every sketch row vs exact_ref. If ANY sketch
+shape reaches exact's discrimination at this budget, round 3's
+refutation must be narrowed to 'this configuration' rather than
+stated about sketches generally.
+EXCURSION DONE
+
+[exited with code 0]

@@ -156,3 +156,54 @@ before any data was collected. The margin was deliberately set tighter
 than the difference already observed. That is the only reason the
 result changed rather than being confirmed by a test built to agree
 with it.
+
+---
+
+## 9. "The sketch has a sporadic failure mode: rare severe tail excursions with a normal median"
+
+**Withdrawn:** exact counting shows the same excursion rate.
+**Cause:** a single outlier generalised into a failure mode, plus an
+outlier check whose logic was wrong.
+
+A dedicated run at n=60 per condition, with an excursion defined in
+advance as any repetition exceeding 3x the `exact_32k` median:
+
+| condition | excursions | rate | worst |
+|---|---|---|---|
+| exact_32k | 1/60 | 1.7% | 4.0x |
+| sketch_32k_d2 | 1/60 | 1.7% | 3.0x |
+| sketch_32k_d4 | 3/60 | 5.0% | 5.7x |
+| sketch_32k_d8 | 1/60 | 1.7% | 3.6x |
+| sketch_32k_d2_rot | 0/60 | 0.0% | 2.2x |
+| sketch_8k_d2 | 1/60 | 1.7% | 2.3x |
+
+All confidence intervals overlap. Exact counting was also the *noisiest*
+condition in this run (CV 0.43 against the sketch's 0.35), inverting the
+previous run where exact measured 0.18 and the sketch 0.40. The 24x
+excursion did not reproduce across 360 further measurements; nothing
+exceeded 5.7x.
+
+**The flawed check.** The 240,384us excursion was attributed to the
+sketch rather than the environment because it affected only one
+condition in its repetition, and a host disturbance was assumed to
+affect several. That reasoning is wrong: conditions run *sequentially*
+within a repetition, so a disturbance lasting seconds hits exactly one.
+The signature treated as exonerating is what an environmental
+disturbance produces.
+
+This was a pre-registered check, which did not save it. Specifying a
+check in advance guarantees it is not chosen to fit the data; it does not
+guarantee the check tests what it claims to.
+
+**The corrected position:** excursions occur at roughly 2% across all
+conditions including exact counting, and are a property of this
+environment or workload rather than of approximation. No sketch-specific
+sporadic failure mode is demonstrated.
+
+**Not claimed, but noted:** `sketch_32k_d2_rot` recorded 0 excursions,
+the lowest CV, and the lowest worst case. Seed rotation may dampen the
+tail. At 0 against 1 with n=60 that is not a result, and it is recorded
+here only so a future run knows where to look.
+
+**Original:** `raw/equivalence-n30-prereg.txt` (the single 24x outlier)
+**Correction:** `raw/excursion-rate-n60.txt`
