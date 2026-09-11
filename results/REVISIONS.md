@@ -36,9 +36,9 @@ conflated *consulting the count* with *perturbing vtime at all*. None of
 the four baseline tiers specified in the methodology could have caught
 this, because all four vary the scheduler rather than varying only
 whether the signal is used.
-**Original:** `raw/r2-count-attributable-n15.txt`
-**Correction:** `raw/r2b-flat-control-n8.txt`, confirmed in
-`raw/r2d-randomised-order-n20.txt`
+**Original:** [`r2-count-attributable-n15.txt`](raw/r2-count-attributable-n15.txt)
+**Correction:** [`r2b-flat-control-n8.txt`](raw/r2b-flat-control-n8.txt), confirmed in
+[`r2d-randomised-order-n20.txt`](raw/r2d-randomised-order-n20.txt)
 
 ## 4. "The sketch has a ~10% severe failure rate"
 
@@ -50,8 +50,8 @@ plausible mechanism (collisions inflating the protected task's count),
 and it was accepted at n=20 with visibly less scrutiny than the
 disappointing results received. It had been explicitly predicted to be
 the finding *least* likely to be an ordering artefact.
-**Original:** `raw/r2c-prereg-n20.txt`
-**Correction:** `raw/r2d-randomised-order-n20.txt`
+**Original:** [`r2c-prereg-n20.txt`](raw/r2c-prereg-n20.txt)
+**Correction:** [`r2d-randomised-order-n20.txt`](raw/r2d-randomised-order-n20.txt)
 
 ## 5. "Exact counting beats the sketch at every memory budget"
 
@@ -63,8 +63,8 @@ stopped working therefore scored as well as one working perfectly.
 Adding a `mechanism=none` reference -- absent from the original sweep --
 showed exact counting at 85 and 21 entries was statistically identical
 to doing nothing.
-**Original:** `raw/r3-memory-sweep-n8.txt`
-**Correction:** `raw/r5b-verify-reversal-inertness.txt`
+**Original:** [`r3-memory-sweep-n8.txt`](raw/r3-memory-sweep-n8.txt)
+**Correction:** [`r5b-verify-reversal-inertness.txt`](raw/r5b-verify-reversal-inertness.txt)
 
 ## 6. "The sketch works down to 2.3 KB"
 
@@ -73,8 +73,8 @@ to doing nothing.
 but the median had collapsed to the count-blind baseline's level, so
 the sketch had stopped distinguishing tasks and was merely perturbing
 them. The memory claim went from 15x to 4.3x.
-**Original:** `raw/r7-r9-throughput-mapcontrol-geometry.txt`
-**Correction:** `raw/o1-o4-budget-geometry-churning-n20.txt`
+**Original:** [`r7-r9-throughput-mapcontrol-geometry.txt`](raw/r7-r9-throughput-mapcontrol-geometry.txt)
+**Correction:** [`o1-o4-budget-geometry-churning-n20.txt`](raw/o1-o4-budget-geometry-churning-n20.txt)
 
 ## 7. "Sketch at 8 KB matches exact at 32 KB" (as first stated)
 
@@ -82,9 +82,9 @@ them. The memory claim went from 15x to 4.3x.
 **Cause:** a cross-run comparison -- precisely the pattern revision 4
 had already shown to be unsafe. The claim itself survived when
 re-measured properly; the *evidence* for it did not.
-**Original pairing:** `raw/thesis-confirmation-n20.txt` +
-`raw/o1-o4-budget-geometry-churning-n20.txt`
-**Correction:** `raw/headline-single-matrix-n20.txt`
+**Original pairing:** [`thesis-confirmation-n20.txt`](raw/thesis-confirmation-n20.txt) +
+[`o1-o4-budget-geometry-churning-n20.txt`](raw/o1-o4-budget-geometry-churning-n20.txt)
+**Correction:** [`headline-single-matrix-n20.txt`](raw/headline-single-matrix-n20.txt)
 
 ---
 
@@ -145,9 +145,9 @@ exact on the typical case and loses on the tail.
 where exact counting does not, at the cost of roughly 17% worse tail
 latency and with equivalent median latency. A trade, not a free lunch.
 
-**Original:** `raw/headline-single-matrix-n20.txt` (where the ranges
+**Original:** [`headline-single-matrix-n20.txt`](raw/headline-single-matrix-n20.txt) (where the ranges
 overlapped)
-**Correction:** `raw/equivalence-n30-prereg.txt`
+**Correction:** [`equivalence-n30-prereg.txt`](raw/equivalence-n30-prereg.txt)
 
 **Note on how this one was caught.** Unlike the previous seven, this
 revision came from a test written specifically so that it could fail,
@@ -205,8 +205,8 @@ the lowest CV, and the lowest worst case. Seed rotation may dampen the
 tail. At 0 against 1 with n=60 that is not a result, and it is recorded
 here only so a future run knows where to look.
 
-**Original:** `raw/equivalence-n30-prereg.txt` (the single 24x outlier)
-**Correction:** `raw/excursion-rate-n60.txt`
+**Original:** [`equivalence-n30-prereg.txt`](raw/equivalence-n30-prereg.txt) (the single 24x outlier)
+**Correction:** [`excursion-rate-n60.txt`](raw/excursion-rate-n60.txt)
 
 ---
 
@@ -248,5 +248,5 @@ and about a third more than 50% worse.** Reporting the median ratio
 conceals that -- the same error as reporting p99 without p50, applied
 one level up to a summary statistic.
 
-**Original:** `raw/equivalence-n30-prereg.txt`
-**Correction:** `raw/excursion-rate-n60.txt` plus re-analysis of both
+**Original:** [`equivalence-n30-prereg.txt`](raw/equivalence-n30-prereg.txt)
+**Correction:** [`excursion-rate-n60.txt`](raw/excursion-rate-n60.txt) plus re-analysis of both

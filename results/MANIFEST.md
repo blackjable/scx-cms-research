@@ -14,20 +14,20 @@ are present and the summaries can be recomputed rather than trusted.
 
 | file | what it is | n | notes |
 |---|---|---|---|
-| `r2-gating-n15.txt` | round 2 gating comparison | 15 | **fixed condition order** |
-| `r2-count-attributable-n15.txt` | count-blind control introduced | 15 | **fixed condition order** |
-| `r2b-flat-control-n8.txt` | flat swept at 2/4/8ms | 8 | **fixed condition order** |
-| `r2c-prereg-n20.txt` | pre-registered round 2c | 20 | **fixed order**; voided on its gating precondition |
-| `r2d-randomised-order-n20.txt` | first run after the ordering fix | 20 | randomised order onward |
-| `r3-memory-sweep-n8.txt` | matched memory budgets | 8 | discrimination metric later found invalid |
-| `r4-identity-bestshot-n10.txt` | identity keys, boost, sketch geometry | 10 | |
-| `r5-inflation-and-stable-sweep.txt` | compare-mode inflation, both regimes | 3 | |
-| `r5b-verify-reversal-inertness.txt` | `mechanism=none` reference added | 15/8 | exposed that exact was inert, not discriminating |
-| `r6-sketch-variants-n3.txt` | conservative update, hash mix, plain map | 3 | LRU pathology confirmed here |
-| `r7-r9-throughput-mapcontrol-geometry.txt` | hackbench/cyclictest, LRU vs plain, geometry | 5/8/10 | |
-| `thesis-confirmation-n20.txt` | 16 KB and 8 KB, stable | 20 | |
-| `o1-o4-budget-geometry-churning-n20.txt` | remaining budgets, geometry, churning | 20 | |
-| `headline-single-matrix-n20.txt` | the headline pairing, one interleaved matrix | 20 | supersedes the cross-run version |
+| [`r2-gating-n15.txt`](raw/r2-gating-n15.txt) | round 2 gating comparison | 15 | **fixed condition order** |
+| [`r2-count-attributable-n15.txt`](raw/r2-count-attributable-n15.txt) | count-blind control introduced | 15 | **fixed condition order** |
+| [`r2b-flat-control-n8.txt`](raw/r2b-flat-control-n8.txt) | flat swept at 2/4/8ms | 8 | **fixed condition order** |
+| [`r2c-prereg-n20.txt`](raw/r2c-prereg-n20.txt) | pre-registered round 2c | 20 | **fixed order**; voided on its gating precondition |
+| [`r2d-randomised-order-n20.txt`](raw/r2d-randomised-order-n20.txt) | first run after the ordering fix | 20 | randomised order onward |
+| [`r3-memory-sweep-n8.txt`](raw/r3-memory-sweep-n8.txt) | matched memory budgets | 8 | discrimination metric later found invalid |
+| [`r4-identity-bestshot-n10.txt`](raw/r4-identity-bestshot-n10.txt) | identity keys, boost, sketch geometry | 10 | |
+| [`r5-inflation-and-stable-sweep.txt`](raw/r5-inflation-and-stable-sweep.txt) | compare-mode inflation, both regimes | 3 | |
+| [`r5b-verify-reversal-inertness.txt`](raw/r5b-verify-reversal-inertness.txt) | `mechanism=none` reference added | 15/8 | exposed that exact was inert, not discriminating |
+| [`r6-sketch-variants-n3.txt`](raw/r6-sketch-variants-n3.txt) | conservative update, hash mix, plain map | 3 | LRU pathology confirmed here |
+| [`r7-r9-throughput-mapcontrol-geometry.txt`](raw/r7-r9-throughput-mapcontrol-geometry.txt) | hackbench/cyclictest, LRU vs plain, geometry | 5/8/10 | |
+| [`thesis-confirmation-n20.txt`](raw/thesis-confirmation-n20.txt) | 16 KB and 8 KB, stable | 20 | |
+| [`o1-o4-budget-geometry-churning-n20.txt`](raw/o1-o4-budget-geometry-churning-n20.txt) | remaining budgets, geometry, churning | 20 | |
+| [`headline-single-matrix-n20.txt`](raw/headline-single-matrix-n20.txt) | the headline pairing, one interleaved matrix | 20 | supersedes the cross-run version |
 
 ## Reading these with the necessary suspicion
 
