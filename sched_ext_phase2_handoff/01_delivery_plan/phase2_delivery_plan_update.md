@@ -1706,3 +1706,83 @@ a fixed budget **replicates on the kernel**. Depth 2 is optimal here,
 depth 8 is blunt (its p50 collapses to near-flat), and every geometry
 except depth 8 beats exact counting at this budget.
 
+## 20. The result, at n=20
+
+All rows below are n=20, randomised condition order, stable-identity
+workload unless stated. This supersedes the n=8 figures in Section 19.
+
+### 20.1 The headline: equivalent quality at 4.3x less memory
+
+| tracker | map | p50 | p99 |
+|---|---|---|---|
+| exact, 341 entries | 35.6 KB | 3,932us | 10,096us |
+| **sketch, depth 2 width 256** | **8.3 KB** | **3,900us** | **10,144us** |
+
+Statistically equivalent on both metrics -- medians identical to within
+1%, p99 ranges overlapping -- at **4.3x less memory**. Against taking no
+action (p99 ~65,000us) both are a ~6.4x tail improvement with the
+median untouched.
+
+This is the claim the project set out to test, and it holds.
+
+### 20.2 Where each structure stops working
+
+| budget | exact p99 | sketch p99 (default d4) |
+|---|---|---|
+| 32 KB | 10,096us (6.4x) | 9,952us (6.5x) |
+| 16 KB | 37,312us (1.75x) | 11,088us (5.9x) |
+| 8 KB | 62,336us **inert** | 17,984us (3.65x) |
+| 2 KB | 65,024us **inert** | 13,248us, but **blunt** |
+
+Exact discriminates at 32 KB, degrades at 16 KB, and by 8 KB is
+statistically indistinguishable from `mechanism=none`. The sketch
+discriminates down to 8 KB.
+
+**Correction to an earlier reading.** Section 19 claimed the sketch
+"works down to 2.3 KB". The geometry sweep shows that is too generous:
+at 2 KB every configuration is blunt, with p50 collapsing to the
+count-blind baseline's level (~10,900us, discrimination 1.01-1.10x). It
+still improves the tail, but by taxing every task rather than by
+distinguishing them -- which is the count-blind mechanism, not the
+tracked count. The usable range is 4.3x, not 15x.
+
+### 20.3 Geometry is load-bearing, not a footnote
+
+At a fixed 8 KB, varying only the width/depth split (n=20):
+
+| geometry | p50 | p99 |
+|---|---|---|
+| **d2 w256** | **3,900us** | **10,144us** |
+| d1 w512 | 3,900us | 12,208us |
+| d4 w128 (default) | 4,008us | 18,624us |
+| d8 w64 | 9,504us | 15,344us (blunt) |
+| d4 w128 + seed rotation | 4,224us | 16,704us |
+
+**The default geometry is 1.8x worse than the best at identical
+memory.** Phase 1's synthetic finding that width buys more accuracy than
+depth replicates on the kernel, and choosing depth 2 rather than 4 is
+the difference between the sketch matching exact counting and falling
+well short of it.
+
+The tradeoff inverts at 2 KB: deeper gives a better p99 but a worse p50,
+because once every cell is saturated additional rows only spread uniform
+inflation. That is another way of seeing that the structure has run out
+of room rather than degraded gracefully.
+
+### 20.4 Churning regime, confirmed: neither structure carries information
+
+| budget | none | exact | sketch |
+|---|---|---|---|
+| 16 KB | 116,480us | 98,688us (overlapping) | 41,856us, p50 18,112us |
+| 8 KB | 118,912us | 112,768us (inert) | 30,784us, p50 17,696us |
+
+Exact is inert. The sketch does improve the tail with non-overlapping
+ranges, but its p50 is 17,696us against `none`'s 3,984us -- it has
+become blunt, achieving the improvement the same way the count-blind
+baseline does. Neither structure carries usable information when
+identities turn over.
+
+So the memory result is bounded to the regime where the technique works
+at all, and that boundary belongs in the claim rather than in a
+footnote.
+

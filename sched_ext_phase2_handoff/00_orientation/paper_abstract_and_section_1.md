@@ -23,17 +23,22 @@ at load time with everything else held constant, and uses the tracked
 count to adjust scheduling. We evaluated it on a real kernel across
 matched memory budgets from 128 KB down to 2 KB.
 
-Neither structure dominates. Above roughly 32 KB the two are
-indistinguishable. Below it, the exact tracker stops functioning --
-at 85 entries its scheduling behaviour is statistically identical to
-not acting on the count at all, to the microsecond on median latency
-and with overlapping tail ranges -- while the sketch continues to
-deliver a 5.6x tail improvement over taking no action. Where the
-identity population fits the sketch's width, the sketch is the better
-small-memory structure; where identities greatly outnumber it, the
-sketch actively harms scheduling while the exact tracker merely goes
-quiet. The useful result is therefore a decision rule rather than a
-winner.
+The sketch extends the usable memory range below the exact tracker's
+floor. Where identities persist, both structures work at 32 KB and
+above; at 85 entries -- against roughly 330 live identities -- the exact
+tracker's scheduling behaviour becomes statistically indistinguishable
+from not acting on the count at all, while the sketch still delivers a
+3.65x tail improvement over taking no action, with non-overlapping
+ranges against both (n=20). Replacing the LRU hash with a plain one
+postpones that failure by about one budget step but does not prevent it.
+
+The result is bounded rather than general. Where task identities churn
+rather than persist, the exact tracker is inert at every budget tested
+and the sketch, while still acting, becomes blunt: it degrades median
+latency to the level of a penalty that ignores the tracked count
+entirely. So approximate counting buys memory headroom in the regime the
+technique works in at all, and neither structure rescues the regime it
+does not.
 
 The mechanisms differ in a way that determines which regime suits
 which. An exact tracker under a hard entry bound *fails silently*: it
@@ -136,12 +141,14 @@ likely to recur in any scheduler evaluation:
 
 ### 1.3 Contributions
 
-1. **A decision rule, not a winner.** Above ~32 KB the two structures
-   are indistinguishable. Below it the exact tracker goes inert while
-   the sketch keeps working when identities fit its width and becomes
-   actively harmful when they do not (Section 4.2.2). The failure modes
-   differ in kind -- silent for exact, loud for the sketch -- and that
-   is what should drive the choice.
+1. **Approximate counting extends the usable memory range.** At a
+   budget where exact counting has stopped affecting scheduling at all,
+   a Count-Min Sketch still delivers a 3.65x tail improvement over
+   inaction, with non-overlapping ranges at n=20 (Section 4.2.2). The
+   two structures' failure modes differ in kind -- exact fails silently
+   and degrades to the underlying policy, the sketch fails loudly and
+   misdirects it -- which matters as much as the memory figure when
+   choosing between them.
 
 2. **An explanation that transfers.** Scheduling needs the active set,
    not the identity population. An undersized LRU keeps what is running
