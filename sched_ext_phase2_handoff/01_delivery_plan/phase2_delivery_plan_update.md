@@ -1786,3 +1786,63 @@ So the memory result is bounded to the regime where the technique works
 at all, and that boundary belongs in the claim rather than in a
 footnote.
 
+## 21. The headline, measured in a single matrix
+
+Section 20 paired `exact @ 32 KB` (from one run) against
+`sketch @ 8 KB depth 2` (from another). That is a cross-run comparison,
+and this project has already learned at some cost that figures from
+separate matrices are not safely comparable -- fixed condition ordering
+made the same configuration read 21,664us or 14,000us depending on what
+preceded it.
+
+So the comparison was re-run with every condition carrying its own
+memory budget, interleaved in one randomised matrix, n=20. The grid
+includes `exact_8k` and `sketch_32k_d2` so it is complete in both
+directions rather than showing only the pairing that flatters the claim.
+
+| condition | memory | p50 | p99 | p99 range |
+|---|---|---|---|---|
+| none_ref_32k | 35.6 KB | 3,912us | 65,440us | 61,376-635,904 |
+| flat_ref_32k | 35.6 KB | 11,040us | 16,864us | 15,696-17,952 |
+| **exact_32k** | **35.6 KB** | **3,892us** | **10,144us** | 9,520-22,816 |
+| exact_8k | 9.6 KB | 3,908us | 63,680us | 56,640-100,736 |
+| sketch_32k_d2 | 32.3 KB | 3,892us | 10,064us | 9,360-22,496 |
+| **sketch_8k_d2** | **8.3 KB** | **3,924us** | **11,344us** | 8,720-29,088 |
+
+**The claim holds.** `sketch_8k_d2` and `exact_32k` differ by 12% on
+median p99 with heavily overlapping ranges, and their p50s agree within
+1%. No difference is demonstrated between a sketch at 8.3 KB and exact
+counting at 35.6 KB: **4.3x less memory for the same scheduling
+outcome**, now measured within a single matrix.
+
+The grid is coherent in both directions, which is what makes it
+believable rather than merely favourable:
+
+- At 32 KB the two structures match each other (10,144 vs 10,064us), so
+  the sketch is not winning through some artefact of being approximate.
+- At 8 KB exact is inert (63,680us against `none`'s 65,440us), so the
+  comparison is not flattered by an exact configuration that had
+  already failed at its own budget.
+- The count-blind reference sits at 16,864us with a p50 of 11,040us,
+  confirming within this same run that both working conditions are
+  discriminating rather than merely perturbing.
+
+### What this does and does not establish
+
+**Does:** at these budgets, on this workload, in the stable-identity
+regime, approximate counting delivers the same scheduling outcome as
+exact counting at roughly a quarter of the memory, and the comparison
+survives being run as a single interleaved matrix.
+
+**Does not:** *equivalence*, in the statistical sense. Overlapping
+ranges mean no difference was demonstrated, which is weaker than
+demonstrating no difference exists. A formal equivalence test with a
+pre-declared margin has not been run, and the p99 ranges here are wide
+on both sides (to 22,816us and 29,088us).
+
+**Consistency caveat.** The sketch is slightly less stable than exact:
+its p50 reached 8,104us in one run of twenty, where exact's worst was
+4,184us. That is one repetition where the sketch partially lost
+discrimination, and it is the kind of occasional failure a median
+conceals.
+

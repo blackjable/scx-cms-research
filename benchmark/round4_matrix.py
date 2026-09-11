@@ -123,11 +123,51 @@ def build_bestshot_matrix(args, common):
     return conds
 
 
+def build_headline_matrix(args, common):
+    """The paper's headline comparison, measured in a single matrix.
+
+    The claim is that a sketch at ~8 KB matches exact counting at ~32 KB.
+    Until now those two numbers came from different runs -- and this
+    project has already learned, expensively, that figures from separate
+    matrices are not safely comparable: a fixed condition order made the
+    same configuration read 21,664us or 14,000us depending on what
+    preceded it.
+
+    So every condition here carries its own memory budget and they are
+    interleaved in one randomised matrix. exact_8k and sketch_32k are
+    included so the grid is complete in both directions rather than
+    showing only the pairing that flatters the claim, and a do-nothing
+    reference anchors the improvement within this same run.
+
+    Sketch sizes use depth 2, which the geometry sweep found optimal and
+    which is NOT the implementation default -- at 8 KB the default depth
+    4 is 1.8x worse on p99 at identical memory.
+    """
+    pen = ["--penalty-ns", str(args.penalty_ns)]
+    return [
+        ("none_ref_32k", ["--tracker", "exact", "--mechanism", "none",
+                          "--max-tracked", "341"] + common),
+        ("flat_ref_32k", ["--tracker", "exact", "--mechanism", "flat",
+                          "--max-tracked", "341",
+                          "--flat-ns", str(args.flat_ns)] + common),
+        ("exact_32k", ["--tracker", "exact", "--mechanism", "penalty",
+                       "--max-tracked", "341"] + pen + common),
+        ("exact_8k", ["--tracker", "exact", "--mechanism", "penalty",
+                      "--max-tracked", "85"] + pen + common),
+        ("sketch_32k_d2", ["--tracker", "sketch", "--mechanism", "penalty",
+                           "--sketch-width", "1024",
+                           "--sketch-depth", "2"] + pen + common),
+        ("sketch_8k_d2", ["--tracker", "sketch", "--mechanism", "penalty",
+                          "--sketch-width", "256",
+                          "--sketch-depth", "2"] + pen + common),
+    ]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("matrix", choices=["identity", "bestshot"])
+    ap.add_argument("matrix", choices=["identity", "bestshot", "headline"])
     ap.add_argument("--duration", type=int, default=10)
     ap.add_argument("--slots", type=int, default=128)
     ap.add_argument("--lifetime", type=float, default=0.25)
@@ -153,11 +193,15 @@ def main() -> int:
 
     scx_cms = r2._find("scx-target/debug/scx_cms")
     common = ["--window-ms", str(args.window_ms)]
-    if args.matrix == "bestshot":
+    if args.matrix in ("bestshot", "headline"):
         common = ["--identity-key", "pid"] + common
 
-    conds = (build_identity_matrix(args, common) if args.matrix == "identity"
-             else build_bestshot_matrix(args, common))
+    if args.matrix == "identity":
+        conds = build_identity_matrix(args, common)
+    elif args.matrix == "headline":
+        conds = build_headline_matrix(args, common)
+    else:
+        conds = build_bestshot_matrix(args, common)
 
     print(f"Round 4 matrix: {args.matrix}")
     print(f"workload: {args.slots} respawning churn slots, lifetime "
@@ -181,8 +225,9 @@ def main() -> int:
             acc[name]["p99"].append(r["wu_p99"])
         print(f"  ... repetition {rep + 1}/{args.repeat} done", flush=True)
 
-    flat50 = (statistics.median(acc["flat_ref"]["p50"])
-              if acc.get("flat_ref", {}).get("p50") else None)
+    flat_key = next((k for k in acc if k.startswith("flat_ref")), None)
+    flat50 = (statistics.median(acc[flat_key]["p50"])
+              if flat_key and acc[flat_key]["p50"] else None)
 
     print("\n" + "=" * 82)
     print(f"{'condition':<20}{'p50 med':>9}{'p50 range':>16}"
