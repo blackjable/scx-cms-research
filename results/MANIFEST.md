@@ -28,6 +28,9 @@ are present and the summaries can be recomputed rather than trusted.
 | [`thesis-confirmation-n20.txt`](raw/thesis-confirmation-n20.txt) | 16 KB and 8 KB, stable | 20 | |
 | [`o1-o4-budget-geometry-churning-n20.txt`](raw/o1-o4-budget-geometry-churning-n20.txt) | remaining budgets, geometry, churning | 20 | |
 | [`headline-single-matrix-n20.txt`](raw/headline-single-matrix-n20.txt) | the headline pairing, one interleaved matrix | 20 | supersedes the cross-run version |
+| [`equivalence-n30-prereg.txt`](raw/equivalence-n30-prereg.txt) | pre-registered equivalence test, 15s runs | 30 | refuted the equivalence claim |
+| [`excursion-rate-n60.txt`](raw/excursion-rate-n60.txt) | excursion rates and two mitigations | 60 | showed the excursions are not the sketch's |
+| [`victim-shape-sensitivity-n15.txt`](raw/victim-shape-sensitivity-n15.txt) | four victim configurations | 15 | headline holds for 3 of 4; the 4th saturates the machine |
 
 ## Reading these with the necessary suspicion
 

@@ -1846,3 +1846,39 @@ its p50 reached 8,104us in one run of twenty, where exact's worst was
 discrimination, and it is the kind of occasional failure a median
 conceals.
 
+
+## 22. Victim-shape sensitivity, and a scope limit
+
+Every measurement to this point used one victim configuration --
+`schbench`, 4 worker threads, 100 requests per second. The headline had
+replicated across sample sizes, seeds, two independent runs and a
+single interleaved matrix, but never against a different victim, which
+left open the possibility that it was a property of one benchmark
+configuration rather than of the approach.
+
+n=15 per shape, conditions interleaved within each shape:
+
+| victim shape | none | exact @32KB | sketch @8KB | sketch/exact |
+|---|---|---|---|---|
+| 2t / 50rps | 65,920us | 7,848us | 9,744us | 1.24x |
+| 4t / 100rps | 170,240us | 15,632us | 15,280us | 0.98x |
+| 8t / 200rps | 116,352us | 15,376us | 20,896us | 1.36x |
+| **16t / 400rps** | **959,488us** | **836,608us** | **781,312us** | 0.93x |
+
+**The headline holds across the first three.** The sketch measures
+between 2% better and 36% worse than exact counting -- inside the
+0.87-1.85 spread already characterised -- with median latency
+equivalent throughout (1.00x to 1.11x). The result is not an artifact
+of one victim shape.
+
+**The fourth row is a scope limit that had not surfaced before.** At 16
+threads and 400 rps every condition collapses: `none` reaches 959,488us
+and both tracking mechanisms manage only 1.1x and 1.2x better. The
+victim saturates this 4-CPU machine on its own, so there is no headroom
+for any scheduling decision to exploit -- a mechanism that works by
+reordering a queue has nothing left to reorder.
+
+This belongs in the limitations because a reader could violate it
+without noticing. It depends on the relationship between the protected
+workload and the machine, not on anything visible in the scheduler's
+configuration.

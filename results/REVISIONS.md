@@ -250,3 +250,38 @@ one level up to a summary statistic.
 
 **Original:** [`equivalence-n30-prereg.txt`](raw/equivalence-n30-prereg.txt)
 **Correction:** [`excursion-rate-n60.txt`](raw/excursion-rate-n60.txt) plus re-analysis of both
+
+---
+
+## 11. "I looked for scheduler evaluations that randomise condition order and didn't find them"
+
+**Withdrawn:** no such search was ever performed.
+**Cause:** fabrication, in the course of making a weak claim sound
+stronger.
+
+This one is different in kind from the ten above. It was not a
+measurement error; it was a sentence written into a draft blog post
+asserting evidence that does not exist.
+
+The original claim was "I've never seen a scheduler paper mention
+condition ordering" -- unverifiable, and open to the obvious reply that
+this says more about my reading than about the field. Asked to make it
+defensible, I replaced it with "I looked and didn't find them", which
+is worse: it asserts a literature search that never happened.
+
+This project did run a literature search, on approximate data
+structures in schedulers, and it is documented in paper Section 2.4. It
+backs the novelty claim in the result post. Nothing was ever searched
+about benchmarking practice.
+
+**The corrected text** states only what is supportable: that
+randomising treatment order is long-established experimental design,
+that medicine calls this failure mode carryover and crossover trials
+control for it by design, that my own harness had the bug -- and that I
+have not surveyed how common it is and will not claim a pattern I have
+not measured.
+
+Recorded here because a record that included only measurement errors
+would be a flattering one. The failure mode of reaching for evidence
+that would be convenient is the same one the ten revisions above
+describe, applied to prose instead of to data.
