@@ -1,4 +1,4 @@
-# Six claims I retracted in one day
+# Seven claims I retracted in one day
 
 I set out to test whether a Count-Min Sketch could replace exact
 per-task counters in a Linux scheduler, saving memory without hurting
@@ -6,8 +6,8 @@ scheduling quality.
 
 The answer turned out to be yes — equivalent scheduling quality at 4.3x
 less memory. But between forming the hypothesis and confirming it, I
-announced and then withdrew six separate conclusions, including, at one
-point, the conclusion that the hypothesis was refuted.
+announced and then withdrew seven separate conclusions, including, at
+one point, the conclusion that the hypothesis was refuted.
 
 None of them failed because the hypothesis was wrong. Every one failed
 because an instrument was wrong. That pattern is the thing worth writing
@@ -50,6 +50,11 @@ blunt control, meaning it had stopped telling tasks apart and was just
 perturbing everything. Genuine working range: 8 KB. My memory claim went
 from 15x to 4.3x.
 
+**7. "A sketch at 8 KB matches exact counting at 32 KB."** The claim
+survived. The evidence for it didn't. The two numbers came from
+*different runs* — and I'll come back to this one, because it's the
+worst of the seven.
+
 ## The pattern
 
 Reading them together, the striking thing is that more data would have
@@ -79,9 +84,37 @@ The rest were instrument failures:
 Every fix came from adding a control or an instrument. None came from
 running more repetitions of the same measurement.
 
-## The one that bothers me
+## The one that bothers me most
 
-Number 4 is the one I think about.
+Number 7, and not because it was the largest error. It was the
+smallest — the claim turned out to be right when I re-measured it
+properly.
+
+It bothers me because **post 1 of this series is entirely about why
+figures from different matrices aren't comparable.** I found that bug,
+spent hours tracing it, fixed it, understood the mechanism well enough
+to explain it to strangers — and then built my headline result by
+pairing a number from one run against a number from another.
+
+Nobody caught it in review. I caught it while writing up a defence of
+my own confidence, going through the numbers one more time to explain
+why they should be trusted.
+
+Knowing a failure mode does not inoculate you against it. I could
+state the principle correctly, at length, in public, while
+simultaneously violating it in the most important comparison I had.
+The knowledge and the application live in different places, and only
+one of them gets exercised when you're pleased with a result.
+
+Re-running it as a single interleaved matrix took forty minutes. The
+claim held: 12% apart on median p99, ranges overlapping, medians within
+1%. But for a day before that, the headline of the whole project rested
+on a comparison I had personally written a blog post explaining you
+must not make.
+
+## The other one that bothers me
+
+Number 4.
 
 The others were disappointing results that I attacked properly — I ran
 controls, raised sample sizes, and at one point voided my own
@@ -107,8 +140,8 @@ you now have a specific prediction to test, not that you're done.
 
 ## What it cost, and what it bought
 
-Roughly a day. Six announcements withdrawn, one of them a claim that the
-whole project had failed.
+Roughly a day. Seven announcements withdrawn, one of them a claim that
+the whole project had failed.
 
 What it bought: the final result is one I believe. The memory claim is
 n=20 with non-overlapping ranges, the geometry that achieves it is
