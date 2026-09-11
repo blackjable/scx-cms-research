@@ -1373,6 +1373,25 @@ with throughput.
   split or seed rotation closes the gap (Section 4.2.2). This is the
   central finding, not a caveat.
 
+- **The mechanism only helps while the protected workload is not itself
+  the bottleneck.** Every result was measured with one victim shape
+  (4 threads, 100 rps) until a sensitivity check varied it. The headline
+  holds across 2t/50rps, 4t/100rps and 8t/200rps -- the sketch measuring
+  between 2% better and 36% worse than exact counting, within the spread
+  already characterised, with median latency equivalent throughout.
+
+  At 16 threads and 400 rps it does not, and neither does anything else.
+  The victim saturates this 4-CPU machine by itself: `none` reaches
+  959,488us and both tracking mechanisms manage only 1.1x and 1.2x
+  better. With no headroom there is no scheduling decision left to make
+  well, and a mechanism that works by reordering a queue has nothing to
+  reorder.
+
+  This is a condition a reader could easily violate without noticing,
+  since it depends on the relationship between the protected workload
+  and the machine rather than on anything visible in the scheduler's
+  configuration.
+
 - **The mechanism requires identity stability.** With high task
   turnover, fine-grained keys cannot see churning identities and coarse
   keys mis-attribute multithreaded victims (Section 4.2.3). Neither the

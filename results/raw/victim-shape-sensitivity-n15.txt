@@ -1,0 +1,338 @@
+victim matrix added
+ok
+/tmp/run_victim.sh: line 2: 518952 Killed                     sudo pkill -9 -f scx_ 2> /dev/null
+########## VICTIM SHAPE: 2 threads, 50 rps ##########
+Round 4 matrix: victim
+workload: 128 respawning churn slots, lifetime 60.0s, schbench victim (same as round 3)
+n=15, condition order randomised, seed=61
+
+  REP 0 sketch_8k_d2 p50=1938 p99=11248
+  REP 0 none_ref p50=1950 p99=62912
+  REP 0 exact_32k p50=1958 p99=6328
+  ... repetition 1/15 done
+  REP 1 exact_32k p50=1986 p99=6712
+  REP 1 none_ref p50=1994 p99=77440
+  REP 1 sketch_8k_d2 p50=1986 p99=6824
+  ... repetition 2/15 done
+  REP 2 none_ref p50=1998 p99=61888
+  REP 2 sketch_8k_d2 p50=1998 p99=7240
+  REP 2 exact_32k p50=2014 p99=8168
+  ... repetition 3/15 done
+  REP 3 sketch_8k_d2 p50=1994 p99=20128
+  REP 3 none_ref p50=2046 p99=65920
+  REP 3 exact_32k p50=2046 p99=6824
+  ... repetition 4/15 done
+  REP 4 none_ref p50=2060 p99=61120
+  REP 4 sketch_8k_d2 p50=2046 p99=5976
+  REP 4 exact_32k p50=2060 p99=8024
+  ... repetition 5/15 done
+  REP 5 sketch_8k_d2 p50=2060 p99=7736
+  REP 5 none_ref p50=2084 p99=66176
+  REP 5 exact_32k p50=2060 p99=7592
+  ... repetition 6/15 done
+  REP 6 none_ref p50=2092 p99=69248
+  REP 6 sketch_8k_d2 p50=2108 p99=8056
+  REP 6 exact_32k p50=2084 p99=7432
+  ... repetition 7/15 done
+  REP 7 sketch_8k_d2 p50=2124 p99=11440
+  REP 7 none_ref p50=2092 p99=65920
+  REP 7 exact_32k p50=2100 p99=7576
+  ... repetition 8/15 done
+  REP 8 sketch_8k_d2 p50=2116 p99=9744
+  REP 8 none_ref p50=2124 p99=60352
+  REP 8 exact_32k p50=2100 p99=7848
+  ... repetition 9/15 done
+  REP 9 exact_32k p50=2108 p99=8272
+  REP 9 none_ref p50=2140 p99=59968
+  REP 9 sketch_8k_d2 p50=2108 p99=7336
+  ... repetition 10/15 done
+  REP 10 exact_32k p50=2132 p99=7912
+  REP 10 none_ref p50=2188 p99=154880
+  REP 10 sketch_8k_d2 p50=2108 p99=15568
+  ... repetition 11/15 done
+  REP 11 sketch_8k_d2 p50=2116 p99=11600
+  REP 11 none_ref p50=2148 p99=61888
+  REP 11 exact_32k p50=2140 p99=7720
+  ... repetition 12/15 done
+  REP 12 sketch_8k_d2 p50=2148 p99=8944
+  REP 12 none_ref p50=2196 p99=164096
+  REP 12 exact_32k p50=2148 p99=10448
+  ... repetition 13/15 done
+  REP 13 sketch_8k_d2 p50=2116 p99=10448
+  REP 13 exact_32k p50=2116 p99=10256
+  REP 13 none_ref p50=2388 p99=158976
+  ... repetition 14/15 done
+  REP 14 none_ref p50=3004 p99=162560
+  REP 14 sketch_8k_d2 p50=2100 p99=14832
+  REP 14 exact_32k p50=2132 p99=10192
+  ... repetition 15/15 done
+
+==================================================================================
+condition             p50 med       p50 range  p99 med         p99 range  discrim
+==================================================================================
+none_ref                 2092       1950-3004    65920      59968-164096     --
+exact_32k                2100       1958-2148     7848        6328-10448     --
+sketch_8k_d2             2108       1938-2148     9744        5976-20128     --
+
+DISCRIM = flat_ref p50 / this row's p50. It measures how well the
+tracker separates the victim from churn, with the count-blind
+penalty as the zero point. 1.0x means no discrimination at all;
+below 1.0x means worse than not discriminating.
+
+KEY COMPARISON: every sketch row vs exact_ref. If ANY sketch
+shape reaches exact's discrimination at this budget, round 3's
+refutation must be narrowed to 'this configuration' rather than
+stated about sketches generally.
+
+########## VICTIM SHAPE: 4 threads, 100 rps ##########
+Round 4 matrix: victim
+workload: 128 respawning churn slots, lifetime 60.0s, schbench victim (same as round 3)
+n=15, condition order randomised, seed=61
+
+  REP 0 sketch_8k_d2 p50=4568 p99=13776
+  REP 0 none_ref p50=35648 p99=170240
+  REP 0 exact_32k p50=4104 p99=13840
+  ... repetition 1/15 done
+  REP 1 exact_32k p50=4092 p99=14480
+  REP 1 none_ref p50=58816 p99=188160
+  REP 1 sketch_8k_d2 p50=4952 p99=18848
+  ... repetition 2/15 done
+  REP 2 none_ref p50=9776 p99=167680
+  REP 2 sketch_8k_d2 p50=5368 p99=19744
+  REP 2 exact_32k p50=4440 p99=15632
+  ... repetition 3/15 done
+  REP 3 sketch_8k_d2 p50=4808 p99=14608
+  REP 3 none_ref p50=58432 p99=168192
+  REP 3 exact_32k p50=4392 p99=16048
+  ... repetition 4/15 done
+  REP 4 none_ref p50=59328 p99=175360
+  REP 4 sketch_8k_d2 p50=4280 p99=30368
+  REP 4 exact_32k p50=4440 p99=16176
+  ... repetition 5/15 done
+  REP 5 sketch_8k_d2 p50=5368 p99=18464
+  REP 5 none_ref p50=57792 p99=167680
+  REP 5 exact_32k p50=4360 p99=14608
+  ... repetition 6/15 done
+  REP 6 none_ref p50=59328 p99=170752
+  REP 6 sketch_8k_d2 p50=4232 p99=14320
+  REP 6 exact_32k p50=4232 p99=16048
+  ... repetition 7/15 done
+  REP 7 sketch_8k_d2 p50=4392 p99=14928
+  REP 7 none_ref p50=7032 p99=166144
+  REP 7 exact_32k p50=3988 p99=15120
+  ... repetition 8/15 done
+  REP 8 sketch_8k_d2 p50=4200 p99=14896
+  REP 8 none_ref p50=56640 p99=166656
+  REP 8 exact_32k p50=4776 p99=16672
+  ... repetition 9/15 done
+  REP 9 exact_32k p50=4520 p99=16672
+  REP 9 none_ref p50=58816 p99=172800
+  REP 9 sketch_8k_d2 p50=5896 p99=20384
+  ... repetition 10/15 done
+  REP 10 exact_32k p50=5944 p99=20512
+  REP 10 none_ref p50=63680 p99=230144
+  REP 10 sketch_8k_d2 p50=5368 p99=18848
+  ... repetition 11/15 done
+  REP 11 sketch_8k_d2 p50=4568 p99=14960
+  REP 11 none_ref p50=59456 p99=170240
+  REP 11 exact_32k p50=4264 p99=15056
+  ... repetition 12/15 done
+  REP 12 sketch_8k_d2 p50=4472 p99=14128
+  REP 12 none_ref p50=58176 p99=170240
+  REP 12 exact_32k p50=4232 p99=15408
+  ... repetition 13/15 done
+  REP 13 sketch_8k_d2 p50=4456 p99=15280
+  REP 13 exact_32k p50=4136 p99=14128
+  REP 13 none_ref p50=8752 p99=167168
+  ... repetition 14/15 done
+  REP 14 none_ref p50=14096 p99=165632
+  REP 14 sketch_8k_d2 p50=4568 p99=15376
+  REP 14 exact_32k p50=5016 p99=15920
+  ... repetition 15/15 done
+
+==================================================================================
+condition             p50 med       p50 range  p99 med         p99 range  discrim
+==================================================================================
+none_ref                58176      7032-63680   170240     165632-230144     --
+exact_32k                4360       3988-5944    15632       13840-20512     --
+sketch_8k_d2             4568       4200-5896    15280       13776-30368     --
+
+DISCRIM = flat_ref p50 / this row's p50. It measures how well the
+tracker separates the victim from churn, with the count-blind
+penalty as the zero point. 1.0x means no discrimination at all;
+below 1.0x means worse than not discriminating.
+
+KEY COMPARISON: every sketch row vs exact_ref. If ANY sketch
+shape reaches exact's discrimination at this budget, round 3's
+refutation must be narrowed to 'this configuration' rather than
+stated about sketches generally.
+
+########## VICTIM SHAPE: 8 threads, 200 rps ##########
+Round 4 matrix: victim
+workload: 128 respawning churn slots, lifetime 60.0s, schbench victim (same as round 3)
+n=15, condition order randomised, seed=61
+
+  REP 0 sketch_8k_d2 p50=9424 p99=27744
+  REP 0 none_ref p50=64960 p99=189184
+  REP 0 exact_32k p50=8720 p99=26784
+  ... repetition 1/15 done
+  REP 1 exact_32k p50=8272 p99=22816
+  REP 1 none_ref p50=62400 p99=180992
+  REP 1 sketch_8k_d2 p50=8104 p99=21664
+  ... repetition 2/15 done
+  REP 2 none_ref p50=62016 p99=183552
+  REP 2 sketch_8k_d2 p50=10352 p99=25824
+  REP 2 exact_32k p50=7928 p99=15472
+  ... repetition 3/15 done
+  REP 3 sketch_8k_d2 p50=7784 p99=15024
+  REP 3 none_ref p50=7768 p99=68480
+  REP 3 exact_32k p50=7768 p99=15376
+  ... repetition 4/15 done
+  REP 4 none_ref p50=7752 p99=111232
+  REP 4 sketch_8k_d2 p50=8240 p99=25312
+  REP 4 exact_32k p50=7720 p99=15312
+  ... repetition 5/15 done
+  REP 5 sketch_8k_d2 p50=7736 p99=15440
+  REP 5 none_ref p50=7720 p99=68992
+  REP 5 exact_32k p50=7736 p99=18080
+  ... repetition 6/15 done
+  REP 6 none_ref p50=7736 p99=116352
+  REP 6 sketch_8k_d2 p50=7704 p99=13680
+  REP 6 exact_32k p50=7720 p99=14384
+  ... repetition 7/15 done
+  REP 7 sketch_8k_d2 p50=8880 p99=22816
+  REP 7 none_ref p50=7704 p99=76416
+  REP 7 exact_32k p50=7816 p99=14288
+  ... repetition 8/15 done
+  REP 8 sketch_8k_d2 p50=7672 p99=13520
+  REP 8 none_ref p50=7688 p99=68224
+  REP 8 exact_32k p50=7688 p99=15056
+  ... repetition 9/15 done
+  REP 9 exact_32k p50=7688 p99=15344
+  REP 9 none_ref p50=7720 p99=68224
+  REP 9 sketch_8k_d2 p50=8272 p99=21152
+  ... repetition 10/15 done
+  REP 10 exact_32k p50=7800 p99=22496
+  REP 10 none_ref p50=7768 p99=85632
+  REP 10 sketch_8k_d2 p50=7720 p99=13680
+  ... repetition 11/15 done
+  REP 11 sketch_8k_d2 p50=7784 p99=20192
+  REP 11 none_ref p50=3948 p99=151808
+  REP 11 exact_32k p50=7848 p99=14352
+  ... repetition 12/15 done
+  REP 12 sketch_8k_d2 p50=7880 p99=22048
+  REP 12 none_ref p50=7896 p99=158976
+  REP 12 exact_32k p50=8088 p99=19232
+  ... repetition 13/15 done
+  REP 13 sketch_8k_d2 p50=8008 p99=20896
+  REP 13 exact_32k p50=8240 p99=18336
+  REP 13 none_ref p50=5272 p99=145664
+  ... repetition 14/15 done
+  REP 14 none_ref p50=7832 p99=157952
+  REP 14 sketch_8k_d2 p50=7752 p99=19104
+  REP 14 exact_32k p50=7800 p99=15344
+  ... repetition 15/15 done
+
+==================================================================================
+condition             p50 med       p50 range  p99 med         p99 range  discrim
+==================================================================================
+none_ref                 7752      3948-64960   116352      68224-189184     --
+exact_32k                7800       7688-8720    15376       14288-26784     --
+sketch_8k_d2             7880      7672-10352    20896       13520-27744     --
+
+DISCRIM = flat_ref p50 / this row's p50. It measures how well the
+tracker separates the victim from churn, with the count-blind
+penalty as the zero point. 1.0x means no discrimination at all;
+below 1.0x means worse than not discriminating.
+
+KEY COMPARISON: every sketch row vs exact_ref. If ANY sketch
+shape reaches exact's discrimination at this budget, round 3's
+refutation must be narrowed to 'this configuration' rather than
+stated about sketches generally.
+
+########## VICTIM SHAPE: 16 threads, 400 rps ##########
+Round 4 matrix: victim
+workload: 128 respawning churn slots, lifetime 60.0s, schbench victim (same as round 3)
+n=15, condition order randomised, seed=61
+
+  REP 0 sketch_8k_d2 p50=29152 p99=871424
+  REP 0 none_ref p50=70528 p99=922624
+  REP 0 exact_32k p50=28704 p99=1037312
+  ... repetition 1/15 done
+  REP 1 exact_32k p50=28512 p99=969728
+  REP 1 none_ref p50=66176 p99=832512
+  REP 1 sketch_8k_d2 p50=30176 p99=701440
+  ... repetition 2/15 done
+  REP 2 none_ref p50=70784 p99=959488
+  REP 2 sketch_8k_d2 p50=28704 p99=758784
+  REP 2 exact_32k p50=32416 p99=736256
+  ... repetition 3/15 done
+  REP 3 sketch_8k_d2 p50=41408 p99=959488
+  REP 3 none_ref p50=70272 p99=961536
+  REP 3 exact_32k p50=26144 p99=943104
+  ... repetition 4/15 done
+  REP 4 none_ref p50=70528 p99=955392
+  REP 4 sketch_8k_d2 p50=39872 p99=728064
+  REP 4 exact_32k p50=35008 p99=838656
+  ... repetition 5/15 done
+  REP 5 sketch_8k_d2 p50=35136 p99=785408
+  REP 5 none_ref p50=69504 p99=1628160
+  REP 5 exact_32k p50=32416 p99=752640
+  ... repetition 6/15 done
+  REP 6 none_ref p50=69760 p99=1304576
+  REP 6 sketch_8k_d2 p50=32480 p99=723968
+  REP 6 exact_32k p50=27360 p99=797696
+  ... repetition 7/15 done
+  REP 7 sketch_8k_d2 p50=36544 p99=889856
+  REP 7 none_ref p50=70016 p99=818176
+  REP 7 exact_32k p50=29280 p99=906240
+  ... repetition 8/15 done
+  REP 8 sketch_8k_d2 p50=30752 p99=709632
+  REP 8 none_ref p50=70784 p99=912384
+  REP 8 exact_32k p50=31904 p99=773120
+  ... repetition 9/15 done
+  REP 9 exact_32k p50=34496 p99=873472
+  REP 9 none_ref p50=70528 p99=955392
+  REP 9 sketch_8k_d2 p50=24928 p99=977920
+  ... repetition 10/15 done
+  REP 10 exact_32k p50=30688 p99=836608
+  REP 10 none_ref p50=70528 p99=1366016
+  REP 10 sketch_8k_d2 p50=29088 p99=740352
+  ... repetition 11/15 done
+  REP 11 sketch_8k_d2 p50=40000 p99=769024
+  REP 11 none_ref p50=69504 p99=1144832
+  REP 11 exact_32k p50=27616 p99=961536
+  ... repetition 12/15 done
+  REP 12 sketch_8k_d2 p50=28192 p99=816128
+  REP 12 none_ref p50=70272 p99=1275904
+  REP 12 exact_32k p50=31456 p99=789504
+  ... repetition 13/15 done
+  REP 13 sketch_8k_d2 p50=32736 p99=973824
+  REP 13 exact_32k p50=25888 p99=695296
+  REP 13 none_ref p50=71040 p99=1398784
+  ... repetition 14/15 done
+  REP 14 none_ref p50=70272 p99=951296
+  REP 14 sketch_8k_d2 p50=37440 p99=781312
+  REP 14 exact_32k p50=23456 p99=805888
+  ... repetition 15/15 done
+
+==================================================================================
+condition             p50 med       p50 range  p99 med         p99 range  discrim
+==================================================================================
+none_ref                70272     66176-71040   959488    818176-1628160     --
+exact_32k               29280     23456-35008   836608    695296-1037312     --
+sketch_8k_d2            32480     24928-41408   781312     701440-977920     --
+
+DISCRIM = flat_ref p50 / this row's p50. It measures how well the
+tracker separates the victim from churn, with the count-blind
+penalty as the zero point. 1.0x means no discrimination at all;
+below 1.0x means worse than not discriminating.
+
+KEY COMPARISON: every sketch row vs exact_ref. If ANY sketch
+shape reaches exact's discrimination at this budget, round 3's
+refutation must be narrowed to 'this configuration' rather than
+stated about sketches generally.
+
+VICTIM DONE
+
+[exited with code 0]
