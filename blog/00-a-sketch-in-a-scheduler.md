@@ -261,3 +261,28 @@ Ten claims were made and withdrawn on the way to this one. Each is
 recorded with the file that produced it and the file that overturned it:
 [`REVISIONS.md`](../results/REVISIONS.md). Measurement environment:
 [`ENVIRONMENT.md`](../results/ENVIRONMENT.md).
+
+## What I'd like to know next
+
+Three things this couldn't answer, in order of how much I want them.
+
+**Whether it survives real hardware.** Everything here is a VM on 4
+aarch64 cores. I've written down in advance which findings should hold
+and which should move — the memory result should survive, the tail
+penalty is the one most at risk, since it depends on rare events and a
+noisy environment produces those. The predictions are dated. When the
+hardware arrives, they're either right or they aren't.
+
+**Whether it saves energy.** This is the one that nags. The established
+reason to track wakeup frequency is that wakeups cost joules — a core
+leaving a deep idle state — and that's a far more direct argument than
+the latency chain I spent all this time on. A sketch's overestimation
+would also matter much less to a batching decision than to a scheduling
+one. My guest exposes no energy counters, so I measured the wrong thing
+well rather than the right thing at all.
+
+**Whether other tracked signals survive the same control.** A
+count-blind penalty reproduced 82% of what I'd credited to wakeup
+tracking. Schedulers track run length, migration rate, cache warmth,
+waker-wakee locality. The control is forty lines. I'd be curious, and
+slightly apprehensive, to see it run against those.

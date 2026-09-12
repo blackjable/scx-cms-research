@@ -46,6 +46,44 @@ so summaries can be recomputed rather than trusted.
 Runs that produced conclusions later retracted are kept deliberately. The
 wrong answers are part of the record.
 
+## Still open
+
+These aren't a content schedule — they're the threads this work left
+hanging, and I've written down enough in advance that the answers can
+embarrass me.
+
+**Everything I predicted bare metal would change.** All of this was
+measured in a VM on 4 aarch64 cores. Before buying hardware I wrote down
+which findings should survive and which should move, and why: the memory
+result should hold, every absolute latency figure should shrink, the
+`LRU_HASH` cliff should shift with core count, and the tail penalty is
+the one most at risk because it rests on rare events in an environment
+that manufactures them. That's in the paper's limitations section, dated
+and unhedged. The post is the scoreboard.
+
+**Does any of this actually save energy?** The established reason to
+track wakeup frequency isn't latency at all — it's that every wakeup
+drags a core out of a deep idle state and costs real joules. That's a
+one-step causal chain where my latency argument is three. And a sketch's
+overestimation matters far less to a batching heuristic than to a
+scheduling decision, so my negative findings may simply not transfer. I
+couldn't measure it: no energy counters in the guest.
+
+**Which other scheduler heuristics survive a placebo arm?** The
+count-blind control dissolved 82% of my headline result. Schedulers
+track plenty of other things — run length, migration rate, waker-wakee
+locality, cache warmth. I have no idea how many of those survive the
+same test, and the test costs about forty lines.
+
+**What is the right identity for a task?** Post 04 shows PID can't see
+churning tasks and `comm` turns a multithreaded victim into the heaviest
+waker on the system, with nothing usable in between. Cgroup? Executable
+path? Parent lineage? I don't know, and it blocks any scheduler that
+tracks behaviour under churn.
+
+If you want to be told when these land, or to tell me I'm wrong about
+one of them first, that's what the subscribe button is for.
+
 ## Repositories
 
 - **https://github.com/blackjable/scx-cms-research** — this repository: paper, posts, harnesses, raw data
