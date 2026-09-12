@@ -85,6 +85,13 @@ four vCPUs onto efficiency cores, and `vz` offers no physical-core
 pinning to prevent it. The two VMs would be measuring different
 hardware, with the assignment shifting under them.
 
+## Preparing a host for these measurements
+
+Configuring a machine so that what is measured is the scheduler rather
+than the machine -- which timers to disable, why frequency scaling is a
+confound, and why nothing else should run on the host -- is documented
+separately in [`BENCHMARK_HOST.md`](BENCHMARK_HOST.md).
+
 ## Workload constants
 
 Unless a run's own header says otherwise:
