@@ -492,19 +492,32 @@ def main() -> int:
         conditions = [c for c in conditions if c[0] in wanted]
 
     runs = {name: [] for name, _, _, _ in conditions}
-    # Condition order is randomised per repetition, and this is not a
-    # detail. With a fixed order, whatever the preceding condition leaves
-    # behind -- runqueue state, CPU frequency, page cache, residue from
-    # the scheduler attach/detach path -- lands on the SAME condition
-    # every repetition, so carryover is systematic bias that more
-    # repetitions cannot average away.
+    # Condition order is randomised per repetition. The reasoning is that
+    # whatever the preceding condition leaves behind -- runqueue state,
+    # CPU frequency, page cache, residue from the scheduler attach/detach
+    # path -- would otherwise land on the SAME condition every
+    # repetition, making carryover a systematic bias that more
+    # repetitions cannot average away. Randomising converts it into noise
+    # that averaging removes.
     #
-    # That is not hypothetical. The n=15 matrix ran cms_none (p99 ~88ms)
-    # immediately before cms_exact_penalty in every repetition; round 2c
-    # ran exact first from a clean state. Exact's p99 upper bound was
-    # 21,664us in the first and 14,000us in the second, and the two runs
-    # disagreed about whether exact separates from flat at all.
-    # Randomising converts that bias into noise that averaging removes.
+    # MEASURED, and the effect is not there. A controlled test at n=20
+    # per arm (results/raw/ordering-controlled-n20.txt, pre-registered)
+    # ran cms_none (p99 ~90ms) immediately before cms_exact_penalty in 20
+    # of 20 repetitions in one arm and shuffled in the other. Medians
+    # 0.98x apart, Mann-Whitney p=0.86, and the FIXED arm was the less
+    # variable of the two. A within-arm check on the randomised arm,
+    # where adjacency was assigned at random, agrees (p=0.46).
+    #
+    # This was previously asserted here as established fact, citing a
+    # 21,664us-vs-14,000us swing between two runs. Those two runs are
+    # both fixed-order and differ in condition subset and sample size as
+    # well, so they never tested ordering. See REVISIONS.md revision 13.
+    #
+    # The randomisation stays: carryover is real in principle, this is
+    # one workload on one machine, and six lines of insurance against a
+    # bias repetitions cannot remove is worth keeping. It is insurance,
+    # not a correction to a demonstrated fault, and should not be
+    # described as one.
     #
     # Seeded so a run is reproducible from its printed seed.
     #

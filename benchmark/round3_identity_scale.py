@@ -269,9 +269,11 @@ def main() -> int:
     EXACT_B_PER_ENTRY = 96
     SKETCH_B_PER_CELL = 8
 
-    # Same lesson as round 2 (commit 623762e): a fixed condition order
-    # makes carryover systematic bias that repetitions cannot average
-    # away. This file was written with that bug still in it.
+    # Randomised per repetition, on the same reasoning as round 2: a
+    # fixed order would make any carryover a systematic bias that
+    # repetitions cannot average away. Measured since, and no such bias
+    # exists here (REVISIONS.md revision 13) -- kept as insurance rather
+    # than as a fix. This file predates the randomisation.
     order_rng = random.Random(args.order_seed)
     print(f"condition order randomised per repetition, seed={args.order_seed}")
     print("budgets matched on measured memlock; check the map column\n")

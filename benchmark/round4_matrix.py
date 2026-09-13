@@ -127,11 +127,18 @@ def build_headline_matrix(args, common):
     """The paper's headline comparison, measured in a single matrix.
 
     The claim is that a sketch at ~8 KB matches exact counting at ~32 KB.
-    Until now those two numbers came from different runs -- and this
-    project has already learned, expensively, that figures from separate
-    matrices are not safely comparable: a fixed condition order made the
-    same configuration read 21,664us or 14,000us depending on what
-    preceded it.
+    Until now those two numbers came from different runs, and figures
+    from separate matrices are not safely comparable -- run-to-run
+    variation alone is large enough here to manufacture or erase the
+    difference being claimed.
+
+    (This docstring previously justified that with a 21,664us-vs-14,000us
+    swing attributed to fixed condition ordering. That attribution was
+    withdrawn -- REVISIONS.md revision 13, no ordering effect exists in
+    this workload. The reason for a single interleaved matrix is
+    unchanged and if anything stronger: the two runs in question differed
+    in ways nobody could enumerate afterwards, which is exactly why you
+    put both conditions in one matrix instead.)
 
     So every condition here carries its own memory budget and they are
     interleaved in one randomised matrix. exact_8k and sketch_32k are
