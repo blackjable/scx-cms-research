@@ -228,8 +228,8 @@ conclusion that the whole idea was refuted.
 Almost none of those failed because the hypothesis was wrong. They
 failed because an instrument was wrong — a harness that ran conditions
 in fixed order so carryover always landed on the same neighbour; a
-metric that scored a broken tracker as highly as a working one; a BPF
-map that stops behaving like an LRU at small sizes.
+metric that scored a broken tracker as highly as a working one; an
+explanation I invented for a real measurement and never tested.
 
 The final numbers use five controls that didn't exist when I started,
 each added after something it would have caught went wrong. The raw
