@@ -1,0 +1,43 @@
+Which map does the reported "map X KB" column actually describe?
+
+Checked because round3_identity_scale.py selected the exact tracker's
+map by substring ("count"), and there are two maps matching it:
+cms_counts (LRU_HASH, the one in use) and cms_counts_plain, which
+bpftool truncates to cms_counts_plai -- still matching. Dict iteration
+order decided which memlock got reported. Both are sized to
+--max-tracked, so the entry count was right either way, but LRU_HASH
+and HASH have different per-entry overhead, so the BYTES could have
+come from the map that was not selected.
+
+The headline memory claim rests on that column, so it is worth settling
+rather than assuming.
+
+scx_cms --tracker exact --mechanism none --max-tracked 341
+        --sketch-width 256 --sketch-depth 2
+Fedora 44, kernel 6.19.10-300.fc44.aarch64, 4 vCPU guest.
+
+  63033: lru_hash  name cms_counts  flags 0x0
+          key 8B  value 24B  max_entries 341  memlock 36432B
+  63034: hash  name cms_counts_plai  flags 0x0
+          key 8B  value 24B  max_entries 341  memlock 36784B
+  63035: array  name cms_sketch  flags 0x0
+          key 4B  value 4B  max_entries 1024  memlock 8496B
+
+VERDICT: the archived figure is correct and the bug was latent, not
+active.
+
+  cms_counts       36,432 B = 35.58 KB -> prints as 35.6 KB  <- matches
+  cms_counts_plain 36,784 B = 35.92 KB -> would print 35.9 KB
+  cms_sketch        8,496 B =  8.30 KB -> prints as 8.3 KB   <- matches
+
+Every archived run reporting 35.6 KB was therefore reading cms_counts,
+the LRU map actually in use. bpftool lists maps by id and cms_counts is
+created first, which is why iteration reached it first every time.
+
+The memory ratio the paper and posts quote as "4.3x less memory":
+
+  36432 / 8496 = 4.287x
+
+The two exact maps differ by 352 B, about 1%, so even had the selection
+gone the other way the ratio would have been 4.33x and no claim would
+have moved. The harness now matches the map name exactly regardless.

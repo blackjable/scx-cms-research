@@ -32,6 +32,8 @@ are present and the summaries can be recomputed rather than trusted.
 | [`excursion-rate-n60.txt`](raw/excursion-rate-n60.txt) | excursion rates and two mitigations | 60 | showed the excursions are not the sketch's |
 | [`victim-shape-sensitivity-n15.txt`](raw/victim-shape-sensitivity-n15.txt) | four victim configurations | 15 | headline holds for 3 of 4; the 4th saturates the machine |
 | [`lru-working-set-test.txt`](raw/lru-working-set-test.txt) | LRU vs plain hash at 42 slots, identity population varied | -- | overturned revision 12; harness `lru_test.py` |
+| [`identity-turnover-n3.txt`](raw/identity-turnover-n3.txt) | distinct identities and turnover rate, both regimes | 3 | replaces figures whose original run was never archived; harness `measure_ids.py` |
+| [`map-memlock-verification.txt`](raw/map-memlock-verification.txt) | which map the reported memory column describes | 1 | confirms 35.6 KB is the LRU map in use, so 4.3x stands |
 
 ## Reading these with the necessary suspicion
 
