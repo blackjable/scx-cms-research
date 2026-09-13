@@ -56,7 +56,7 @@ embarrass me.
 measured in a VM on 4 aarch64 cores. Before buying hardware I wrote down
 which findings should survive and which should move, and why: the memory
 result should hold, every absolute latency figure should shrink, the
-`LRU_HASH` cliff should shift with core count, and the tail penalty is
+exact tracker's failure threshold should be unchanged, and the tail penalty is
 the one most at risk because it rests on rare events in an environment
 that manufactures them. That's in the paper's limitations section, dated
 and unhedged. The post is the scoreboard.

@@ -23,12 +23,13 @@ them -- the BPF `LRU_HASH` cliff -- depends directly on the CPU count.
 
 ## Why these numbers matter to specific findings
 
-**CPU count (4) and the LRU cliff.** BPF's `LRU_HASH` keeps per-CPU free
-lists, so the entry count below which it stops behaving like an LRU
-scales with the number of CPUs. The cliff observed here sits between 42
-and 85 entries on 4 CPUs; on a 16-core machine it would be expected at a
-proportionally larger map size. The finding is real but the *threshold*
-is not portable.
+**CPU count (4).** This was initially thought to determine the entry
+count below which `LRU_HASH` stops behaving like an LRU. It does not --
+see `REVISIONS.md` revision 12. The exact tracker's failure threshold
+tracks the ratio of live identities to map capacity, so it should be
+reproducible on any core count given the same workload. The CPU count
+still matters for the scheduling results themselves, since runqueue
+depth is the mechanism under study and four cores is a small machine.
 
 **Architecture (aarch64) and everything else.** No x86 validation was
 performed. Memory-ordering behaviour around the atomic counters, cache

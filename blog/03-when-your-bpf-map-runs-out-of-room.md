@@ -205,6 +205,8 @@ available.
 | the withdrawn third failure mode (n=60 per condition) | [`excursion-rate-n60.txt`](../results/raw/excursion-rate-n60.txt) |
 | conservative update measurements | [`r6-sketch-variants-n3.txt`](../results/raw/r6-sketch-variants-n3.txt) |
 
-The LRU cliff scales with CPU count; this machine had 4. See
-[`ENVIRONMENT.md`](../results/ENVIRONMENT.md) before quoting the
-42-to-85-entry threshold anywhere.
+The overcommitment thresholds here are specific to this workload's
+identity population, not to the hardware. See
+[`ENVIRONMENT.md`](../results/ENVIRONMENT.md), and
+[`REVISIONS.md`](../results/REVISIONS.md) revision 12 for the version of
+this finding that had to be withdrawn.

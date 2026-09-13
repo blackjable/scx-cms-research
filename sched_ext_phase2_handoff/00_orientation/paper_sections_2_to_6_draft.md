@@ -1289,41 +1289,37 @@ For completeness: `boost` (prioritising infrequent wakers rather than
 penalising frequent ones) was also evaluated here, and produced the
 worst tail latencies measured anywhere in this project (100-115ms).
 
-### 4.2.4 BPF's LRU_HASH degenerates far below LRU semantics
+### 4.2.4 Two bounded structures, two kinds of failure
 
-This is a property of the map type rather than of anything this paper
-proposes, and it is reported because it is a practical trap for any BPF
-program keeping bounded per-task state.
+An earlier version of this section claimed that BPF's `LRU_HASH`
+degenerates below LRU semantics at small sizes, attributing it to the
+per-CPU free lists being larger than the map. **That claim was withdrawn**
+(`results/REVISIONS.md`, revision 12): a 42-entry LRU retains counts
+normally with 8 or 20 identities and collapses only at 100 or 300, so the
+failure tracks *overcommitment* rather than map size, which is a property
+of LRUs and not of BPF.
 
-The exact tracker's collapse at small entry counts was initially
-explained by LRU behaviour, and that explanation was an assertion until
-a control existed. Backing the same tracker with `BPF_MAP_TYPE_HASH` --
-identical capacity, no eviction -- isolates it. Mean tracked count per
-query, stable workload:
+What the measurements support is narrower, and was load-bearing for the
+memory result regardless.
 
-| budget | entries | LRU_HASH | plain HASH |
-|---|---|---|---|
-| 8 KB | 85 | 184.2 | 192.4 |
-| **4 KB** | **42** | **1.6** | **189.8** |
-| 2 KB | 21 | 1.0 | 0.2 |
+Under overcommitment the two map types degrade into **different kinds of
+useless**, and the difference determines what can still be inferred from
+a reading:
 
-At 42 entries the LRU map reports a mean count of 1.6 where a plain hash
-of the same size reports 189.8. A true LRU retaining 42 of the ~330 live
-identities should report roughly 48, so BPF's LRU is about **30x worse
-than LRU semantics predict**, with the cliff falling between 42 and 85
-entries on this 4-CPU machine.
+| structure | behaviour when overcommitted | what a low reading means |
+|---|---|---|
+| `LRU_HASH` | thrashes uniformly; nothing accumulates | ambiguous -- could be an idle task or an evicted one |
+| plain `HASH` | locks in early arrivals; 83% of queries read zero | unambiguous -- zero means *not tracked* |
 
-The mechanism is the LRU's per-CPU free lists: on a multi-core system a
-map sized in the low tens of entries is smaller than the machinery
-managing it. **Anyone sizing an `LRU_HASH` that small is not getting an
-LRU**, and will get no warning.
+Neither is usable below its working set. But the plain hash's failure is
+legible from the outside and the LRU's is not, which mattered here:
+distinguishing "the tracker has stopped working" from "these tasks
+genuinely are not busy" is what the `--plain-map` control existed to do.
 
-The plain hash is not a remedy, only a different failure. Its
-distribution shows 83% of queries returning zero while a locked-in
-minority accumulate counts in the thousands: first-come-first-served,
-with everything arriving after the map fills invisible. Neither
-structure degrades usefully; they degrade differently, and the choice
-between them is a choice of failure mode.
+This also sharpens the exact tracker's floor reported in Section 4.2.2.
+It is a capacity limit, not an implementation artefact that a different
+map type would avoid -- replacing `LRU_HASH` with a plain hash postpones
+the failure by roughly one budget step and does not prevent it.
 
 ### 4.2.5 The mechanism costs no throughput
 
@@ -1439,12 +1435,20 @@ with throughput.
 
   **Expected to shift in magnitude.** Every absolute latency figure:
   the ~65,000us do-nothing baseline is substantially inflated by
-  virtualisation and real numbers would be smaller. The `LRU_HASH`
-  cliff scales with core count, since BPF's per-CPU free lists grow
-  with CPUs -- the 42-to-85-entry threshold reported here is specific
-  to 4 CPUs and should not be quoted as general. And `rt-app` becomes
-  usable once the 1.7ms timer floor disappears, reopening the
+  virtualisation and real numbers would be smaller. And `rt-app`
+  becomes usable once the 1.7ms timer floor disappears, reopening the
   audio-callback workload this environment forced us to abandon.
+
+  **A prediction already falsified, recorded rather than deleted.** An
+  earlier version of this section predicted that the exact tracker's
+  failure threshold would *scale with core count*, on the reasoning that
+  BPF's per-CPU free lists grow with CPUs. That reasoning was withdrawn
+  before any bare-metal run took place (revision 12): the threshold
+  tracks the ratio of live identities to map capacity, not the number of
+  CPUs. So the corrected prediction is that **the threshold should be
+  unchanged** on another 4-core machine -- and unchanged on a 16-core one
+  too, provided the workload's identity population is the same. That is a
+  sharper test than the original, and it can fail.
 
   **Most at risk: the tail-latency penalty and the sporadic
   excursions.** That finding rests on rare events, and a noisy
