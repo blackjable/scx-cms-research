@@ -146,13 +146,22 @@ margin down first.
 - **Pair when your design allows it.** Interleaving conditions within
   repetitions is usually free and enormously more powerful than
   comparing summary statistics.
-- **Test a control you expect to be equivalent.** Mine wasn't, and that
-  was the most informative result in the study.
+- **Test a control you expect to be equivalent** — and when it fails,
+  find out *why* before you believe it. Mine failed, and the failure was
+  the least informative result in the study dressed up as the most.
 
-The last one is the one I'd most want to pass on. I added the
-matched-memory control for completeness, expecting a boring
-confirmation. It failed, and in failing told me my explanation for the
-headline number had been wrong the whole time.
+The last one is the one I'd most want to pass on, and not in the form I
+first wrote it. I added the matched-memory control for completeness,
+expecting a boring confirmation. It failed, and I treated the failure as
+a finding — because a control that fails feels like a finding, in a way
+a control that passes never does.
+
+It had failed because of one environmental outlier. The explanation I
+built on it was wrong, and I had it backwards for a day: I'd decided the
+tail cost was intrinsic to approximating, when it is simply what you pay
+for using a quarter of the memory. A failing control is a question, not
+an answer. Mine was asking about the host, and I heard it asking about
+the sketch.
 
 ## Data
 

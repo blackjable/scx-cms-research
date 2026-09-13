@@ -194,6 +194,16 @@ def build_excursion_matrix(args, common):
 
     exact_32k is included as the floor: whatever excursion rate it shows
     is the environment's, not the sketch's.
+
+    OUTCOME, recorded here because this docstring is the hypothesis and
+    it was wrong: exact_32k showed excursions at the same rate as every
+    sketch geometry (1/60 against 1/60), all confidence intervals
+    overlapped, and the 24x never recurred across 360 further
+    measurements. The floor condition above is what settled it. There is
+    no sketch-specific sporadic failure mode; the excursions belong to
+    the environment, and the second paragraph's "not blunting, not
+    capacity exhaustion" was a mechanism asserted from one observation.
+    See ../results/REVISIONS.md revision 9.
     """
     pen = ["--penalty-ns", str(args.penalty_ns)]
     sk = ["--tracker", "sketch", "--mechanism", "penalty"]

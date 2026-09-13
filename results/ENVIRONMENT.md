@@ -1,7 +1,8 @@
 # Measurement environment
 
-Recorded because several findings are environment-specific, and one of
-them -- the BPF `LRU_HASH` cliff -- depends directly on the CPU count.
+Recorded because several findings are environment-specific, and because
+one finding was wrongly attributed to the scheduler when it belonged
+here instead (the 240,384us excursion, revision 9).
 
 ## Guest (where everything was measured)
 
@@ -66,17 +67,33 @@ efficiency core mid-run would inflate latency for reasons having nothing
 to do with the scheduler being tested.
 
 It also offers an alternative explanation for the sporadic tail
-excursions attributed to sketch collisions: a host-level scheduling
+excursions once attributed to sketch collisions: a host-level scheduling
 hiccup would produce the same signature from inside the guest.
 
-**That alternative is ruled out for the excursion actually observed**,
-by a check specified in advance rather than chosen afterwards. A
+**That alternative is the surviving explanation.** An earlier version of
+this section claimed the opposite, and the reasoning is worth recording
+because it was pre-registered and still wrong.
+
+The pre-registration required reporting whether outliers cluster across
+conditions within a repetition, on the stated assumption that a
 host-level disturbance would affect whichever conditions were running
-near that moment, so the pre-registration required reporting whether
-outliers cluster across conditions within a repetition. They did not:
-in the repetition where `sketch_32k_d2` reached 240,384us, `exact_32k`
-measured a wholly unremarkable 10,032us. The disturbance was confined to
-one condition, which a host hiccup cannot produce.
+near that moment. They did not cluster: in the repetition where
+`sketch_32k_d2` reached 240,384us, `exact_32k` measured a wholly
+unremarkable 10,032us. That was read as ruling the host out.
+
+**It rules nothing out.** Conditions run *sequentially* within a
+repetition, so a disturbance lasting a few seconds hits exactly one of
+them. The signature treated as exonerating is precisely what an
+environmental cause produces. A dedicated run at n=60 per condition
+settled it: exact counting shows excursions at the same rate as every
+sketch geometry (1/60 against 1/60), the 24x never recurred across 360
+further measurements, and nothing exceeded 5.7x. The excursions belong
+to this environment, not to approximation. See `REVISIONS.md`
+revision 9, and `BENCHMARK_HOST.md` for what to disable on a host to
+reduce them.
+
+Specifying a check in advance guarantees it was not chosen to fit the
+data. It does not guarantee the check tests what it claims to.
 
 The general limitation stands regardless: this environment cannot
 isolate the guest from host scheduling decisions, and bare metal would

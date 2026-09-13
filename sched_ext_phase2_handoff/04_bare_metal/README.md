@@ -161,10 +161,25 @@ bare metal is what makes the audio-callback workload testable at last.
 
 Not the headline experiment. **Re-run the existing matrices and score the
 predictions**, which are already written down and dated in the paper's
-limitations section: the memory result should survive, absolute latencies
-should shrink, the `LRU_HASH` cliff should stay put if this is also a
-4-core machine, and the tail penalty is the one most at risk because it
-rests on rare events in an environment that manufactures them.
+limitations section:
+
+| prediction | should |
+|---|---|
+| the memory result (exact goes inert when its map cannot hold the live identity set; the sketch's footprint does not grow with identity count) | **survive** — it is a capacity relationship, not a hardware one |
+| the exact tracker's failure threshold | **be unchanged**, because it tracks the ratio of live identities to map capacity and *not* the core count. Unchanged on 4 cores and on 16, given the same identity population |
+| every absolute latency figure | **shrink** — the ~65,000us do-nothing baseline is substantially inflated by virtualisation |
+| median-latency equivalence | **survive** |
+| the paired p99 ratio distribution (median 1.18x/1.14x, sketch better in 37%/40%, >50% worse in 30%/33%) | **be the thing most at risk**, since it rests on spread and a noisy environment manufactures spread |
+| tail excursions | **shrink or vanish across every condition together**, including exact counting — they are environmental (revision 9), not a sketch property |
+| `rt-app` | **become usable** once the ~1.7ms timer floor disappears, reopening the audio-callback workload |
+
+Note what is *not* on that list. An earlier version of this file said
+"the `LRU_HASH` cliff should stay put if this is also a 4-core machine".
+Both halves were withdrawn before any bare-metal run happened: there is
+no BPF-specific cliff, only an ordinary LRU thrashing below its working
+set, and the threshold does not scale with CPU count (revision 12). The
+corrected prediction is the second row above, and it is sharper than the
+one it replaces because it can fail.
 
 A prediction that fails is more interesting than one that holds.
 

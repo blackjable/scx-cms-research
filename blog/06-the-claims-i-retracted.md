@@ -62,7 +62,7 @@ from 15x to 4.3x.
 **7. "A sketch at 8 KB matches exact counting at 32 KB."** The claim
 survived. The evidence for it didn't. The two numbers came from
 *different runs* — and I'll come back to this one, because it's the
-worst of the seven.
+worst of the twelve.
 
 **8. "The sketch is equivalent to exact counting at 4x less memory."**
 The memory saving held. *Equivalent* did not. I'd inferred it from
@@ -111,7 +111,7 @@ mine.
 Reading them together, the striking thing is that more data would have
 saved me from exactly one — number 2.
 
-The rest were instrument failures:
+Nine of the rest were instrument failures:
 
 - **A benchmark harness that ran conditions in fixed order**, so
   carryover from one condition landed on the same neighbour every
@@ -126,15 +126,24 @@ The rest were instrument failures:
 - **A workload model wrong by 4x**, which I patched twice with better
   reasoning before instrumenting the thing and discovering the
   distribution was bimodal.
-- **An explanation I invented for a real measurement.** A small
-  `LRU_HASH` reported a mean retained count of 1.6 where a plain hash at
-  identical capacity gave 189.8. The measurement was correct; the story
-  I attached to it — that BPF's per-CPU free lists break small maps —
-  was never tested, and is wrong. It's ordinary thrashing, which is what
-  any LRU does below its working set.
+- **A cross-run comparison**, which is its own entry below.
 
-Every fix came from adding a control or an instrument. None came from
-running more repetitions of the same measurement.
+Every one of those fixes came from adding a control or an instrument.
+None came from running more repetitions of the same measurement.
+
+**The last three are a different animal, and they're the ones I'd warn
+you about.** In 9, 10 and 12 the instrument was fine and the numbers
+were right. What was wrong was the story I attached to them — a sketch
+failure mode, an intrinsic cost of approximating, a broken map type —
+and in each case I picked the explanation that was more interesting than
+the mundane one that fit equally well. An outlier became a failure mode.
+A control that failed for an unrelated reason became a finding. A
+thrashing cache became a trap in BPF.
+
+No control catches that, because nothing is malfunctioning. The only
+thing that catches it is testing the mechanism separately from the
+measurement, which in all three cases took under half an hour once I
+bothered.
 
 ## The one that bothers me most
 
@@ -192,7 +201,7 @@ you now have a specific prediction to test, not that you're done.
 
 ## What it cost, and what it bought
 
-Roughly a day. Eleven announcements withdrawn — one of them a claim that
+Roughly a day. Twelve announcements withdrawn — one of them a claim that
 the whole project had failed, several arriving after I had written the
 result up as final, and one that was never a measurement at all.
 
@@ -230,24 +239,25 @@ stated in the claim, and the failure modes of both structures are
 characterised.
 
 It also produced findings I'd never have gone looking for — the
-`LRU_HASH` cliff, the count-blind control, the ordering bias — all of
-which are useful to people who don't care about count-min sketches at
-all.
+count-blind control, the ordering bias, the difference between a
+structure that fails silently and one that fails loudly — all of which
+are useful to people who don't care about count-min sketches at all.
 
 ## The one no instrument would have caught
 
 Retraction 11 sits apart from the others and I nearly left it out of
 this list, which is itself a reason to include it.
 
-The first ten were measurement errors. Each was caught by something —
-a control, a reference condition, a larger sample, two runs disagreeing.
-Those are mechanisms, and they work whether or not you're paying
-attention.
+Most of the others were measurement errors, and each was caught by
+something — a control, a reference condition, a larger sample, two runs
+disagreeing. Those are mechanisms, and they work whether or not you're
+paying attention. Even 9, 10 and 12, where I'd invented the mechanism
+rather than mismeasured it, were in the end settled by running a test.
 
-Number 11 was me writing something untrue because it made a weak
-argument sound better. No control catches that. No sample size helps.
-The only thing that caught it was a reader asking, of one sentence,
-*"is that a true statement?"*
+Number 11 wasn't a measurement at all. It was me writing something
+untrue because it made a weak argument sound better. No control catches
+that. No sample size helps. The only thing that caught it was a reader
+asking, of one sentence, *"is that a true statement?"*
 
 I find that the most uncomfortable item here, because every defence I'd
 built over the preceding day — randomised ordering, do-nothing

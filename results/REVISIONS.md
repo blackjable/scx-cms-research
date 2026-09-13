@@ -1,17 +1,29 @@
 # Record of revisions
 
-Seven claims were stated during this work and later withdrawn. They are
+Twelve claims were stated during this work and later withdrawn. They are
 listed here in full, each tied to the raw file that produced it and the
 raw file that overturned it, so a reader can check both rather than
 take the correction on trust.
 
 This exists because the retractions are not incidental to the result --
-they *are* a substantial part of it. Six of the seven were caused by a
+they *are* a substantial part of it. Nine of the twelve were caused by a
 faulty instrument rather than by a faulty hypothesis, and identifying
 each fault is what eventually made the final measurement trustworthy.
 A record that showed only the surviving conclusions would misrepresent
 how they were arrived at, and would hide the five controls that turned
 out to matter.
+
+The remaining three are a different failure and are worth separating.
+Revisions 9, 10 and 12 were not measurement artefacts at all: the
+numbers were correct and an untested mechanism was attached to them,
+each time in the version that made the better story. Revision 11 is
+different again -- not a measurement, but a sentence asserting evidence
+that did not exist. No control catches either kind.
+
+**This document is chronological.** Where a later revision supersedes
+something stated in an earlier one, the earlier entry carries a forward
+pointer rather than being rewritten; revisions 8 and 10 are the pair to
+watch.
 
 ---
 
@@ -24,7 +36,7 @@ out to matter.
 ## 2. "+34.7% improvement"
 
 **Withdrawn:** became −1.7% at n=15.
-**Cause:** small-sample optimism. The only one of the seven that more
+**Cause:** small-sample optimism. The only one of the twelve that more
 repetitions alone would have caught.
 **Source:** predates this archive.
 
@@ -90,6 +102,10 @@ re-measured properly; the *evidence* for it did not.
 
 ## What the pattern shows
 
+*(Written after revision 7. Revisions 8 to 12 follow below and the
+counts in this section are from that moment, not the final tally --
+which is twelve, nine of them instrument failures.)*
+
 More data would have caught exactly one (#2). The rest required a
 control or an instrument that did not exist yet:
 
@@ -117,6 +133,9 @@ defence against a seventh revision is not confidence; it is that the
 final runs were structured so specific predictions could fail, and the
 raw output is archived here so someone else can check whether they did.
 
+*(That caveat earned itself: five more revisions followed. Read it as
+applying to revisions 8 through 12 as much as to the seven above it.)*
+
 ---
 
 ## 8. "Sketch at 8 KB is equivalent to exact at 32 KB"
@@ -138,12 +157,24 @@ of the sketch rather than a cost of the memory saving. One repetition
 shows the mechanism plainly — `sketch_32k_d2` reached 240,384us, 24x its
 own median, with no other condition disturbed in that repetition.
 
+> **[SUPERSEDED by revision 10.]** That paragraph is wrong in both of
+> its steps and is left here because the correction is the content. The
+> 240,384us observation is environmental (revision 9), it is what drove
+> the matched-memory control's failure, and with it excluded the two
+> structures at matched memory *are* equivalent. The tail premium is the
+> price of the memory saving, not an intrinsic cost of approximating.
+
 Median latency *is* equivalent (CI [0.974, 1.060]). The sketch matches
 exact on the typical case and loses on the tail.
 
 **The corrected claim:** the sketch continues to function at a budget
 where exact counting does not, at the cost of roughly 17% worse tail
 latency and with equivalent median latency. A trade, not a free lunch.
+
+> **[The "17%" is also superseded by revision 10.]** It is the median
+> paired ratio of one run reported as though it were a premium each run
+> pays. It is not: about 40% of runs are *better* and about a third are
+> more than 50% worse. See revision 10 for the honest characterisation.
 
 **Original:** [`headline-single-matrix-n20.txt`](raw/headline-single-matrix-n20.txt) (where the ranges
 overlapped)
@@ -226,6 +257,28 @@ With that understood, the matched-memory medians agree across two
 independent runs at **1.03x and 1.04x**. Give the sketch the same memory
 and it performs the same. The tail premium is the price of the memory
 saving.
+
+**Stated on the same statistic as the test it overturns.** Those two
+figures are ratios of condition medians, while the test that produced
+the error was a paired TOST on the mean log-ratio — comparing a median
+against a mean-based interval, which is a fair thing to object to. It is
+not necessary. Re-running the pre-registered analysis on run A with the
+single environmental repetition excluded from *both* arms, so nothing is
+being cherry-picked:
+
+| comparison | geo-mean ratio | 90% CI | within ±20%? |
+|---|---|---|---|
+| matched memory (`sketch_32k_d2` / `exact_32k`) | 1.083x | [1.010, 1.160] | **yes** |
+| 4x less memory (`sketch_8k_d2` / `exact_32k`) | 1.239x | [1.103, 1.390] | no |
+
+Equivalent at matched memory, not equivalent at 4x less, on the same
+test, the same margin and the same pairing that refuted equivalence in
+revision 8. The conclusion does not depend on switching statistics.
+
+The exclusion is the only judgment call, and it is one the
+pre-registration did not authorise in advance — so this is reported as a
+sensitivity analysis supporting revision 10, not as the pre-registered
+result, which stands as recorded in revision 8.
 
 **Also corrected here: the "predictability" framing.** The claim that
 the sketch's cost is variance rather than magnitude rested on run A's

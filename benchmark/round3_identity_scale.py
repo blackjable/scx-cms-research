@@ -186,8 +186,26 @@ def run_scale_point(binary, sched_args, args, slots, lifetime_s) -> dict:
     # of this script reported 1,559.9 KB for every row for exactly that
     # reason. The number that means something is the selected tracker's own
     # map.
+    #
+    # Match the name EXACTLY rather than by substring. There are two exact
+    # maps -- cms_counts (LRU) and cms_counts_plain -- and a substring test
+    # for "count" matches both, including the plain one under the truncated
+    # name bpftool reports (BPF_OBJ_NAME_LEN is 16, so "cms_counts_plain"
+    # shows as "cms_counts_plai"). Which one dict iteration reached first
+    # then decided the reported figure. Both are sized to --max-tracked so
+    # the entry count was right either way, but LRU_HASH and HASH have
+    # different per-entry overhead, so the BYTES could have come from the
+    # map that was not in use.
+    plain = "--plain-map" in (sched_args or [])
+    want = "cms_counts_plai" if plain else "cms_counts"
     res["mem_exact"] = next((d.get("memlock", 0) for n, d in mem.items()
-                             if "count" in n), 0)
+                             if n == want), 0)
+    if not res["mem_exact"]:
+        # Name reporting differs across bpftool versions; fall back rather
+        # than silently reporting 0, but exclude the map we did not select.
+        res["mem_exact"] = next(
+            (d.get("memlock", 0) for n, d in mem.items()
+             if "count" in n and ("plai" in n) == plain), 0)
     res["mem_sketch"] = next((d.get("memlock", 0) for n, d in mem.items()
                               if "sketch" in n), 0)
     res["identities_est"] = int(slots * (args.duration / lifetime_s))

@@ -3,11 +3,12 @@
 Every BPF scheduler that keeps per-task state eventually faces the same
 question: what happens when there are more tasks than you budgeted for?
 
-I ended up measuring this by accident, while testing something else, and
-found two things I hadn't expected. One is a trap in a map type that
-sched_ext programs use constantly — I'd assumed it behaved as its name
-suggests, and at small sizes it doesn't. The other is a way of thinking
-about bounded state that I found more useful than any accuracy figure.
+I ended up measuring this by accident, while testing something else. What
+I found first was a trap in a map type that sched_ext programs use
+constantly — except it wasn't a trap, it was me inventing a mechanism for
+a measurement I hadn't finished thinking about, and that story is in here
+too because it's the more useful half. What survived is a way of thinking
+about bounded state that I now find more useful than any accuracy figure.
 
 ## Finding 1: two map types, two different kinds of useless
 
@@ -140,7 +141,7 @@ defence against this. Pre-registration guarantees you didn't pick the
 test to fit the data. It does not guarantee the test measures what you
 claim.
 
-### Why this framing is more useful than accuracy### Why this framing is more useful than accuracy
+### Why this framing is more useful than accuracy
 
 If you compare these structures on error at a given size, you get a
 table of numbers that depends on your workload and tells you little

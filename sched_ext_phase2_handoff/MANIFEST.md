@@ -89,30 +89,55 @@ command via Docker, no VM needed: `./run.sh`).
 - `*.png` — result charts from the above scripts, for reference only,
   not needed to run anything.
 
-**Before porting to BPF**: build a small pytest regression suite
-against this code at a fixed seed first (see delivery plan Section 5).
-This code has already survived multiple rounds of silent-drift bugs
-during Phase 1 — protect the upcoming BPF port from the same failure
-mode rather than relying on manual re-verification again.
+**The BPF port is done** — see `scx_cms`, in its own repository at
+`github.com/blackjable/scx-cms`. The regression suite this section asked
+for exists on both sides: `test_sketch_lib.py` here, and `tests/` in the
+scheduler repo, which found a real gap the moment it was written and
+carries the known increment-then-read atomicity bug as an expected
+failure.
 
 ### `03_vm_setup/` — kernel/BPF development environment
 
-Read `README.md` inside this folder first. Order: `01_macos_host_setup.sh`
-(run on your Mac) → manual UTM VM creation (one-time, GUI, documented
-in the README) → `02_fedora_vm_setup.sh` (run inside the VM) →
-`03_memory_constrain.sh` (per-experiment, for the memory-capped
-"resource-constrained device" simulation).
+Read `README.md` inside this folder first — it opens with a banner
+explaining that these instructions describe **UTM and the measurements
+did not use UTM**.
 
-**Before running**: two things the delivery plan flags that these
-scripts don't yet handle —
-1. The Fedora release pinned in `01_macos_host_setup.sh` will go
-   stale; check https://fedoraproject.org/server/download for the
-   current release first.
-2. These scripts install C/BPF build tools only. Add `schbench`,
-   `cyclictest`, `hackbench`, and `rt-app` (see delivery plan Section
-   4) before running any real benchmark — they're required for the
-   four-tier baseline comparison and aren't installed by anything
-   here yet.
+Every result in this project was produced in a **Lima** VM. UTM was the
+original plan and was abandoned early: its VM creation is GUI-driven,
+its console blocks paste, and SSH and sudo have to be set up by hand,
+none of which suits scripted use. `lima-scx-fedora.yaml` in that folder
+is the configuration that actually produced the measurements — 4 CPUs,
+4 GiB, Fedora 44 — and is the thing to use.
+
+`01_macos_host_setup.sh` (which installs UTM) and the UTM-specific parts
+of the README are superseded and carry banners saying so. They are kept
+because the reasoning about *why Fedora* still applies and because the
+detour is part of the record. `02_fedora_vm_setup.sh` and
+`03_memory_constrain.sh` are guest-side and unaffected by the host
+tooling change.
+
+**Still worth knowing**: the Fedora release pinned in the setup script
+will go stale — check https://fedoraproject.org/server/download for the
+current release. The scripts install C/BPF build tools only; `schbench`,
+`cyclictest`, `hackbench` and `rt-app` are separate (delivery plan
+Section 4). All four were obtained and used, and `rt-app` was then found
+unusable in this VM for a reason no install step fixes: a ~1.7ms
+timer-delivery floor that exceeds the differences under study.
+
+### `04_bare_metal/` — the environment this one could not be
+
+How to build and qualify a physical measurement host: what makes a
+machine eligible (RAPL needs Sandy Bridge or later; avoid 12th-gen
+hybrid parts), what to ask a secondhand seller, which Fedora image,
+what to disable, and — importantly — **what to run first**, which is the
+existing matrices scored against predictions already written down and
+dated, not the headline experiment.
+
+Bare metal is what removes the three limits this VM imposed: the timer
+floor that invalidated `rt-app`, the host moving vCPUs between
+performance and efficiency cores mid-run, and the absence of any energy
+counter. The method for the last of those is written up in advance in
+`../benchmark/ENERGY_METHOD.md`.
 
 ## What's deliberately NOT in this folder
 

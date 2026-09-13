@@ -156,8 +156,18 @@ def main():
         multi = [r for r, v in flagged.items() if len(v) > 1]
         print(f"  repetitions with MULTIPLE conditions affected: "
               f"{sorted(multi) if multi else 'none'}")
-        print("  (clustering across conditions implies an environmental")
-        print("   disturbance rather than a scheduler property)")
+        # The pre-registration said clustering would indicate an
+        # environmental cause, and non-clustering was read as ruling one
+        # out. That inference is wrong and the guidance printed here has
+        # been corrected accordingly; the COMPUTATION above is untouched,
+        # which is what "do not edit to fit data" protects. See
+        # REVISIONS.md revision 9.
+        print("  NOTE: do not read non-clustering as exonerating. Conditions")
+        print("   run SEQUENTIALLY within a repetition, so a host disturbance")
+        print("   lasting seconds hits exactly one of them. A single affected")
+        print("   condition is what an environmental cause looks like. The")
+        print("   n=60 run found exact counting excurring at the same rate as")
+        print("   every sketch geometry -- see REVISIONS.md revision 9.")
 
     print("\n" + "=" * 60)
     print(f"PRE-REGISTERED VERDICT: "

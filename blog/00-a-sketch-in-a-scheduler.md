@@ -56,8 +56,9 @@ see is "wakes constantly but is cheap." That's exactly what this
 mechanism proposes to track, so it's the regime where it should pay.
 
 Each configuration carries its own memory budget, all of them
-interleaved in one randomised matrix, 30 repetitions. (The "one matrix"
-part matters more than it sounds — see below.)
+interleaved in one randomised matrix, 20 repetitions. (The "one matrix"
+part matters more than it sounds — see below.) The equivalence test
+further down is a separate, longer run at 30.
 
 ## The result
 
@@ -222,7 +223,7 @@ no RAPL in the guest.
 
 ## Why this took much longer than it should have
 
-Seven claims made and withdrawn along the way, including, briefly, the
+Twelve claims made and withdrawn along the way, including, briefly, the
 conclusion that the whole idea was refuted.
 
 Almost none of those failed because the hypothesis was wrong. They

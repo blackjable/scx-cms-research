@@ -1350,7 +1350,26 @@ confound. Findings above are the ones re-established after the fix;
 anything else from those rounds should be treated as provisional until
 re-run.
 
-## 16. Round 3: the memory question, answered against the hypothesis
+## 16. [SUPERSEDED] Round 3: the memory question, answered against the hypothesis
+
+> **This section's conclusion was withdrawn** -- see
+> `results/REVISIONS.md` revision 5, and the corrected result in paper
+> Section 4.2.2. The discrimination ratio used throughout compares
+> against a count-blind baseline which is itself *worse than taking no
+> action*, so a tracker that has silently stopped acting scores as well
+> as one discriminating perfectly. Adding a `mechanism=none` reference
+> condition -- absent from this sweep -- showed that exact counting at 85
+> and 21 entries was statistically identical to doing nothing. It was
+> inert, not winning.
+>
+> Both headline claims below therefore fall: "exact counting beats the
+> sketch at every budget tested" and the "LRU is a better small-memory
+> approximation" explanation built on it. The corrected finding is the
+> reverse -- the sketch continues to function at a budget where exact
+> counting has stopped, at the cost of a worse and noisier tail.
+>
+> The section is left in place because the delivery plan is a
+> chronological record and the retraction is part of it.
 
 Matched memory budgets, n=8, randomised condition order. `--max-tracked`
 was added to size the exact hash, because both maps exist in the BPF
@@ -1677,12 +1696,20 @@ The plain-hash control separates implementation from capacity:
 | 8 KB | 68,608us | 66,400us |
 | 2 KB | 67,456us | 72,960us |
 
-At 16 KB the plain hash is 2.3x better, so Section 18.1's LRU pathology
-reaches scheduling outcomes and not only tracked counts. But at 8 KB and
+At 16 KB the plain hash is 2.3x better, so the two map types differ in
+scheduling outcomes and not only in tracked counts. But at 8 KB and
 below **both map types are inert**. A better eviction policy postpones
 the failure by roughly one budget step; it does not prevent it. Exact
 counting's collapse under a hard entry bound is real, not an artifact
 to be engineered away.
+
+> **Amended:** this paragraph originally attributed the 16 KB gap to
+> "Section 18.1's LRU pathology". That section is withdrawn (revision
+> 12) and there is no pathology to reach anything. The measurements
+> stand and so does the conclusion drawn from them -- the two map types
+> degrade differently, and both are useless below their working set --
+> but the difference is ordinary LRU thrashing against ordinary
+> first-come-first-served, not a defect in BPF.
 
 ### 19.4 Churning regime: exact never works at any budget
 

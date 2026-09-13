@@ -108,3 +108,36 @@ already supports — without the equivalence figure.
 Cross-architecture and bare-metal validation, energy, and workload
 generality beyond this victim configuration. Those need hardware this
 environment does not have, and remain open regardless of the outcome.
+
+---
+
+## Appended after the run: one of these checks was wrong
+
+**Nothing above has been edited.** The specification is what it was when
+committed and the run was analysed against it exactly. This note is
+appended because leaving it off would mean the document quietly
+misleads anyone who re-runs the analysis.
+
+**The outlier check's inference does not follow.** The section above
+says outliers clustering across conditions "would indicate an
+environmental disturbance rather than a scheduler property", and the
+non-clustering of the single 240,384us observation was read as ruling
+the environment out. That is backwards. Conditions run **sequentially**
+within a repetition, so a disturbance lasting a few seconds hits exactly
+one of them. Non-clustering is what an environmental cause produces, not
+what it excludes.
+
+A dedicated run at n=60 per condition settled it: exact counting shows
+excursions at the same rate as every sketch geometry, and the 24x never
+recurred across 360 further measurements. See `../results/REVISIONS.md`
+revision 9.
+
+The primary and secondary tests are unaffected -- they are TOSTs on
+paired log-ratios and do not depend on this check. What the error
+changed was the interpretation of the matched-memory control, which is
+revision 10.
+
+**The lesson is the narrow one.** Pre-registration guarantees a check
+was not chosen to fit the data. It does not guarantee the check tests
+what it claims to, and this one was specified in advance and still
+wrong.

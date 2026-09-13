@@ -108,11 +108,21 @@ this line of work, not just fixed once and forgotten.
 ### 2.2 Baseline: exact per-identity counters
 
 As a baseline, we implement an exact counter using a hash map from task
-identity to count, with no eviction — memory grows monotonically with
-the number of distinct identities ever observed. This represents the
-naive approach assumed implicitly by existing sched_ext example
-schedulers, none of which currently perform this class of historical
-behavioral tracking at all (see Related Work, Section 2.4).
+identity to count. This represents the naive approach assumed implicitly
+by existing sched_ext example schedulers, none of which currently
+perform this class of historical behavioral tracking at all (see Related
+Work, Section 2.4).
+
+**[AMENDED after implementation]** This section originally specified the
+map as having *no eviction*, so that memory would grow monotonically
+with the number of distinct identities ever observed. The BPF
+implementation uses `BPF_MAP_TYPE_LRU_HASH` instead, because a map that
+never evicts either grows without bound or refuses new identities once
+full, and neither is a fair baseline under process churn. The
+consequence for the evaluation is that the exact tracker has a hard
+entry bound and a capacity cliff rather than unbounded growth, which is
+what Section 4.2.2 measures. A plain non-evicting hash was added later
+as a control (`--plain-map`) and is reported in Section 4.2.4.
 
 ### 2.3 Integration into the sched_ext callback model
 
@@ -321,10 +331,11 @@ Section 2.3.1 for the full design history, including a rejected
 exponential-decay approach that produced misleading accuracy numbers
 against the wrong ground truth.
 
-[NEEDS: this is one data point, not a result. A proper methodology
-requires sweeping `w`, `d`, and `N` across a meaningful range, and
-reporting accuracy/memory tradeoffs as curves, not single numbers. This
-sweep has not been run yet.]
+[RESOLVED] This was one data point rather than a result, and a proper
+methodology required sweeping `w`, `d` and `N` and reporting curves. The
+width sweep is in Section 4.1, the joint width x depth sweep at fixed
+memory in Section 4.1.3, and both replicate on the kernel in
+Section 4.2.2's geometry table.
 
 **[PARTIALLY ANSWERED]** Whether accuracy loss is harmful requires
 connecting it back to a real scheduling-outcome metric, which checklist
@@ -345,9 +356,9 @@ making it.]
 
 ### 3.2 Phase 2: Kernel/BPF integration and hardware environment
 
-[PARTIALLY STARTED: the environment now exists and a scheduler loads and
-runs in it (see checklist items 2, 3, 12). No scheduling-quality results
-have been produced yet — Section 4.2 remains unrun.]
+[COMPLETE: the environment exists, the scheduler loads and runs in it
+(checklist items 2, 3, 12), and Section 4.2 carries the
+scheduling-quality results.]
 
 - Development on a Fedora Linux VM, chosen because Fedora ships a
   sched_ext-enabled kernel (`CONFIG_SCHED_CLASS_EXT`) by default as of
@@ -573,8 +584,8 @@ rounds of testing: an initial single-point measurement, a corrected
 version after a methodology fix (Section 2.3.1's windowing redesign),
 a battery of rigor tests addressing reproducibility and worst-case
 behavior, and a reproducibility/correctness verification pass. Phase 2
-(kernel/BPF, real scheduling-quality outcomes) remains entirely
-unbuilt — see Section 4.2.
+(kernel/BPF, real scheduling-quality outcomes) is complete and is
+reported in Section 4.2 onward.
 
 ### 4.1 Accuracy/memory tradeoff under normal (uniform) conditions
 
@@ -942,7 +953,7 @@ open corrections remain from this pass.
 
 ### 4.2 Scheduling-quality outcomes (Phase 2, kernel)
 
-**[PARTIALLY RUN]** The specific test this section originally asked for
+**[RUN]** The specific test this section originally asked for
 — "whether a scheduling-relevant decision can be manipulated via the
 same targeted-collision technique" — is done: checklist item 28,
 answered no on this scale, with the structural reason (corruption and
@@ -1107,12 +1118,20 @@ large enough to reverse a conclusion.
   antagonist; because that churn is rate-limited it can detect a
   regression but not a gain, so it is not a general throughput result.
 
-### 4.2.2 The memory question, answered against the hypothesis
+### 4.2.2 The memory question: a trade, not a substitution
 
 The central claim this paper set out to test is that a Count-Min Sketch
 can replace exact per-identity counters, saving memory without
-degrading scheduling quality. It cannot, on this workload, at any
-budget measured.
+degrading scheduling quality. The answer is a qualified yes: roughly a
+quarter of the memory, statistically identical median latency, and a
+tail that is worse on average and considerably noisier.
+
+Two earlier drafts of this section said otherwise -- first that exact
+counting won at every budget, then that the approach did not work at
+any budget measured. Both rested on the discrimination metric discussed
+immediately below, which could not distinguish a tracker that
+discriminates from one that has silently stopped. The `mechanism=none`
+reference condition dissolved them (`results/REVISIONS.md`, revision 5).
 
 An earlier draft of this section reported an apparent ~100x saving
 (8 KB sketch against an 800 KB exact map). That was an artifact of
@@ -1129,6 +1148,10 @@ count-blind baseline's median victim latency divided by the condition's.
 It asks how well the tracker separates the latency-sensitive task from
 background churn, with "no discrimination at all" as the 1.0x zero
 point. Below 1.0x is worse than not discriminating.
+
+The sweep below ran in the **high-turnover** workload, and it is
+reported here as the metric's own failure case rather than as a result.
+The stable-identity numbers that carry the result are further down.
 
 | budget | exact | sketch |
 |---|---|---|
@@ -1148,25 +1171,49 @@ identical to `none`. It was inert, not discriminating.]**
 
 **The result: 4.3x less memory, identical median latency, a worse and
 noisier tail.** All figures n=20, randomised condition order,
-stable-identity workload. Note that "equivalent" is *not* the claim --
-a pre-registered equivalence test refuted it on p99 while confirming it
-on p50 (`results/REVISIONS.md`, revision 8).
+stable-identity workload, **all six conditions in one interleaved
+matrix** (`results/raw/headline-single-matrix-n20.txt`, seed 31). Note
+that "equivalent" is *not* the claim -- a pre-registered equivalence
+test refuted it on p99 while confirming it on p50
+(`results/REVISIONS.md`, revision 8).
 
-| tracker | map | p50 | p99 |
+| condition | map | p50 | p99 |
 |---|---|---|---|
-| exact, 341 entries | 35.6 KB | 3,932us | 10,096us |
-| **sketch, depth 2 width 256** | **8.3 KB** | **3,900us** | **10,144us** |
+| do nothing (`mechanism=none`) | -- | 3,912us | 65,440us |
+| count-blind penalty (`flat`) | 35.6 KB | 11,040us | 16,864us |
+| **exact, 341 entries** | **35.6 KB** | **3,892us** | **10,144us** |
+| exact, 85 entries | 9.6 KB | 3,908us | 63,680us |
+| sketch, depth 2 width 512 | 32.3 KB | 3,892us | 10,064us |
+| **sketch, depth 2 width 256** | **8.3 KB** | **3,924us** | **11,344us** |
+
+An earlier version of this table paired an exact figure from one matrix
+against a sketch figure from another -- the cross-run comparison
+withdrawn as revision 7, and the very pattern the ordering bias above
+had already shown to be unsafe. The numbers above come from a single
+interleaved run in which every condition was measured against the same
+neighbours.
 
 Medians agree within 1%. The p99 ranges overlap -- which shows only that
 a difference was not *detected*, and a paired equivalence test at n=30
 subsequently found one: the sketch's mean p99 ratio sits 11-39% above
 exact counting's, though per-repetition it is better in roughly 40% of
 runs and more than 50% worse in roughly 30%. Against `mechanism=none`
-(p99 ~65,000us) both are a ~6.4x tail reduction with the median
+(p99 65,440us) both are a ~6.4x tail reduction with the median
 untouched, and the sketch reaches that at **4.3x less memory**.
 
+The two rows that make the comparison mean something are the ones a
+tracker-versus-tracker table would omit. `exact, 85 entries` sits on top
+of the do-nothing baseline: at a budget slightly *larger* than the
+sketch's, exact counting has stopped acting altogether. And the
+count-blind penalty reaches a respectable tail by making every wakeup
+three times slower, which is what both working configurations have to
+beat in order to be doing anything more than perturbing the machine.
+
 **Where each structure stops working.** Using the default depth-4
-geometry across budgets:
+geometry across budgets. The budget column is the *nominal* target both
+structures were sized against; the measured maps differ slightly (the
+85-entry exact map is 9.6 KB, the 2x128x4 sketch 8.3 KB) and each
+multiplier is against the `none` condition in that budget's own matrix:
 
 | budget | exact p99 | sketch p99 |
 |---|---|---|
@@ -1177,7 +1224,15 @@ geometry across budgets:
 
 Exact discriminates at 32 KB, degrades at 16 KB, and by 8 KB is
 statistically indistinguishable from taking no action. The sketch
-discriminates down to 8 KB.
+discriminates down to 8 KB. The 8 KB row replicates the headline
+table's `exact, 85 entries` from an independent run (62,336us against
+63,680us), which is the agreement a cross-run pairing cannot claim and a
+replication can.
+
+The 16 KB and 8 KB rows come from
+`results/raw/thesis-confirmation-n20.txt`, the 32 KB and 2 KB rows from
+`results/raw/o1-o4-budget-geometry-churning-n20.txt`. Each row is a
+single interleaved matrix; rows are not compared against each other.
 
 **The lower bound is 8 KB, not 2 KB, and the distinction matters.** At
 2 KB every sketch geometry is blunt: p50 collapses to the count-blind
@@ -1230,25 +1285,45 @@ basis for comparing trackers -- it isolates what the tracker knows from
 what the policy does with it -- but the comparison should not be read as
 "exact counting makes a good scheduler here". It does not.
 
-**Why: an undersized LRU is a better small-memory approximation than a
-sketch for this problem.** Scheduling needs the *active set*, not the
-full identity population. An LRU hash under-provisioned by three orders
-of magnitude still holds the tasks currently running and forgets the
-rest, and forgetting the inactive is correct rather than lossy. A
-Count-Min Sketch retains every identity and blurs all of them together.
-When the budget is tight, precise-on-few beats imprecise-on-many.
+**[WITHDRAWN -- an earlier draft argued here that an undersized LRU is
+a better small-memory approximation than a sketch, on the reasoning
+that scheduling needs the active set rather than the full identity
+population, so forgetting the inactive is correct rather than lossy.
+The argument is appealing and the measurements refute it. An LRU
+under-provisioned against its working set does not retain the active
+set; it thrashes, evicting entries between their own increments, and
+the tracker goes inert (revision 12, and the `mechanism=none`
+comparison of revision 5). At 85 entries against ~330 live identities
+the exact tracker is statistically indistinguishable from taking no
+action, while the sketch at a smaller budget still delivers 3.65x. This
+paragraph rested on the discrimination metric that could not tell those
+two states apart.]**
 
-The sketch's never-undercount guarantee inverts from a feature into a
-liability here. Guaranteed *over*estimation means a collision inflates
-the protected task's count, and the penalty intended for churn lands on
-the task the mechanism exists to protect.
+**Why the sketch reaches further.** The two structures fail in different
+kinds, and they fail at different budgets. An exact tracker under a hard
+entry bound fails *silently*: entries evict, queries miss, counts read
+as zero, and the mechanism stops acting with nothing to signal it. A
+sketch fails *loudly*: it never evicts, so under-provisioning inflates
+estimates until every task looks like a heavy waker, and the penalty
+intended for churn lands on the task the mechanism exists to protect.
 
-**This is not a property of one configuration.** At the 8 KB budget
-where the collapse occurs, holding memory constant and sweeping the
-width/depth split gives 1.96x (depth 1), 0.82x (depth 2), 0.86x
-(depth 4), 0.95x (depth 8) -- none approaching exact's 3.67x in that
-same matrix (the 3.64x in the table above is the independent n=20
-replication; the two agree within run-to-run variation). Seed
+The sketch's never-undercount guarantee is what makes its failure loud
+rather than silent -- guaranteed *over*estimation is exactly the
+misdirection described above. But it is also why the sketch is still
+carrying information at 8 KB when the exact map has gone quiet: it
+degrades continuously where an entry-bounded map degrades by falling
+off a capacity cliff. Between those two points the sketch is the better
+structure, not because it is more accurate at a given size, but because
+it has not yet failed. Section 6 develops this.
+
+**The churning collapse is not a property of one geometry.** Still in
+the high-turnover workload: at the 8 KB budget where the sketch goes
+blunt, holding memory constant and sweeping the width/depth split gives
+1.96x (depth 1), 0.82x (depth 2), 0.86x (depth 4), 0.95x (depth 8) --
+none approaching exact's 3.67x in that same matrix. That 3.67x is the
+inert-tracker artifact described above and not a figure exact counting
+earns; what the sweep establishes is only that *no* sketch geometry
+rescues the churning regime. Seed
 rotation changes nothing (0.86x with, 0.86x without): it relocates
 collisions rather than creating room, and its value against
 *adversarial* collisions (Section 4.1.4) is unaffected. Depth 1 is
@@ -1369,10 +1444,20 @@ with throughput.
   whether the scheduler works; p50 is cost accounting alongside it.
   Recorded because this project's own methodology specified p99 alone.
 
-- **The approach does not work at any memory budget measured.** Exact
-  counting beats the sketch from 128 KB down to 2 KB, and no width/depth
-  split or seed rotation closes the gap (Section 4.2.2). This is the
-  central finding, not a caveat.
+- **The memory saving is bought with tail latency, and the tail cost is
+  a distribution rather than a premium.** A pre-registered equivalence
+  test refutes equivalence on p99 (90% CI [1.114, 1.394]) while
+  confirming it on p50 (Section 4.2.2). Across two independent runs the
+  sketch is *better* than exact counting in 37% and 40% of repetitions
+  and more than 50% worse in 30% and 33%. A design that can tolerate a
+  known 15% premium may not tolerate a third of runs at 50% worse, and
+  the mean conceals exactly that.
+
+  An earlier version of this entry said the approach does not work at
+  any budget measured, and that exact counting beats the sketch from
+  128 KB down to 2 KB. Both came from the discrimination metric
+  withdrawn in revision 5 and are contradicted by the result in
+  Section 4.2.2.
 
 - **The mechanism only helps while the protected workload is not itself
   the bottleneck.** Every result was measured with one victim shape
@@ -1455,26 +1540,40 @@ with throughput.
   too, provided the workload's identity population is the same. That is a
   sharper test than the original, and it can fail.
 
-  **Most at risk: the tail-latency penalty and the sporadic
-  excursions.** That finding rests on rare events, and a noisy
-  environment manufactures rare events. The p99 distributions here are
-  wide (CV 0.18 for exact counting, 0.40 for the sketch) and some of
-  that spread is plausibly virtualisation -- vCPU scheduling, timer
-  jitter, and the host migrating vCPUs between performance and
-  efficiency cores mid-run (see `results/ENVIRONMENT.md`).
+  **Most at risk: the tail-latency penalty.** It rests on the spread of
+  per-repetition ratios, and a noisy environment manufactures spread.
+  The p99 distributions here are wide, and some of that is plausibly
+  virtualisation -- vCPU scheduling, timer jitter, and the host
+  migrating vCPUs between performance and efficiency cores mid-run (see
+  `results/ENVIRONMENT.md`).
+
+  Per-condition variance is *not* the thing to predict. An earlier
+  version of this entry quoted CV 0.18 for exact counting against 0.40
+  for the sketch; the n=60 replication inverts them (0.43 and 0.35).
+  That statistic is outlier-driven and does not replicate (revision 10).
+  What does replicate closely is the shape of the paired ratio -- median
+  1.18x and 1.14x, sketch better in 37% and 40%, more than 50% worse in
+  30% and 33% -- so that is the prediction bare metal should score.
 
   Tighter distributions on bare metal cut both ways. Better resolving
   power could make a real difference easier to demonstrate, failing the
-  equivalence test more decisively. Or, if virtualisation was
-  amplifying a small misranking into a 240,384us stall, the excursions
-  could shrink to something unremarkable.
+  equivalence test more decisively. Or the ratio spread could narrow
+  toward its median, which would make the trade easier to design around
+  without changing its direction.
 
-  The evidence favours the effect being real: the pre-registered
-  clustering check found the excursion confined to a single condition
-  while `exact_32k` in the same repetition measured a normal 10,032us,
-  which a host-level disturbance could not produce. But *real* and
-  *this large* are different claims and only the first is supported
-  here.
+  **A sketch-specific excursion mode was claimed here and withdrawn**
+  (revision 9). The single 240,384us observation was attributed to the
+  sketch on the grounds that a pre-registered check found it confined to
+  one condition while `exact_32k` in the same repetition measured a
+  normal 10,032us. That reasoning is wrong: conditions run
+  *sequentially* within a repetition, so a disturbance lasting seconds
+  hits exactly one of them -- the signature treated as exonerating is
+  what an environmental cause produces. At n=60 per condition, exact
+  counting shows excursions at the same rate (1/60 against the sketch's
+  1/60) and nothing exceeded 5.7x across 360 further measurements. Bare
+  metal should therefore expect excursions to shrink or vanish across
+  *all* conditions together, which is a different prediction from the
+  one this section originally made.
 
 - **The approach is not robust to adversarial or unfavorable churn
   patterns.** This is the most significant limitation found: a
@@ -1658,17 +1757,27 @@ that repetitions could not average away. It was large enough to reverse
 a conclusion, and fixed ordering is a plausible default in any
 scheduler benchmark harness. Randomise condition order.
 
-**On what did not survive.** Four headline numbers in this project
-failed replication: a seed-rotation mitigation effective at heavy
-volume, a +34.7% effect at n=5 that became -1.7% at n=15, a 6.8x
-scheduling win that a count-blind control reproduced, and a ~10%
-sketch failure rate that vanished entirely once ordering was
-randomised. The fourth is the instructive one. The first three were
-disappointing results that survived the scrutiny they were given; the
-fourth was *interesting*, arrived with a plausible mechanism, and was
-accepted with less challenge than the disappointing ones received.
-Asymmetric skepticism is harder to detect than insufficient sample
-size, and no amount of statistical discipline catches it.
+**On what did not survive.** Twelve claims were stated during this work
+and later withdrawn; each is recorded in `results/REVISIONS.md` with the
+raw file that produced it and the raw file that overturned it. Nine were
+caused by a faulty instrument rather than a faulty hypothesis -- fixed
+condition ordering, a metric with a broken zero point, a ratio with a
+collapsing denominator, a workload model wrong by 4x, a cross-run
+comparison. Two more were mechanisms asserted without being tested and
+attached to measurements that were correct throughout (revisions 9, 10
+and 12), and one was not a measurement at all but a sentence asserting a
+literature search that never happened (revision 11).
+
+Two are instructive beyond their content. The ~10% sketch failure rate
+(revision 4) was an *interesting* result that arrived with a plausible
+mechanism and was accepted with visibly less scrutiny than the
+disappointing results received -- it had even been predicted to be the
+finding least likely to be an ordering artefact, which is what it turned
+out to be. Asymmetric skepticism is harder to detect than insufficient
+sample size, and no amount of statistical discipline catches it. And
+revision 7 paired figures from two different runs to build the headline,
+which is the precise failure the ordering section below exists to
+describe -- knowing a failure mode does not inoculate against it.
 
 Two claims in earlier drafts were also narrowed after checking them
 against the data rather than against intuition: that tail-latency-only
@@ -1818,9 +1927,15 @@ For quick reference when working through this in Claude Code:
         make. Verified on a real kernel: window rotation, lazy
         roll-forward and buffer discard all confirmed against live map
         dumps.
-        [ ] Tiers (a), (b) and (d) are not obtained yet. Note tier (b)
-        now means fetching `scx_simple` from `scx-c-examples`, since it
-        is no longer in this repo.
+        **[x] Tiers (a), (b) and (d) are now obtained too** — stock
+        EEVDF, `scx_simple` (fetched from `scx-c-examples`, since it is
+        no longer in this repo) and `scx_lavd` all appear in the round 1
+        four-tier comparison at item 13, and EEVDF again in
+        Section 4.2.5's throughput check. Note what that exercise
+        established: all four tiers vary *the scheduler*, so none of
+        them could separate "tracking wakeup frequency helps" from
+        "perturbing vtime helps". Tier 5, the count-blind control, is
+        the one that mattered and was added later (Section 3.3).
         [ ] `boost` carries no validation from Phase 1 — see item 23.
 13. [~] IN PROGRESS (Phase 6, round 1; delivery plan Section 12).
         `schbench` request-latency P99/P999, 5 interleaved repetitions,
@@ -1847,14 +1962,23 @@ For quick reference when working through this in Claude Code:
         for is done — see item 27, not this one; that work happened in
         Section 9, ahead of Phase 6.
 
-        [ ] `cyclictest` and `hackbench` not yet run against any tier —
-        `hackbench` matters in particular as the throughput regression
-        check. [ ] Only one workload shape tested. [ ] `rt-app` and the
-        workload-profile decision (item 10) remain open.
+        **[x] `cyclictest` and `hackbench` are now run** across every
+        tier — see Section 4.2.5. No throughput regression anywhere;
+        every tier matches or slightly beats stock EEVDF, and
+        `cyclictest` shows no meaningful separation because its absolute
+        values are floored by this environment's timer delivery.
+        **[x] More than one workload shape tested** — a victim-shape
+        sensitivity sweep at n=15 covers 2t/50rps, 4t/100rps, 8t/200rps
+        and 16t/400rps; the headline holds for the first three and the
+        fourth saturates the machine (Section 5).
+        [ ] `rt-app` and the workload-profile decision (item 10) remain
+        open, and are blocked on hardware rather than on effort: this
+        VM's ~1.7ms timer-delivery floor exceeds the differences under
+        study. See `04_bare_metal/README.md`.
 14. [x] ~~Write Results, Limitations, Conclusion once real data
-        exists~~ Results (4) and Limitations (5) now have substantial
-        real content from Phase 1. [ ] Conclusion (6) still blocked on
-        Phase 2.
+        exists~~ DONE. Results (4) and Limitations (5) carry Phase 1 and
+        Phase 2 content, and Conclusion (6) is written against the
+        Phase 2 measurements rather than blocked on them.
 15. [x] ~~Investigate hash-seed rotation as a mitigation~~ DONE in Python
         (4.1.3) — PARTIAL mitigation only: reduces attack damage from
         +400% to +200% via one window's lag, but does not eliminate

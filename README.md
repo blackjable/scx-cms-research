@@ -20,8 +20,16 @@ fork of an upstream project, and this is not upstream's material.
 
 ## Relationship to the scheduler code
 
-The BPF/Rust scheduler this research drives, `scx_cms`, lives in the scx
-clone at `sched_ext/repo/scheds/experimental/scx_cms/` and is committed
-there, since it is a scheduler in the shape that repo expects. The two
-move together: the delivery plan's order of operations tracks the
-scheduler's progress, and the paper's build checklist cites it.
+The BPF/Rust scheduler this research drives, `scx_cms`, has its own
+repository: **https://github.com/blackjable/scx-cms**, extracted with
+`git subtree split` so its commit history is preserved.
+
+It does **not** build standalone. It depends on `scx_utils` by relative
+path and uses scx's BPF tooling, so it has to sit inside a checkout of
+[sched-ext/scx](https://github.com/sched-ext/scx) at
+`scheds/experimental/scx_cms/` to build. That local scx clone is
+upstream's, not this project's — nothing here is ever pushed to it.
+
+The two repositories move together: the delivery plan's order of
+operations tracks the scheduler's progress, and the paper's build
+checklist cites it.

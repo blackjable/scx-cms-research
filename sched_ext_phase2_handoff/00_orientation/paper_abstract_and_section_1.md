@@ -105,9 +105,13 @@ scheduler is an obvious idea, and as far as we can determine (Section
 approximate data structures for behavioural tracking.
 
 This paper reports what happened when we did. The short answer is that
-it does not work, that we can say precisely why, and that the reason
-suggests a check practitioners should run before reaching for a sketch
-anywhere that resembles this problem.
+it works, at a price we can state precisely: roughly a quarter of the
+memory, statistically identical median latency, and a tail that is worse
+on average and considerably noisier. The boundaries of that result --
+where each structure stops working, and what each does when it does --
+turn out to matter more than any accuracy figure, and they suggest a
+check practitioners should run before reaching for a sketch anywhere
+that resembles this problem.
 
 ### 1.1 What was built
 
@@ -165,22 +169,29 @@ likely to recur in any scheduler evaluation:
    affecting scheduling at all, a sketch still delivers a 3.65x tail
    improvement over inaction (n=20, non-overlapping). It is not
    equivalent to exact counting: a pre-registered paired equivalence
-   test puts the mean p99 ratio at 11-39% worse while equivalent on p50 --
-   though per-run ratios span 0.69x to 3.08x, so what the sketch costs
-   is variance rather than a flat penalty. A matched-memory control
-   shows that cost is a property of approximation rather than of the
-   memory saving (Section 4.2.2). The
+   test puts the mean p99 ratio at 11-39% worse while equivalent on p50.
+   The cost is a distribution rather than a flat penalty: per-run ratios
+   span 0.69x to 3.08x, and across two independent runs the sketch is
+   better in 37% and 40% of repetitions and more than 50% worse in 30%
+   and 33%. A matched-memory control locates that cost -- at the same
+   budget the two structures are indistinguishable, so the tail premium
+   is the price of the memory saving rather than an intrinsic cost of
+   approximating (Section 4.2.2). The
    structures also fail in different kinds -- exact silently, reverting
    to the underlying policy; the sketch loudly, misdirecting it -- which
    matters as much as the memory figure when choosing between them.
 
-2. **An explanation that transfers.** Scheduling needs the active set,
-   not the identity population. An undersized LRU keeps what is running
-   and discards what is not, which is the correct thing to discard; a
-   sketch keeps everything approximately. Before adopting a
-   probabilistic counter, check whether an undersized exact structure
-   with a sensible eviction policy already solves the problem -- where
-   only the active set matters, it likely does.
+2. **An explanation that transfers.** The two structures fail at
+   different budgets and in different kinds, and that -- not accuracy at
+   a given size -- is what decides between them. An entry-bounded exact
+   map degrades by falling off a capacity cliff and then going silent; a
+   sketch degrades continuously and then starts misdirecting. So the
+   question to ask of a bounded counting structure is at what size each
+   stops working and whether you can tell from outside that it has. An
+   earlier version of this contribution argued the opposite -- that an
+   undersized LRU keeps the active set and therefore beats a sketch at
+   small budgets. It does not: below its working set an LRU thrashes and
+   the tracker goes inert (Sections 4.2.2, 4.2.4).
 
 3. **A design constraint on wakeup-frequency tracking.** The technique
    requires identities that persist across the tracking window. Under
