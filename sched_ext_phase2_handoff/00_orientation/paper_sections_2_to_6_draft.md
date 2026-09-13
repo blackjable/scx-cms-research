@@ -552,10 +552,20 @@ real and the hash should be fixed; it does not move any result here.
 **The identity population was measured, not assumed.** An earlier
 version of this validation assumed the workload's identity count and
 was wrong by a factor of four, which invalidated the accuracy figures
-derived from it. The scheduler now counts distinct insertions: the
-stable workload carries 329 identities (about 200 of them system
-processes), the churning workload mints 413 per second for roughly 826
-live per query span.
+derived from it. The scheduler now counts distinct insertions into a map
+large enough that nothing evicts, so the figure describes the workload
+rather than the tracker. Across three runs
+(`results/raw/identity-turnover-n3.txt`): the stable workload carries
+304-335 distinct identities (about 200 of them system processes) and
+mints ~2 per second; the churning workload mints 377-385 per second for
+roughly 760 live per query span.
+
+These figures were first reported as 329 stable, 413 per second and 826
+live, from a run whose output was not archived. The re-measurement above
+agrees on the stable total and puts the churning rate about 8% lower,
+outside the spread of three consecutive runs. The corrected figures are
+used throughout; the ratio between regimes, which is what the argument
+rests on, moves from 103x to 190x.
 
 **What this validates.** With the measured population the stable regime
 agrees with the model (~392 predicted against 366.7 measured,
@@ -1089,10 +1099,30 @@ additional repetitions could not average away.
 
 It was not subtle in effect. One matrix ran `none` (p99 ~80ms)
 immediately before `exact+penalty` in every repetition; a later one ran
-`exact+penalty` first from a clean state. The same condition's p99 upper
-bound was 21,664us in the first and 14,000us in the second, and the two
-runs disagreed about whether `exact+penalty` separates from `flat` at
-all.
+`exact+penalty` first from a clean state.
+
+The effect is on the spread, not the centre, and the distinction matters
+for how to look for it:
+
+| `exact+penalty` p99 | preceded by `none` (n=15) | run first (n=20) |
+|---|---|---|
+| median | 12,784us | 11,712us |
+| mean | 14,377us | 11,763us |
+| maximum | 21,664us | 14,000us |
+| repetitions above 14,000us | **6 of 15** | **0 of 20** |
+| coefficient of variation | 0.23 | 0.08 |
+
+Mann-Whitney on the two samples gives p = 0.004, and a repetition from
+the contaminated matrix exceeds one from the clean matrix 79% of the
+time. The medians are 9% apart, so a summary table shows almost nothing;
+the two runs nonetheless disagreed about whether `exact+penalty`
+separates from `flat` at all, because that comparison lives in the part
+of the distribution ordering bias fattened.
+
+An earlier version of this paragraph quoted only the maxima, as a "55%
+difference". That is the ratio of the noisiest statistic in either
+sample, and reporting it alone repeats the error Section 4.2 warns about
+one level up.
 
 Randomising the order per repetition fixes it. Every measurement in
 rounds 1 through 2c carries the confound and is reported here only where

@@ -133,3 +133,12 @@ you have no reference for what "stopped discriminating" looks like.
 | the count-blind mechanism's median cost | [`r2d-randomised-order-n20.txt`](../results/raw/r2d-randomised-order-n20.txt) |
 | the 2 KB sketch improving p99 while p50 collapsed | [`o1-o4-budget-geometry-churning-n20.txt`](../results/raw/o1-o4-budget-geometry-churning-n20.txt) |
 | the per-repetition ratio spread a median conceals | [`equivalence-n30-prereg.txt`](../results/raw/equivalence-n30-prereg.txt), [`excursion-rate-n60.txt`](../results/raw/excursion-rate-n60.txt) |
+
+Two notes on checking these against the files, since this is a post about
+not taking summary statistics on trust:
+
+- `r2d`'s summary table prints p99 only. The p50 medians quoted here
+  (3,920µs and 11,776µs) come from the `wu_p50=` values on its
+  per-repetition lines — grep `wu_p50` and take the median of twenty.
+- The 2 KB sketch's collapsed median is 9,936µs in the file; I round it
+  to ~9,900µs in the text.

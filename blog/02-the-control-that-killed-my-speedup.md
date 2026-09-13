@@ -155,9 +155,15 @@ credit for.
 | claim | file |
 |---|---|
 | the original 6.8x against `mechanism=none` | [`r2-count-attributable-n15.txt`](../results/raw/r2-count-attributable-n15.txt) |
+| *(on the arithmetic: both source runs give 6.9x — 88,192/12,784 at n=15 and 80,640/11,744 at n=20. I quote 6.8x throughout because that is how I stated the claim at the time, and this post is about that claim. It rounds down, not up.)* | |
 | the count-blind control, swept at 2/4/8ms | [`r2b-flat-control-n8.txt`](../results/raw/r2b-flat-control-n8.txt) |
 | both re-measured under randomised ordering (n=20) | [`r2d-randomised-order-n20.txt`](../results/raw/r2d-randomised-order-n20.txt) |
 
 The control is `--mechanism flat` in
 [`flat.bpf.c`](https://github.com/blackjable/scx-cms/blob/main/src/bpf/mechanisms/flat.bpf.c),
 roughly forty lines.
+
+**On the p50 figures:** that harness prints a p99 summary table but not a
+p50 one, so the medians quoted here (3,920µs and 11,776µs) are computed
+from the `wu_p50=` values on the per-repetition lines, which are all
+present in the file. Grep for `wu_p50` and take the median of twenty.

@@ -39,8 +39,9 @@ are present and the summaries can be recomputed rather than trusted.
 bias.** The harness ran conditions in the same sequence every
 repetition, so carryover from one condition landed on the same
 neighbour every time -- bias that repetitions cannot average away. The
-same configuration measured 21,664us or 14,000us depending on what
-preceded it. Those files are retained because the retractions they
+same configuration put 6 of 15 repetitions above 14,000us with a
+pathological neighbour in the matrix, against 0 of 20 when it ran first
+from a clean state -- while the medians differed by only 9%. Those files are retained because the retractions they
 caused are part of the record, not because their numbers stand.
 
 **Files before `r5b` used a discrimination metric that could not

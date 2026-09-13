@@ -203,6 +203,8 @@ available.
 |---|---|
 | `LRU_HASH` vs plain `HASH` at identical capacity | [`r6-sketch-variants-n3.txt`](../results/raw/r6-sketch-variants-n3.txt) |
 | the same control on scheduling outcomes | [`r7-r9-throughput-mapcontrol-geometry.txt`](../results/raw/r7-r9-throughput-mapcontrol-geometry.txt) |
+| **the working-set test that separated thrashing from a map-type bug** | [`lru-working-set-test.txt`](../results/raw/lru-working-set-test.txt), harness [`lru_test.py`](../benchmark/lru_test.py) |
+| the 240,384µs outlier itself, at repetition 21 | [`equivalence-n30-prereg.txt`](../results/raw/equivalence-n30-prereg.txt) |
 | the withdrawn third failure mode (n=60 per condition) | [`excursion-rate-n60.txt`](../results/raw/excursion-rate-n60.txt) |
 | conservative update measurements | [`r6-sketch-variants-n3.txt`](../results/raw/r6-sketch-variants-n3.txt) |
 

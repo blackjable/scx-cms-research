@@ -1,0 +1,52 @@
+How many distinct identities does each workload actually contain?
+
+Harness: measure_ids.py. Exact tracker with --max-tracked 65536, large
+enough that nothing evicts, so the insert counter measures the WORKLOAD
+rather than the tracker. 10s per measurement, --stats 1, identity key
+pid. 128 churn slots at 200 wakeups/s, schbench victim 4 threads /
+100 rps. Stable = --lifetime 60, churning = --lifetime 0.25.
+
+rate is (last sample - second sample) / intervals, so the ramp-up
+sample is excluded. "live per 2s window" is 2x the rate, the span a
+query covers under the rotating dual-buffer scheme (current + previous
+at a 1000ms window).
+
+### run 1 ###
+stable  (lifetime 60s)     total=    304  rate=     1.7 ids/s  live per 2s window ~=       3
+churning(lifetime 0.25s)   total=   4616  rate=   377.5 ids/s  live per 2s window ~=     755
+### run 2 ###
+stable  (lifetime 60s)     total=    307  rate=     2.0 ids/s  live per 2s window ~=       4
+churning(lifetime 0.25s)   total=   4430  rate=   384.7 ids/s  live per 2s window ~=     769
+### run 3 ###
+stable  (lifetime 60s)     total=    335  rate=     4.1 ids/s  live per 2s window ~=       8
+churning(lifetime 0.25s)   total=   4646  rate=   380.8 ids/s  live per 2s window ~=     762
+
+Summary across the three runs:
+
+  regime     total identities   new ids/s        live per query span
+  stable     304-335 (med 307)  1.7-4.1 (med 2.0)   3-8
+  churning   4430-4646          377.5-384.7 (med 380.8)  755-769
+
+PROVENANCE, stated because it matters here. The figures originally
+reported from this measurement -- 329 identities stable, 413 ids/s and
+826 live churning -- came from a run whose output was never archived.
+The harness survived in the guest's /tmp; the output did not. These
+three runs are a re-measurement on the same guest with the same harness
+and the same parameters.
+
+They agree on everything load-bearing and differ in detail:
+
+  - The churning rate replicates tightly at 377.5-384.7 ids/s across
+    three runs. The originally reported 413 sits about 8% above all
+    three and outside the observed range. Use 380 ids/s, ~760 live per
+    query span.
+  - The stable rate is small and noisy: 1.7, 2.0, 4.1. The originally
+    reported "about 4" is the top of that range rather than its centre.
+    Use ~2 ids/s.
+  - The stable identity total, 304-335, brackets the reported 329.
+
+The claim these numbers exist to support is unaffected and is if
+anything strengthened: the two regimes differ by roughly two orders of
+magnitude in identity turnover (380 / 2.0 = 190x, against the 103x the
+original figures implied), and that difference is invisible from the
+scheduler's own metrics.

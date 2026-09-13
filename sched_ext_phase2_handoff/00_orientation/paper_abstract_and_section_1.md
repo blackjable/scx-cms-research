@@ -157,10 +157,14 @@ likely to recur in any scheduler evaluation:
 - **Condition ordering biases results systematically.** Our harness ran
   conditions in fixed order within each repetition, so carryover from
   the preceding condition landed on the same condition every time. It
-  was large enough to reverse a conclusion: the same configuration's
-  tail latency differed by 55% depending on what ran before it.
-  Randomising condition order fixes it, and we recommend it as default
-  practice.
+  was large enough to reverse a conclusion, and it acts on the upper
+  tail rather than the centre: with a pathological neighbour in the
+  matrix, 6 of 15 repetitions of the same configuration exceeded
+  14,000us against 0 of 20 when it ran first from a clean state
+  (Mann-Whitney p = 0.004; CV 0.23 against 0.08), while the medians
+  differ by only 9%. That is what makes it invisible in a summary table
+  and decisive for a p99 comparison. Randomising condition order fixes
+  it, and we recommend it as default practice.
 
 ### 1.3 Contributions
 

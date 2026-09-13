@@ -54,20 +54,45 @@ else. In one matrix it happened to sit immediately before the condition
 I cared most about. In a later matrix, run with a different subset of
 conditions, it wasn't in the list at all.
 
-Same configuration, same machine, same workload:
+Same configuration, same machine, same workload. Here is that
+condition's whole p99 distribution in each run:
 
-| | p99 upper bound |
+```
+preceded by the pathological condition (n=15)
+  10928 11440 11568 11664 12112 12336 12592 12784
+  13744 14160 16864 16928 17440 19424 21664
+
+run first, from a clean state (n=20)
+  10352 10512 10832 11024 11248 11280 11312 11312 11344 11600
+  11824 11824 11856 11952 12080 12240 12432 12752 13488 14000
+```
+
+**Six of fifteen repetitions above 14,000µs, against zero of twenty.**
+The coefficient of variation is 0.23 against 0.08. Mann-Whitney gives
+p = 0.004, and a run from the contaminated matrix beats one from the
+clean matrix 79% of the time.
+
+I want to be careful about the size of it, because the number you quote
+depends entirely on which statistic you pick:
+
+| statistic | ratio |
 |---|---|
-| preceded by the pathological condition | 21,664µs |
-| run first, from a clean state | 14,000µs |
+| maximum | 1.55x |
+| mean | 1.22x |
+| median | 1.09x |
 
-A 55% difference in the metric I was drawing conclusions from, caused
-entirely by *what happened to run before it*.
+An earlier version of this post led with the 55% and called it "a
+difference in the metric I was drawing conclusions from". That was the
+most flattering framing available — a ratio of two maxima, the noisiest
+statistic in either sample. The median moved 9%.
 
-The two runs disagreed about whether my mechanism produced a measurable
-effect at all. I spent hours trying to reconcile them, assuming one was
-noise and hunting for the sampling error. There wasn't one. Both were
-accurate measurements of subtly different experiments.
+What ordering bias did here was not shift the centre. It **fattened the
+upper tail**, which is exactly the part of the distribution a p99
+comparison lives in, and it is why the two matrices disagreed about
+whether my mechanism separated from the control at all. I spent hours
+trying to reconcile them, assuming one was noise and hunting for the
+sampling error. There wasn't one. Both were accurate measurements of
+subtly different experiments.
 
 ## The fix
 
@@ -112,8 +137,9 @@ I learn it already had a name, and that the name is old.
 
 Which is, I think, the usual order. You find the edge of something by
 walking into it, and the label comes after. Reading about carryover
-would not have made me believe a 55% swing was possible from condition
-ordering alone; measuring it did.
+would not have made me believe condition ordering alone could put six of
+fifteen repetitions into a range the clean run never once reached;
+measuring it did.
 
 I don't know how common the mistake is in systems benchmarking — I
 haven't surveyed the literature and I'm not going to claim a pattern I

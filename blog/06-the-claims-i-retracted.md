@@ -115,9 +115,11 @@ Nine of the rest were instrument failures:
 
 - **A benchmark harness that ran conditions in fixed order**, so
   carryover from one condition landed on the same neighbour every
-  repetition. Systematic bias that repetitions cannot average away. Same
-  configuration measured 21,664µs or 14,000µs depending on what preceded
-  it.
+  repetition. Systematic bias that repetitions cannot average away. With
+  a pathological neighbour in the matrix, the same configuration put 6
+  of 15 repetitions above 14,000µs; run first from a clean state, 0 of
+  20 reached that at all. The medians barely moved, which is why it was
+  invisible.
 - **A metric that couldn't distinguish "working" from "doing nothing"**,
   because its reference point was worse than doing nothing.
 - **A ratio whose denominator was collapsing**, so an "inflation" figure
@@ -298,7 +300,16 @@ them, it's in not knowing they exist.
 ## Data
 
 Every retraction is recorded with the file that produced it and the file
-that overturned it: [`REVISIONS.md`](../results/REVISIONS.md).
+that overturned it: [`REVISIONS.md`](../results/REVISIONS.md). The
+handful of figures quoted in this post, and where to check them:
+
+| claim | file |
+|---|---|
+| the ordering bias: 6/15 above 14,000µs vs 0/20 | [`r2-count-attributable-n15.txt`](../results/raw/r2-count-attributable-n15.txt), [`r2c-prereg-n20.txt`](../results/raw/r2c-prereg-n20.txt) |
+| the 6.8x, and the count-blind control that reproduced 82% of it | [`r2d-randomised-order-n20.txt`](../results/raw/r2d-randomised-order-n20.txt) |
+| the equivalence test that refuted "equivalent" (n=30) | [`equivalence-n30-prereg.txt`](../results/raw/equivalence-n30-prereg.txt) |
+| the 24x excursion, and exact counting showing the same rate (n=60) | [`excursion-rate-n60.txt`](../results/raw/excursion-rate-n60.txt) |
+| the 42-entry LRU working fine with 8 or 20 identities | [`lru-working-set-test.txt`](../results/raw/lru-working-set-test.txt) |
 
 The full archive is [`results/raw/`](../results/raw/), catalogued in
 [`MANIFEST.md`](../results/MANIFEST.md), which labels which runs carry

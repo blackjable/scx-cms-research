@@ -102,11 +102,21 @@ multithreaded applications break the second.
 ## What this means practically
 
 **Check your workload's identity turnover before trusting any
-behavioural tracking.** I measured mine by counting distinct insertions:
-the long-lived workload minted about 4 new identities per second, the
-churning one about 413. That's a two-orders-of-magnitude difference in
-what your tracker is actually accumulating, and it's invisible from the
-scheduler's own metrics.
+behavioural tracking.** I measured mine by counting distinct insertions
+into a map big enough that nothing evicts, so the number describes the
+workload rather than the tracker. Across three runs the long-lived
+workload minted about 2 new identities per second; the churning one
+about 380. That's a two-orders-of-magnitude difference — roughly 190x —
+in what your tracker is actually accumulating, and it's invisible from
+the scheduler's own metrics.
+
+It took me three attempts to have a number here I'd stand behind. The
+first version of this paragraph used an *assumed* identity count that
+turned out to be wrong by a factor of four. The second used a measured
+one whose output I then failed to archive, so it couldn't be checked.
+The figures above are the third pass, with all three runs in the
+archive, and the churning rate came back about 8% below what I'd
+reported from memory.
 
 **Check whether your protected workload is multithreaded** before
 reaching for a coarse key. If it is, coarse identity may invert your
@@ -140,5 +150,6 @@ long enough to be worth tracking at all.
 | claim | file |
 |---|---|
 | pid vs comm, penalty vs boost (n=10) | [`r4-identity-bestshot-n10.txt`](../results/raw/r4-identity-bestshot-n10.txt) |
-| identity turnover rates, measured not assumed | [`r5-inflation-and-stable-sweep.txt`](../results/raw/r5-inflation-and-stable-sweep.txt) |
+| identity turnover rates, measured not assumed (n=3) | [`identity-turnover-n3.txt`](../results/raw/identity-turnover-n3.txt) |
+| sketch inflation in both regimes — note this file's header carries the *assumed* identity counts, since it predates the measurement above | [`r5-inflation-and-stable-sweep.txt`](../results/raw/r5-inflation-and-stable-sweep.txt) |
 | both structures failing under churn (n=20) | [`o1-o4-budget-geometry-churning-n20.txt`](../results/raw/o1-o4-budget-geometry-churning-n20.txt) |
