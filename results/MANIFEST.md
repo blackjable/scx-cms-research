@@ -34,23 +34,39 @@ are present and the summaries can be recomputed rather than trusted.
 | [`lru-working-set-test.txt`](raw/lru-working-set-test.txt) | LRU vs plain hash at 42 slots, identity population varied | -- | overturned revision 12; harness `lru_test.py` |
 | [`identity-turnover-n3.txt`](raw/identity-turnover-n3.txt) | distinct identities and turnover rate, both regimes | 3 | replaces figures whose original run was never archived; harness `measure_ids.py` |
 | [`map-memlock-verification.txt`](raw/map-memlock-verification.txt) | which map the reported memory column describes | 1 | confirms 35.6 KB is the LRU map in use, so 4.3x stands |
+| [`ordering-controlled-n20.txt`](raw/ordering-controlled-n20.txt) | fixed vs randomised condition order, everything else held constant | 20+20 | pre-registered; **found no ordering effect** and overturned revision 13 |
 
 ## Reading these with the necessary suspicion
 
-**Anything marked "fixed condition order" carries a known systematic
-bias.** The harness ran conditions in the same sequence every
-repetition, so carryover from one condition landed on the same
-neighbour every time -- bias that repetitions cannot average away. The
-same configuration put 6 of 15 repetitions above 14,000us with a
-pathological neighbour in the matrix, against 0 of 20 when it ran first
-from a clean state -- while the medians differed by only 9%. Those files are retained because the retractions they
-caused are part of the record, not because their numbers stand.
+**Files marked "fixed condition order" were long believed to carry a
+systematic carryover bias. A controlled test found no such bias**
+(`REVISIONS.md` revision 13,
+[`ordering-controlled-n20.txt`](raw/ordering-controlled-n20.txt)). Running
+conditions in a fixed sequence, with a ~90ms pathological condition
+immediately before the measured one in every repetition, produced no
+measurable difference against a randomised arm: medians 0.98x apart,
+Mann-Whitney p = 0.86, and the fixed arm was the *less* variable of the
+two.
+
+The label is kept on those files because it accurately describes how
+they were run, and because the retractions once attributed to it are
+part of the record. It should no longer be read as "these numbers are
+biased". What it now means is: these runs predate randomisation,
+randomisation turned out to correct nothing measurable, and where they
+disagree with later runs that disagreement is **unexplained** rather
+than explained.
+
+Randomised ordering is still used throughout and still recommended --
+carryover is real in principle, and randomisation costs six lines and
+converts any bias into noise that repetitions remove. It is insurance,
+not a fix for a demonstrated fault.
 
 **Files before `r5b` used a discrimination metric that could not
 distinguish a working tracker from an inert one**, because its
 reference point (a count-blind penalty) is worse than taking no action.
 Conclusions drawn from them were revised once a `mechanism=none`
-reference was added.
+reference was added. This one is a real instrument fault and it stands.
 
-The conclusions that survive are those re-established after both fixes:
-`r5b` onward.
+So of the two corrections this archive was organised around, one held
+and one did not. The conclusions that survive are those re-established
+with a do-nothing reference in the matrix: `r5b` onward.

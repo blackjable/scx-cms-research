@@ -1,24 +1,32 @@
 # Record of revisions
 
-Twelve claims were stated during this work and later withdrawn. They are
-listed here in full, each tied to the raw file that produced it and the
-raw file that overturned it, so a reader can check both rather than
+Thirteen claims were stated during this work and later withdrawn. They
+are listed here in full, each tied to the raw file that produced it and
+the raw file that overturned it, so a reader can check both rather than
 take the correction on trust.
 
 This exists because the retractions are not incidental to the result --
-they *are* a substantial part of it. Nine of the twelve were caused by a
-faulty instrument rather than by a faulty hypothesis, and identifying
+they *are* a substantial part of it. Eight of the thirteen were caused by
+a faulty instrument rather than by a faulty hypothesis, and identifying
 each fault is what eventually made the final measurement trustworthy.
 A record that showed only the surviving conclusions would misrepresent
-how they were arrived at, and would hide the five controls that turned
-out to matter.
+how they were arrived at, and would hide the controls that turned out to
+matter.
 
-The remaining three are a different failure and are worth separating.
-Revisions 9, 10 and 12 were not measurement artefacts at all: the
+The remaining five are a different failure and are worth separating.
+Revisions 9, 10, 12 and 13 were not measurement artefacts at all: the
 numbers were correct and an untested mechanism was attached to them,
 each time in the version that made the better story. Revision 11 is
 different again -- not a measurement, but a sentence asserting evidence
-that did not exist. No control catches either kind.
+that did not exist. No control catches either kind; only testing the
+mechanism separately does.
+
+**Revision 13 is the one to read first if you read only one.** It
+withdraws the condition-ordering finding, which was the most confidently
+stated and most widely applicable claim in the project, and it is the
+fourth instance of the same error -- attaching an explanation to a real
+disagreement without testing it. It also survived a correction pass that
+was explicitly hunting for that error.
 
 **This document is chronological.** Where a later revision supersedes
 something stated in an earlier one, the earlier entry carries a forward
@@ -57,11 +65,23 @@ whether the signal is used.
 **Withdrawn:** 0 of 20 after the ordering fix.
 **Cause:** fixed condition ordering. Carryover from a pathological
 neighbour landed on the same condition every repetition.
+
+> **[CAUSE SUPERSEDED by revision 13.]** The withdrawal stands -- the
+> ~10% failure rate did not replicate, and 0 of 20 is 0 of 20. But the
+> *reason* given here does not: a controlled test later found no
+> measurable ordering effect at all, so "carryover" cannot be what made
+> the failure rate vanish. Why it vanished is now unexplained, and the
+> most likely remaining answer is that it was never there -- a
+> small-sample artefact in the same family as revision 2. Nothing about
+> the corrected measurement changes.
+
 **Aggravating factor:** this was an *interesting* result with a
 plausible mechanism (collisions inflating the protected task's count),
 and it was accepted at n=20 with visibly less scrutiny than the
 disappointing results received. It had been explicitly predicted to be
-the finding *least* likely to be an ordering artefact.
+the finding *least* likely to be an ordering artefact. Revision 13 makes
+this worse rather than better: the explanation that replaced it was also
+adopted without test.
 **Original:** [`r2c-prereg-n20.txt`](raw/r2c-prereg-n20.txt)
 **Correction:** [`r2d-randomised-order-n20.txt`](raw/r2d-randomised-order-n20.txt)
 
@@ -102,21 +122,26 @@ re-measured properly; the *evidence* for it did not.
 
 ## What the pattern shows
 
-*(Written after revision 7. Revisions 8 to 12 follow below and the
+*(Written after revision 7. Revisions 8 to 13 follow below and the
 counts in this section are from that moment, not the final tally --
-which is twelve, nine of them instrument failures.)*
+which is thirteen, eight of them instrument failures. Two rows of the
+table below were themselves later withdrawn; see the notes.)*
 
 More data would have caught exactly one (#2). The rest required a
 control or an instrument that did not exist yet:
 
 | fault | fix |
 |---|---|
-| fixed condition ordering | randomise per repetition, seeded |
+| ~~fixed condition ordering~~ | ~~randomise per repetition, seeded~~ — **withdrawn, revision 13.** No ordering effect exists here. Randomising is still worth doing, but it fixed nothing measurable |
 | metric with a broken zero point | add a do-nothing reference |
 | ratio with a collapsing denominator | measure against truth, not a dying comparator |
 | workload model wrong by 4x | instrument the distribution instead of inferring |
-| `LRU_HASH` not behaving as named | control with a plain hash at equal capacity |
+| ~~`LRU_HASH` not behaving as named~~ | ~~control with a plain hash at equal capacity~~ — **withdrawn, revision 12.** The control was useful; the fault it was built to catch was not real |
 | cross-run comparison | put both conditions in one interleaved matrix |
+
+Two of the six entries in that table did not survive, which is the most
+compact summary of this document available: a third of the "faults"
+identified with confidence were explanations rather than faults.
 
 Every fix was permanent and additive, and the final measurements use
 all of them. That is the reason for confidence in the surviving
@@ -133,8 +158,12 @@ defence against a seventh revision is not confidence; it is that the
 final runs were structured so specific predictions could fail, and the
 raw output is archived here so someone else can check whether they did.
 
-*(That caveat earned itself: five more revisions followed. Read it as
-applying to revisions 8 through 12 as much as to the seven above it.)*
+*(That caveat earned itself twice over: six more revisions followed, and
+the last of them withdrew the very fix this section credits for the
+others. Read it as applying to revisions 8 through 13 as much as to the
+seven above it -- and note that "the instruments are young" was itself
+too optimistic, since one of the instruments turned out to be treating a
+non-problem.)*
 
 ---
 
@@ -398,3 +427,97 @@ document that describes it.
 **Original:** [`r6-sketch-variants-n3.txt`](raw/r6-sketch-variants-n3.txt),
 [`r7-r9-throughput-mapcontrol-geometry.txt`](raw/r7-r9-throughput-mapcontrol-geometry.txt)
 **Correction:** [`lru-working-set-test.txt`](raw/lru-working-set-test.txt)
+
+---
+
+## 13. "Fixed condition ordering biased the results, and the effect was large enough to reverse a conclusion"
+
+**Withdrawn:** a controlled test finds no ordering effect at all.
+**Cause:** an uncontrolled comparison between two runs that differed in
+three ways, with the difference attributed to the one that had a story
+attached.
+
+This is the largest retraction in this list, because the claim is the
+entire subject of blog post 01, one of two methodological findings in
+the paper, and the thing most likely to be repeated by someone else.
+
+**What the evidence actually was.** Two matrices disagreed:
+
+| | `cms_exact_penalty` p99 |
+|---|---|
+| [`r2-count-attributable-n15.txt`](raw/r2-count-attributable-n15.txt) | median 12,784us, max 21,664us |
+| [`r2c-prereg-n20.txt`](raw/r2c-prereg-n20.txt) | median 11,712us, max 14,000us |
+
+The first ran `cms_none` (p99 ~88ms) immediately before
+`cms_exact_penalty`; the second ran `cms_exact_penalty` first. That
+looked like carryover, and carryover is real in principle, so it was
+written up as carryover.
+
+But the two files also differ in **condition subset** (four conditions
+against three -- `cms_none` is absent from the second) and in **sample
+size** (15 against 20), and they are separate runs on different days.
+Parameters were identical; nothing else was. Three variables, one
+explanation, no test. **Both files are fixed-order**, so the comparison
+was never fixed-against-random in the first place.
+
+**The controlled test** ([`ordering-controlled-n20.txt`](raw/ordering-controlled-n20.txt),
+pre-registered in `benchmark/PREREGISTRATION_ordering.md`): same four
+conditions, same n=20, same parameters, same guest, back to back. Only
+the shuffling changes.
+
+| statistic | fixed | randomised | ratio |
+|---|---|---|---|
+| median | 11,808us | 12,080us | 0.98x |
+| mean | 12,219us | 12,619us | 0.97x |
+| maximum | 16,016us | 19,424us | 0.82x |
+| CV | 0.11 | **0.18** | |
+| above 14,000us | 2/20 | 3/20 | |
+
+Mann-Whitney p = 0.86. P(a fixed run exceeds a randomised run) = 0.48.
+Three of four pre-registered predictions failed, and the fixed arm is
+marginally *better* and clearly *less* variable than the randomised one.
+
+**A second, independent angle agrees.** Within the randomised arm,
+adjacency was assigned at random, which makes it a genuine experiment on
+the same question. `cms_none` landed immediately before
+`cms_exact_penalty` in 6 of 20 repetitions:
+
+| | n | median | max |
+|---|---|---|---|
+| preceded by `cms_none` | 6 | 11,664us | 12,976us |
+| not preceded by `cms_none` | 14 | 12,208us | 19,424us |
+
+Ratio 0.96x, Mann-Whitney p = 0.458. The repetitions that followed the
+pathological condition were, if anything, slightly better.
+
+**What survives.** Randomising condition order remains the right default
+and the recommendation stands, but on a priori grounds rather than
+measured ones: carryover is a real phenomenon, randomisation converts any
+systematic bias into noise that repetitions remove, and it costs six
+lines. What does not survive is the claim that it mattered *here*, or any
+figure quantifying how much.
+
+**No measurement changes.** This revision is about an explanation, not
+data. Every result re-established under randomised ordering stands
+exactly as reported; randomised ordering simply turns out to have been
+insurance rather than a fix.
+
+**What is now unexplained:** why the two original matrices disagreed.
+Ordering is ruled out. Condition subset and ordinary run-to-run variation
+remain, and are untested rather than concluded -- which is the whole
+point of this entry.
+
+**Why this one is the worst.** Revisions 9, 10 and 12 were untested
+mechanisms attached to correct measurements. This is the same error a
+fourth time, on the most-recommended claim in the project, and it
+survived two passes that were specifically looking for that error. It
+also survived my own correction of it: hours before this test, the "55%"
+figure here was rewritten into a more rigorous form -- 6 of 15
+repetitions above 14,000us against 0 of 20, Mann-Whitney p = 0.004 --
+computed from **the same two confounded files**. Making a statistic more
+careful does nothing about a confounded design, and the more careful
+version read as more trustworthy.
+
+**Original:** [`r2-count-attributable-n15.txt`](raw/r2-count-attributable-n15.txt) +
+[`r2c-prereg-n20.txt`](raw/r2c-prereg-n20.txt) (compared across runs)
+**Correction:** [`ordering-controlled-n20.txt`](raw/ordering-controlled-n20.txt)
