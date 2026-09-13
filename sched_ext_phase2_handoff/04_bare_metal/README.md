@@ -24,6 +24,31 @@ E-cores, which reintroduces exactly the heterogeneity confound this
 exercise exists to escape. 6th through 10th generation are homogeneous
 and cheap secondhand.
 
+## Buying secondhand: one question that matters more than the rest
+
+Most cheap qualifying hardware is ex-corporate, and ex-corporate
+machines frequently ship with a **BIOS supervisor password still set**.
+That can block changing boot order, booting from USB, or disabling SMT,
+and on many ThinkPads and business Dells it cannot be cleared without
+replacing the mainboard.
+
+Every other defect is recoverable after delivery. This one is not, so
+ask before buying:
+
+> 1. Is the BIOS supervisor password cleared?
+> 2. What is the exact CPU model (i5-10210U, i5-8265U, and so on)?
+> 3. Is the drive an SSD?
+> 4. Is the charger included?
+
+All four are lookups a seller can do from the BIOS screen or the
+sticker. **Do not expect a seller to run diagnostic commands** -- they
+will not, and there is no need: RAPL presence follows from the CPU
+generation, so the exact model number answers it. The risk being managed
+here is a mis-described listing, not uncertain hardware.
+
+Buy from a seller offering returns. If it arrives mis-described or with
+a locked BIOS, that is the remedy.
+
 Verify on the machine before installing anything, from a live USB:
 
 ```bash
