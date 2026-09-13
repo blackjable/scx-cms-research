@@ -95,6 +95,82 @@ already collected by the existing harnesses. Report energy, throughput,
 and the ratio -- a mechanism that cuts energy 10% while cutting work 15%
 has made things worse.
 
+## Run this first: validate the instrument
+
+Before any condition is compared against any other, establish that this
+machine can detect a *large, known* energy difference at all.
+
+```
+idle,       60s   -> baseline joules, deep-state residency
+heavy load, 60s   -> does RAPL move as expected?
+                  -> does C6/C10 residency collapse as expected?
+```
+
+An instrument that cannot detect a sledgehammer cannot detect the
+mechanism. This is the same positive-control logic that rescued round 2
+of the latency work, where six candidate workloads were rejected by a
+control before a full matrix was ever run -- and it is cheap, because a
+null from an unvalidated instrument is uninterpretable rather than
+informative.
+
+Check the direction as well as the magnitude. Energy should rise and
+deep-state residency should fall under load. If they do not move
+together, something is wrong with the measurement rather than
+interesting about the scheduler.
+
+## Do not start by comparing against EEVDF
+
+The tempting first experiment is the CMS penalty scheduler against the
+stock kernel scheduler. It is the wrong one, and for a reason this
+project has already paid for.
+
+EEVDF and `scx_cms` differ in policy, dispatch path and implementation,
+not merely in whether wakeups are tracked. Any energy difference between
+them conflates all of it -- which is precisely the error that produced a
+6.8x latency result later shown to be 82% generic vtime perturbation
+(`../results/REVISIONS.md`, revision 3).
+
+The primary comparison is `flat` against `exact + penalty`: same binary,
+same policy, same overhead, one variable. EEVDF belongs in the matrix
+eventually as context -- *is a custom scheduler worth it at all* -- but
+not as the comparison the conclusion rests on.
+
+Order the runs accordingly:
+
+| order | condition | question |
+|---|---|---|
+| 0 | idle / heavy load | can the instrument see anything? |
+| 1 | `mechanism=none` | tracking overhead only |
+| 2 | `mechanism=flat` | does *any* perturbation change energy? |
+| 3 | `exact + penalty` | does acting on the count change it? |
+| 4 | `sketch + penalty` | does approximation preserve it? |
+| 5 | EEVDF | context, not conclusion |
+
+## Statistics: a two-stage design
+
+The margin cannot be pre-registered yet, because nothing is known about
+the scale or variance of the effect. For latency there were prior runs
+to set a +/-20% margin against; here there is nothing.
+
+So the design is explicitly two-stage, and the stages must not be
+confused:
+
+**Stage 1, pilot.** Establish scale and run-to-run variance. Exploratory
+by declaration: **no conclusions are drawn from it**, and no margin is
+chosen after seeing it that could have been chosen before.
+
+**Stage 2, confirmatory.** Margin, metric, test, sample size and
+falsification clause committed before the run, in the manner of
+`PREREGISTRATION_equivalence.md`. Paired per-repetition ratios, since the
+harness interleaves conditions within each repetition and pairing is
+therefore a property of the design rather than a post-hoc choice.
+
+**One judgment call belongs before stage 1, not after it:** what size
+energy difference would actually matter? If wakeup tracking saves 0.5%
+of package energy, is that a finding or a curiosity? Decide and write it
+down now. Left undecided, the threshold will end up being whatever the
+data happens to show.
+
 ## The control still applies
 
 The count-blind control (`--mechanism flat`) dissolved 82% of this
