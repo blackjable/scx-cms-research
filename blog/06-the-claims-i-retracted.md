@@ -1,4 +1,4 @@
-# Eleven claims I retracted
+# Twelve claims I retracted
 
 I set out to test whether a Count-Min Sketch could replace exact
 per-task counters in a Linux scheduler, saving memory without hurting
@@ -7,9 +7,10 @@ scheduling quality.
 The answer turned out to be a qualified yes — 4x less memory, identical
 typical latency, a worse and noisier tail. But between forming the
 hypothesis and arriving at that, I
-announced and then withdrew eleven separate conclusions, including, at
+announced and then withdrew twelve separate conclusions, including, at
 one point, the conclusion that the hypothesis was refuted — and, more
-than once near the end, claims I had already written up as final.
+than once near the end, claims I had already written up as final and
+published an explanation for.
 
 None of them failed because the hypothesis was wrong. Every one failed
 because an instrument was wrong — and each instrument was wrong in a way
@@ -95,6 +96,15 @@ and didn't find them."** I didn't look. This one isn't a measurement
 error — it's a sentence I wrote into a draft of post 01, asserting a
 literature search that never happened, while trying to make a weak claim
 sound stronger. A reader asked whether it was true. It wasn't.
+
+**12. "BPF's `LRU_HASH` stops behaving like an LRU when the map is
+small."** My favourite finding, and wrong. A small LRU reporting nearly
+nothing looked like a bug in the map type; it's what any correct LRU does
+when the working set exceeds capacity. A 42-entry map works fine with 8
+or 20 identities and only collapses at 100 or 300 — so the collapse
+tracks overcommitment, not size. I'd asserted a mechanism I never tested,
+and only tested it when a reader asked whether the problem was BPF's or
+mine.
 
 ## The pattern
 

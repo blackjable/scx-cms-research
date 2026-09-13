@@ -1,0 +1,14 @@
+Does a small LRU_HASH work when the working set FITS?
+
+ identities  slots  LRU mean  plain mean   verdict
+--------------------------------------------------------------
+          8    128     880.7       851.9   fits
+          8     42     781.2       796.7   fits
+         20    128     679.2       664.1   fits
+         20     42     456.2       537.3   fits
+        100     42       2.5       201.7   OVER capacity
+        300     42       2.0       200.4   OVER capacity
+
+Compare mode, exact_mean per query, 10s per measurement, stable
+identities, 4-core aarch64 guest. Harness: lru_test.py. Analysed in
+REVISIONS.md revision 12.

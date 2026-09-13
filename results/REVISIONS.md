@@ -285,3 +285,63 @@ Recorded here because a record that included only measurement errors
 would be a flattering one. The failure mode of reaching for evidence
 that would be convenient is the same one the ten revisions above
 describe, applied to prose instead of to data.
+
+---
+
+## 12. "BPF's LRU_HASH stops behaving like an LRU when the map is small"
+
+**Withdrawn:** a small LRU_HASH works fine when the working set fits.
+**Cause:** a mechanism asserted without being tested, fitted to data an
+ordinary explanation also covers.
+
+The claim was that BPF's per-CPU free lists make a small map smaller than
+its own bookkeeping, so entries churn rather than order by recency. The
+evidence was that at 42 entries the map reported a mean tracked count of
+1.6 where a plain hash reported 189.8.
+
+The competing explanation was never ruled out: **a correct LRU thrashes
+when the working set exceeds capacity.** With ~330 live identities
+competing for 42 slots, every insert evicts something about to be needed
+again, entries are dropped between their own increments, and counts never
+accumulate. A mean near 1 is what thrashing looks like, not what a bug
+looks like.
+
+Shrinking the identity population separates them
+([`lru-working-set-test.txt`](raw/lru-working-set-test.txt)):
+
+| identities | slots | LRU mean | plain mean |
+|---|---|---|---|
+| 8 | 42 | **781.2** | 796.7 |
+| 20 | 42 | **456.2** | 537.3 |
+| 100 | 42 | 2.5 | 201.7 |
+| 300 | 42 | 2.0 | 200.4 |
+
+A 42-entry LRU_HASH retains counts perfectly well with 8 or 20
+identities. Were the per-CPU free lists responsible, it would fail at 42
+entries regardless of identity count. It does not. **The collapse tracks
+overcommitment, not map size** -- which is a property of LRUs rather than
+of BPF.
+
+**What survives.** The two map types fail differently under
+overcommitment, and that difference was genuinely useful here. LRU
+thrashes uniformly: nothing accumulates, every query reads near 1. A
+plain hash locks in whichever keys arrived first and lets those
+accumulate to ~200 while 83% of queries return zero. Neither is usable;
+they are unusable in different shapes, and that is what allowed
+separating an inert tracker from a discriminating one.
+
+**What does not survive** is the framing as a BPF trap, a threshold to
+watch for, or anything a BPF author needs warning about. Sizing a cache
+below its working set degrades it. That is not news.
+
+**Why this one differs from the eleven above.** It was not a measurement
+artefact -- the measurements were correct throughout. I attached a
+mechanism to them that I had not tested, in a form flattering enough to
+become a headline: "a tool silently stops doing what its name says" is a
+better story than "an undersized cache thrashes". Revisions 9 and 10 were
+the same error, and I repeated it two days later while writing the
+document that describes it.
+
+**Original:** [`r6-sketch-variants-n3.txt`](raw/r6-sketch-variants-n3.txt),
+[`r7-r9-throughput-mapcontrol-geometry.txt`](raw/r7-r9-throughput-mapcontrol-geometry.txt)
+**Correction:** [`lru-working-set-test.txt`](raw/lru-working-set-test.txt)

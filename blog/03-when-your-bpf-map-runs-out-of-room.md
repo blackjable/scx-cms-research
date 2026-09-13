@@ -9,61 +9,64 @@ sched_ext programs use constantly — I'd assumed it behaved as its name
 suggests, and at small sizes it doesn't. The other is a way of thinking
 about bounded state that I found more useful than any accuracy figure.
 
-## Finding 1: `LRU_HASH` stops being an LRU when it's small
+## Finding 1: two map types, two different kinds of useless
 
 I was tracking per-task wakeup counts in a `BPF_MAP_TYPE_LRU_HASH`,
-sizing it deliberately small to see how gracefully it degraded. The
-answer was: not gracefully at all, and not for the reason I assumed.
+sizing it deliberately small to see how gracefully it degraded. At 42
+entries, against roughly 330 live task identities, the mean tracked count
+per query fell to **1.6** — as if almost nothing was retained between one
+increment and the next.
 
-At small entry counts the tracker essentially stopped working. Mean
-tracked count per query fell to **1.6** — as if almost nothing was ever
-retained between one increment and the next.
+A plain `BPF_MAP_TYPE_HASH` at **identical capacity**, same workload,
+reported **189.8**.
 
-I assumed that was capacity. It isn't. Here's the same tracker backed by
-a plain `BPF_MAP_TYPE_HASH` at **identical capacity**, on the same
-workload, which has roughly 330 live task identities:
+I wrote that up as a finding about BPF: that the per-CPU free lists
+underlying `LRU_HASH` make a small map smaller than its own bookkeeping,
+so it stops behaving like an LRU. It's a good story. **It's also wrong,
+and a twenty-minute test would have caught it — which I ran only after a
+reader asked whether the problem was BPF's or mine.**
 
-| entries | `LRU_HASH` | plain `HASH` |
-|---|---|---|
-| 85 | 184.2 | 192.4 |
-| **42** | **1.6** | **189.8** |
-| 21 | 1.0 | 0.2 |
+A correct LRU *also* reports ~1 in that situation. With 330 identities
+competing for 42 slots, every insert evicts something about to be needed
+again, entries are dropped between their own increments, and counts never
+accumulate. That's textbook thrashing, not a bug.
 
-At 42 entries the LRU map reports a mean count of 1.6 where a plain hash
-reports 189.8.
+Shrinking the identity population separates the two explanations:
 
-And a true LRU *should* be fine here. Retaining the 42 most-recently-used
-of ~330 identities, you'd expect a mean somewhere around 48. Instead you
-get 1.6 — roughly **30x worse than LRU semantics predict.**
+| identities | slots | `LRU_HASH` | plain `HASH` |
+|---|---|---|---|
+| 8 | 42 | **781.2** | 796.7 |
+| 20 | 42 | **456.2** | 537.3 |
+| 100 | 42 | 2.5 | 201.7 |
+| 300 | 42 | 2.0 | 200.4 |
 
-The cliff on my 4-CPU machine falls somewhere between 42 and 85 entries.
+**A 42-entry LRU works perfectly well when the working set fits.** If the
+free lists were responsible it would fail at 42 entries regardless of how
+many identities were competing. It doesn't. The collapse tracks
+*overcommitment*, not map size — which is a property of LRUs, not of BPF.
 
-### Why
+### What's actually worth knowing
 
-BPF's LRU implementation maintains **per-CPU free lists**, each targeting
-a batch of entries, so that CPUs don't contend on a global list for every
-insertion. That's a sensible design and it's why `LRU_HASH` scales.
+The interesting part isn't that an undersized cache degrades. It's that
+these two structures degrade into **different kinds of useless**, and the
+difference determines what you can still infer.
 
-But it means the bookkeeping has a size. On a multi-core machine, a map
-sized in the low tens of entries is *smaller than the machinery managing
-it*. Entries get pulled onto per-CPU lists and recycled long before
-anything resembling least-recently-used ordering applies. You aren't
-getting approximate LRU. You're getting churn.
+**LRU thrashes uniformly.** Nothing accumulates, every query reads near
+zero, every key is equally invisible.
 
-Nothing tells you this. The map is created successfully. Lookups
-succeed. Inserts succeed. Counts come back. They're just wrong, in a
-direction that makes your tracker look like it's doing nothing.
+**A plain hash locks in early arrivals.** Whichever keys got there first
+keep accumulating — mean 200 — while everything after the map filled is
+permanently invisible. In my measurements, 83% of queries returned zero
+while a minority carried counts in the thousands.
 
-### What to do about it
+That difference mattered practically: it's what let me tell "the tracker
+has stopped working" apart from "the tracker is working and these tasks
+genuinely aren't busy." With LRU, a low count is ambiguous. With the
+plain hash, a zero means *not tracked* and a large number means
+*tracked since the beginning*, which is less accurate but more legible.
 
-If you're sizing an `LRU_HASH` in the low tens or low hundreds of entries
-on a multi-core system, measure whether you're actually getting LRU
-behaviour before relying on it. The check is cheap: run a known workload
-with a known number of distinct keys and see whether retained values
-match what an LRU of that size should hold.
-
-If you're under the cliff, a plain `HASH` may serve you better — but read
-the next section first, because it fails differently rather than better.
+Neither is usable below its working set. But if you're going to be
+undersized anyway, it's worth knowing which failure you'd rather debug.
 
 ## Finding 2: silent failure and loud failure
 
