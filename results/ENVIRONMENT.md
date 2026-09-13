@@ -47,7 +47,9 @@ constraint disappears and `rt-app` should be re-tested.
 **RAM (3 GB) and what could not be measured.** No RAPL counters and no
 battery gauge are exposed to the guest, so energy -- the established
 motivation for tracking wakeup frequency, and the direction this work
-most wants to go next -- could not be measured at all.
+most wants to go next -- could not be measured at all. The method for
+doing so when hardware allows is written up in advance in
+[`../benchmark/ENERGY_METHOD.md`](../benchmark/ENERGY_METHOD.md).
 
 ## An uncontrolled variable: the host is heterogeneous
 
