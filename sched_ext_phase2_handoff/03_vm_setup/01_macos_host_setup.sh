@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 #
+# ⚠️ SUPERSEDED. This script installs UTM. The measurements in this
+# project were made in a Lima VM, not UTM -- see README.md and
+# lima-scx-fedora.yaml for the configuration that was actually used.
+# Kept for the record; do not follow it to reproduce results.
+#
 # 01_macos_host_setup.sh
 #
 # RUN THIS ON YOUR MAC (in Terminal), not inside any VM.

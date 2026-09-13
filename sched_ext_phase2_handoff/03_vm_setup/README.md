@@ -1,3 +1,32 @@
+> ## ⚠️ These instructions describe UTM. The measurements did not use UTM.
+>
+> Every result in this project was produced in a **Lima** VM, not UTM.
+> UTM was the original plan and was abandoned early -- its VM creation is
+> GUI-driven and awkward to script, and driving it from the command line
+> was painful enough to be worth replacing.
+>
+> This matters more than a tooling preference. The virtualisation layer
+> is part of the measurement environment: this project found that the
+> guest's timer-delivery floor invalidated an entire workload, and that
+> the host moved vCPUs between performance and efficiency cores with no
+> visibility from inside. Reproducing on a different hypervisor is not
+> reproducing.
+>
+> **The actual configuration is committed as
+> [`lima-scx-fedora.yaml`](lima-scx-fedora.yaml)** -- 4 CPUs, 4 GiB,
+> Fedora 44 cloud image, with the scx repo mounted through from the host.
+> Recreate with:
+>
+> ```
+> brew install lima
+> limactl start --name=scx-fedora lima-scx-fedora.yaml
+> limactl shell scx-fedora
+> ```
+>
+> The sections below are kept because the reasoning about *why Fedora*
+> still applies, and because the UTM detour is part of the record. The
+> UTM-specific mechanics are superseded.
+
 # macOS sched_ext Dev Environment Setup
 
 Sets up a sched_ext development environment on macOS via a Fedora Linux
