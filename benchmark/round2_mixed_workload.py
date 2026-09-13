@@ -425,6 +425,11 @@ def main() -> int:
                     help="seed for per-repetition condition shuffling; "
                          "printed with the results so a run can be "
                          "reproduced exactly")
+    ap.add_argument("--fixed-order", action="store_true",
+                    help="run conditions in the SAME order every repetition, "
+                         "reinstating the carryover bug on purpose. Only for "
+                         "the controlled ordering experiment -- a run with "
+                         "this set is not a result.")
     ap.add_argument("--only", default=None,
                     help="comma-separated condition names to run, for "
                          "confirmation runs at higher --repeat that do not "
@@ -502,13 +507,27 @@ def main() -> int:
     # Randomising converts that bias into noise that averaging removes.
     #
     # Seeded so a run is reproducible from its printed seed.
+    #
+    # --fixed-order reinstates the bug deliberately, so the two orderings
+    # can be compared with everything else held constant. The original
+    # evidence for the bias compared two runs that differed in condition
+    # subset (4 vs 3) and sample size (15 vs 20) as well as in ordering,
+    # which is three variables at once. This flag exists so the claim can
+    # rest on a controlled comparison instead. Do not use it for anything
+    # whose number is reported as a result.
     order_rng = random.Random(args.order_seed)
-    print(f"condition order randomised per repetition, seed={args.order_seed}\n")
+    if args.fixed_order:
+        print("condition order FIXED per repetition (deliberate: carryover "
+              "control experiment)\n")
+    else:
+        print(f"condition order randomised per repetition, "
+              f"seed={args.order_seed}\n")
 
     for rep in range(args.repeat):
         print(f"### repetition {rep + 1}/{args.repeat} ###")
         shuffled = list(conditions)
-        order_rng.shuffle(shuffled)
+        if not args.fixed_order:
+            order_rng.shuffle(shuffled)
         for name, binary, sched_args, nice in shuffled:
             try:
                 r = run_condition(binary, sched_args, args, churn_nice=nice,
