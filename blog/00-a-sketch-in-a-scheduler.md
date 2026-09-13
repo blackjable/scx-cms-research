@@ -257,7 +257,7 @@ The equivalence test was pre-registered before the data existed:
 [`PREREGISTRATION_equivalence.md`](../benchmark/PREREGISTRATION_equivalence.md),
 analysed by [`analyse_equivalence.py`](../benchmark/analyse_equivalence.py).
 
-Ten claims were made and withdrawn on the way to this one. Each is
+Twelve claims were made and withdrawn on the way to this one. Each is
 recorded with the file that produced it and the file that overturned it:
 [`REVISIONS.md`](../results/REVISIONS.md). Measurement environment:
 [`ENVIRONMENT.md`](../results/ENVIRONMENT.md).

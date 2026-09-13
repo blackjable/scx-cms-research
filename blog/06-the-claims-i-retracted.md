@@ -126,11 +126,12 @@ The rest were instrument failures:
 - **A workload model wrong by 4x**, which I patched twice with better
   reasoning before instrumenting the thing and discovering the
   distribution was bimodal.
-- **A BPF map that wasn't doing what its name says.** `LRU_HASH` below
-  about 85 entries on a 4-core machine stops behaving like an LRU —
-  mean retained count of 1.6 where a plain hash at identical capacity
-  gives 189.8. That made exact counting look intrinsically worse than
-  it is.
+- **An explanation I invented for a real measurement.** A small
+  `LRU_HASH` reported a mean retained count of 1.6 where a plain hash at
+  identical capacity gave 189.8. The measurement was correct; the story
+  I attached to it — that BPF's per-CPU free lists break small maps —
+  was never tested, and is wrong. It's ordinary thrashing, which is what
+  any LRU does below its working set.
 
 Every fix came from adding a control or an instrument. None came from
 running more repetitions of the same measurement.

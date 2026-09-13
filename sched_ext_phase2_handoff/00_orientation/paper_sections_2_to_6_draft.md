@@ -1146,19 +1146,24 @@ perfectly. Adding a `mechanism=none` reference -- absent from the
 original sweep -- showed exact at 85 and 21 entries is statistically
 identical to `none`. It was inert, not discriminating.]**
 
-**The result: equivalent scheduling quality at 4.3x less memory.**
-All figures n=20, randomised condition order, stable-identity workload.
+**The result: 4.3x less memory, identical median latency, a worse and
+noisier tail.** All figures n=20, randomised condition order,
+stable-identity workload. Note that "equivalent" is *not* the claim --
+a pre-registered equivalence test refuted it on p99 while confirming it
+on p50 (`results/REVISIONS.md`, revision 8).
 
 | tracker | map | p50 | p99 |
 |---|---|---|---|
 | exact, 341 entries | 35.6 KB | 3,932us | 10,096us |
 | **sketch, depth 2 width 256** | **8.3 KB** | **3,900us** | **10,144us** |
 
-Medians agree within 1% and the p99 ranges overlap, so no difference is
-demonstrated between them. Against `mechanism=none` (p99 ~65,000us)
-both are a ~6.4x tail reduction with the median untouched. The sketch
-reaches that at **4.3x less memory**, which is the claim this paper set
-out to test.
+Medians agree within 1%. The p99 ranges overlap -- which shows only that
+a difference was not *detected*, and a paired equivalence test at n=30
+subsequently found one: the sketch's mean p99 ratio sits 11-39% above
+exact counting's, though per-repetition it is better in roughly 40% of
+runs and more than 50% worse in roughly 30%. Against `mechanism=none`
+(p99 ~65,000us) both are a ~6.4x tail reduction with the median
+untouched, and the sketch reaches that at **4.3x less memory**.
 
 **Where each structure stops working.** Using the default depth-4
 geometry across budgets:
@@ -1582,17 +1587,25 @@ are named in item 28 and untested.]
 
 This project tested whether a Count-Min Sketch could replace exact
 per-task counters for tracking wakeup frequency in a BPF scheduler,
-saving memory without degrading scheduling quality. **It cannot, on the
-workloads measured, at any memory budget from 128 KB down to 2 KB.**
-The result is a refutation with an identified mechanism rather than an
-absence of evidence.
+saving memory without degrading scheduling quality. **The answer is a
+qualified yes: roughly a quarter of the memory, identical typical
+latency, a worse and noisier tail.**
 
-**The finding.** A Count-Min Sketch at 8.3 KB delivers scheduling
-quality statistically equivalent to exact counting at 35.6 KB --
-medians within 1%, overlapping tail ranges, both a ~6.4x improvement
-over taking no action with the median untouched. That is **4.3x less
-memory for the same result**, and it is the claim the work set out to
-test.
+**The finding.** A sketch at 8.3 KB continues to function at a budget
+where exact counting has stopped affecting scheduling at all -- at 9.6 KB
+the exact tracker is statistically indistinguishable from not acting on
+the count. Median latency is equivalent within 20% by a pre-registered
+test (90% CI [0.974, 1.060]). **Tail latency is not** (90% CI [1.114,
+1.394] on the mean ratio, n=30 paired), and the per-repetition spread
+matters more than that mean: across two independent runs the sketch was
+*better* than exact counting in 37% and 40% of repetitions, and more than
+50% worse in 30% and 33%. What less memory buys is not a predictable
+premium but a coin weighted slightly against you.
+
+A matched-memory control locates the cost. At the same budget the two
+structures are indistinguishable (1.03x and 1.04x across the two runs),
+so the tail premium is the price of the memory saving rather than an
+intrinsic cost of approximating.
 
 The boundaries are measured rather than assumed. Exact counting
 discriminates at 32 KB, degrades at 16 KB, and by 8 KB is

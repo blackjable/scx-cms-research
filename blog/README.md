@@ -4,7 +4,7 @@ Eight posts. Post 00 is the result; the rest are what it took to trust
 it.
 
 I came to this knowing how to write a scheduler and nothing about how to
-measure one. That turned out to be the harder half: ten claims made and
+measure one. That turned out to be the harder half: twelve claims made and
 withdrawn, almost all of them because an instrument was wrong rather
 than because the idea was. Each fix — a control condition, randomised
 ordering, an equivalence test — is standard practice somewhere else and
@@ -22,7 +22,7 @@ statistics course. The mistakes are the content.
 | 03 | [What happens when your BPF map runs out of room](03-when-your-bpf-map-runs-out-of-room.md) | yes — any BPF author |
 | 04 | [Your per-task tracking assumes identities hold still](04-identities-that-wont-hold-still.md) | yes — behaviour-tracking schedulers |
 | 05 | [p99 told me one story, p50 told me another](05-p99-and-p50-told-different-stories.md) | yes — anyone reporting latency |
-| 06 | [Ten claims I retracted](06-the-claims-i-retracted.md) | yes |
+| 06 | [Twelve claims I retracted](06-the-claims-i-retracted.md) | yes |
 | 07 | [Overlapping ranges are not equivalence](07-overlapping-ranges-are-not-equivalence.md) | yes — anyone comparing systems |
 
 Posts 01–05 and 07 don't require caring about count-min sketches.

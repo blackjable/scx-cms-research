@@ -1522,7 +1522,16 @@ Every finding in this section replaced something previously asserted.
 That is the pattern worth noting: none of it came from more repetitions,
 all of it came from adding a control or an instrument.
 
-### 18.1 CONFIRMED: BPF LRU_HASH degenerates far below LRU semantics
+### 18.1 [WITHDRAWN] BPF LRU_HASH degenerates far below LRU semantics
+
+> **This section's conclusion was withdrawn** -- see `results/REVISIONS.md`
+> revision 12. The measurements below are correct; the mechanism
+> attributed to them is not. A 42-entry LRU_HASH retains counts normally
+> with 8 or 20 identities and collapses only at 100 or 300, so the
+> failure tracks overcommitment rather than map size, which is what any
+> LRU does below its working set. The section is left in place because
+> the delivery plan is a chronological record and the retraction is part
+> of it.
 
 The claim that exact counting's small-map collapse was BPF LRU behaviour
 rather than capacity was raised as an explanation and never tested. A
