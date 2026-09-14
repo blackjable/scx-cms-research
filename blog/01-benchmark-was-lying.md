@@ -1,22 +1,37 @@
-# My scheduler benchmark was lying to me for four rounds
+# I spent a day fixing a benchmark bug that wasn't there
 
 I have no training in experimental design. I write systems code, I
 wanted to know whether a scheduler idea worked, so I built a benchmark
 harness the obvious way and started measuring.
 
-It lied to me for four rounds. The bug was six lines of Python, and the
-thing it taught me has a name that's been in textbooks since the 1920s.
-I just didn't know it.
+Two of my runs disagreed. I worked out why, fixed it, wrote it up, and
+recommended the fix to other people. Then I tested the explanation and
+it was wrong.
 
-## The setup
+The fix was harmless and I kept it. The explanation was the problem, and
+the way I arrived at it is the thing worth reading.
+
+## The disagreement
 
 I was testing whether a BPF scheduler could track per-task wakeup
 frequency more cheaply using a Count-Min Sketch instead of exact
-counters. The details don't matter for this post. What matters is the
-shape of the experiment: several *conditions* (different scheduler
-configurations), each measured many times, compared on tail latency.
+counters. The details don't matter. What matters is the shape: several
+*conditions* (scheduler configurations), each measured many times,
+compared on tail latency.
 
-The harness looked like this:
+Two matrices, run a day apart, disagreed about the same configuration:
+
+```
+matrix A (n=15)   exact+penalty p99   max 21,664µs
+matrix B (n=20)   exact+penalty p99   max 14,000µs
+```
+
+A 55% difference in a configuration that hadn't changed. The two runs
+disagreed about whether my mechanism separated from its control at all.
+
+## The explanation I reached for
+
+My harness looked like this:
 
 ```python
 for rep in range(repeats):
@@ -25,80 +40,28 @@ for rep in range(repeats):
         results[name].append(result)
 ```
 
-Run every condition, repeat, take medians. Standard.
+Conditions ran in the **same order every repetition**. And matrix A
+happened to run a deliberately pathological condition — tail latency
+around 80ms, an order of magnitude worse than anything else —
+immediately before the condition I cared about. Matrix B didn't include
+that condition at all.
 
-## What went wrong
+So: carryover. Each condition leaves the machine in some state — warm
+page cache, a particular CPU frequency, a runqueue that hasn't drained,
+residue from tearing down one BPF scheduler and attaching the next — and
+with a fixed order, that state lands on **the same condition every
+time**. Not noise. A systematic offset that no number of repetitions
+removes.
 
-Conditions ran in the **same order every repetition**.
+It's a real phenomenon. It has a name in medicine — **carryover** — and
+crossover trials randomise or counterbalance treatment order
+specifically to control it. Fisher was randomising treatment order in
+the 1920s. I didn't know any of that when I found it; I learned the name
+afterwards.
 
-That seems harmless. Averaging over many repetitions should wash out
-noise, and it does — for noise. It does nothing for *carryover*.
-
-Each condition leaves the machine in some state: a warm page cache, a
-particular CPU frequency, a runqueue that hasn't drained, residue from
-tearing down one BPF scheduler and attaching the next. Whatever that
-state is, it lands on **the condition that runs next**. And with a fixed
-order, that is the same condition every single time.
-
-So it isn't noise. It's a systematic offset applied to one condition and
-not the others, and no number of repetitions removes it. I ran fifteen.
-Then twenty. The bias was in every one of them.
-
-## How big was it
-
-Big enough to reverse a conclusion.
-
-One of my conditions was pathological on purpose — a configuration whose
-tail latency ran around 80ms, an order of magnitude worse than anything
-else. In one matrix it happened to sit immediately before the condition
-I cared most about. In a later matrix, run with a different subset of
-conditions, it wasn't in the list at all.
-
-Same configuration, same machine, same workload. Here is that
-condition's whole p99 distribution in each run:
-
-```
-preceded by the pathological condition (n=15)
-  10928 11440 11568 11664 12112 12336 12592 12784
-  13744 14160 16864 16928 17440 19424 21664
-
-run first, from a clean state (n=20)
-  10352 10512 10832 11024 11248 11280 11312 11312 11344 11600
-  11824 11824 11856 11952 12080 12240 12432 12752 13488 14000
-```
-
-**Six of fifteen repetitions above 14,000µs, against zero of twenty.**
-The coefficient of variation is 0.23 against 0.08. Mann-Whitney gives
-p = 0.004, and a run from the contaminated matrix beats one from the
-clean matrix 79% of the time.
-
-I want to be careful about the size of it, because the number you quote
-depends entirely on which statistic you pick:
-
-| statistic | ratio |
-|---|---|
-| maximum | 1.55x |
-| mean | 1.22x |
-| median | 1.09x |
-
-An earlier version of this post led with the 55% and called it "a
-difference in the metric I was drawing conclusions from". That was the
-most flattering framing available — a ratio of two maxima, the noisiest
-statistic in either sample. The median moved 9%.
-
-What ordering bias did here was not shift the centre. It **fattened the
-upper tail**, which is exactly the part of the distribution a p99
-comparison lives in, and it is why the two matrices disagreed about
-whether my mechanism separated from the control at all. I spent hours
-trying to reconcile them, assuming one was noise and hunting for the
-sampling error. There wasn't one. Both were accurate measurements of
-subtly different experiments.
-
-## The fix
+The fix is six lines:
 
 ```python
-import random
-
 order_rng = random.Random(seed)
 
 for rep in range(repeats):
@@ -108,103 +71,170 @@ for rep in range(repeats):
         ...
 ```
 
-Shuffle per repetition. Seed it so a run is reproducible, and print the
-seed with the results.
+Shuffle per repetition, seed it, print the seed. Carryover still
+happens, but it lands on a different condition each time, which converts
+systematic bias into noise — and noise is what repetitions are for.
 
-That's it. Carryover still happens — you can't prevent one condition
-influencing the next — but it now lands on a *different* condition each
-repetition, which converts systematic bias into noise. And noise is what
-repetitions are for.
+Everything above is sound. The measurements disagreed, carryover is
+real, randomising is correct practice. I wrote it up, recommended it,
+and moved on.
 
-## Why I think this is common
+## What I never did was test it
 
-Nothing about the buggy version looks wrong. It's the obvious way to
-write the loop, and it's deterministic, which feels like a virtue in a
-benchmark.
+The two matrices differed in **three** ways, not one:
 
-What struck me afterwards is that this problem is thoroughly solved
-elsewhere. Randomising the order of treatments is textbook experimental
-design, going back to Fisher's agricultural work in the 1920s. And
-medicine has a name for precisely my failure: **carryover**, the effect
-of one treatment persisting into the next. Crossover trials randomise or
-counterbalance treatment order specifically to control it.
+- condition order (fixed with the pathological neighbour adjacent, vs
+  the pathological condition absent)
+- condition subset (four conditions vs three)
+- sample size (15 vs 20)
 
-I didn't know that when I fixed it. I found the thing by running into
-it: two matrices disagreed, I chased the discrepancy for hours assuming
-one was noise, and eventually worked out that position in the sequence
-was doing the work. The fix followed from the diagnosis. Only later did
-I learn it already had a name, and that the name is old.
+They were also separate runs on different days. I picked the difference
+that had a mechanism attached, and the mechanism was good enough that I
+never noticed I was choosing.
 
-Which is, I think, the usual order. You find the edge of something by
-walking into it, and the label comes after. Reading about carryover
-would not have made me believe condition ordering alone could put six of
-fifteen repetitions into a range the clean run never once reached;
-measuring it did.
+So I eventually ran the experiment. Same four conditions, same n=20,
+same parameters, same machine, back to back. One arm shuffles; the other
+runs the fixed order, so the 80ms condition sits immediately before the
+measured one in **20 out of 20** repetitions. Nothing else differs.
 
-I don't know how common the mistake is in systems benchmarking — I
-haven't surveyed the literature and I'm not going to claim a pattern I
-haven't measured. What I can say is that my own harness had it, the
-consequence was invisible in the results, and if you've written a
-benchmark loop that iterates conditions in a fixed order then you have
-it too.
+```
+                      fixed    randomised    ratio
+median              11,808µs      12,080µs    0.98x
+mean                12,219µs      12,619µs    0.97x
+maximum             16,016µs      19,424µs    0.82x
+CV                      0.11          0.18
+above 14,000µs          2/20          3/20
 
-And it's invisible in the results. There's no error, no warning, no
-outlier that stands out. Every number is internally consistent. You get
-a clean table with tight ranges and non-overlapping confidence intervals
-that happens to be measuring something slightly different from what you
-intended.
+Mann-Whitney p = 0.86
+P(fixed run > randomised run) = 0.48
+```
 
-The only reason I found it was that I ran two matrices with different
-condition *subsets* and they disagreed. If I'd only ever run one
-configuration, I'd have published the biased numbers and never known.
+**Nothing.** The fixed arm is marginally *better* and clearly *less*
+variable. A coin flip.
+
+A second angle, independent of that one: within the randomised arm,
+adjacency was assigned at random, which makes it a genuine experiment on
+the same question. The pathological condition landed immediately before
+the measured one in 6 of 20 repetitions.
+
+```
+preceded by the 80ms condition       n=6    median 11,664µs
+not preceded by it                   n=14   median 12,208µs
+                                            p = 0.46
+```
+
+The repetitions that followed the pathological condition were, if
+anything, slightly better.
+
+Then I tested the second difference — condition subset — the same way.
+Also null: 0.99x, p = 0.55.
+
+## So what actually happened
+
+I now have six independent measurements of the same configuration,
+across both orderings and both subsets:
+
+| run | order | subset | n | median | max | CV |
+|---|---|---|---|---|---|---|
+| A | fixed | with pathological | 15 | 12,784 | 21,664 | 0.23 |
+| B | fixed | without | 20 | 11,712 | 14,000 | 0.08 |
+| C | randomised | with | 20 | 11,744 | **39,488** | 0.47 |
+| D | fixed | with | 20 | 11,808 | 16,016 | 0.11 |
+| E | randomised | with | 20 | 12,080 | 19,424 | 0.18 |
+| F | randomised | without | 20 | 12,192 | 22,048 | 0.27 |
+
+**The median varies by 1.09x across every configuration I've ever run.
+The maximum varies by 2.82x, with no relationship to either variable.**
+The largest maximum of the six — 39,488µs — comes from a randomised run
+with the pathological condition present, which is exactly the
+configuration my theory said should be cleanest.
+
+My original evidence was `21,664 / 14,000 = 1.55x`. That sits
+comfortably inside the 2.82x range the maximum spans anyway.
+
+The two matrices disagreed because **the maximum of a sample is a noisy
+statistic, and I compared two of them.** That's the whole explanation.
+There was no bug.
+
+## The part I'd want you to take
+
+Not "randomise your condition order" — though you should, it's six lines
+and it protects against something real that I merely failed to
+demonstrate. The useful part is what went wrong in my head.
+
+**I had an anomaly and I reached for the explanation that came with a
+mechanism.** Carryover is real, it's textbook, it has a name, it fit the
+data, and it made me the kind of person who finds subtle bugs. The
+competing explanation — *maxima are noisy* — is boring, explains the
+data just as well, and makes me the kind of person who over-read two
+numbers. I did not weigh them. I noticed the first one and stopped.
+
+**Then I made it worse in the most reassuring way available.** Reviewing
+this post, I decided "55%" was sloppy — it's a ratio of two maxima, the
+noisiest statistic in either sample. So I replaced it with something
+more rigorous: 6 of 15 repetitions above 14,000µs against 0 of 20,
+Mann-Whitney p = 0.004, coefficients of variation 0.23 and 0.08. All
+correctly computed. All from **the same two confounded runs.**
+
+I improved the statistic and left the design alone, and the careful
+version read as far more trustworthy than the sloppy one it replaced.
+That is the trap I'd most want to hand on: rigour applied downstream of
+a confound makes the confound harder to see, not easier.
+
+**The check that would have caught it, at any point, was cheap.** Not a
+better statistic — the same measurement with one thing varied. It took
+forty minutes. I had a year of reasons not to bother, and all of them
+amounted to already believing the answer.
 
 ## What to check in your own harness
 
-**Does the condition order vary?** If not, whatever ran before your
-treatment is part of your treatment.
+**Does the condition order vary?** Randomise it anyway. I couldn't
+demonstrate the effect on one workload on one machine, which is not the
+same as showing it never happens, and the fix is too cheap to argue
+about.
 
-**Does your condition list include anything pathological?** The
-distortion scales with how different the neighbours are. A slow
-condition contaminates whatever follows it far more than two similar
-ones contaminate each other.
+**Are you comparing maxima?** A maximum is the single noisiest summary
+of a sample, and it's what your eye goes to when two runs disagree.
+Mine ranged 14,000–39,488µs across runs whose medians sat inside 9%.
 
-**Have you compared runs with different condition subsets?** That's what
-exposed it for me. If adding or removing an unrelated condition changes
-your headline number, ordering is the first suspect.
+**When two runs disagree, count the ways they differ before explaining
+why.** If it's more than one, you don't have an explanation, you have a
+candidate. Mine had three and I noticed one.
 
-**Is there a settle period between conditions?** Randomising handles the
-statistics; an idle gap between conditions reduces the carryover itself.
-Both are worth having.
+**Can you test the explanation?** Not the measurement — the
+*explanation*. If it has a mechanism, the mechanism makes a prediction,
+and the prediction is usually one flag and one afternoon away from being
+checked. A plausible causal story is a reason to run one more experiment,
+not a reason to stop.
 
 ## The uncomfortable part
 
-Every measurement I took before that fix is unreproduced. Not
-necessarily wrong — but not established either, and I had to go back
-through a day's worth of conclusions and mark which ones had actually
-been re-established afterwards.
+I recommended this to other people. It was in a paper draft as a
+methodological finding, in a post as advice, and in three harness
+comments as established fact, for long enough that I'd stopped thinking
+of it as a finding at all and started treating it as background
+knowledge.
 
-Several hadn't survived. One reversed outright.
-
-I'd rather have found it than not. But the thing that unsettles me is
-how close I came to never looking: the biased results were *coherent*.
-They had tight ranges, they replicated across repetitions, and they told
-a clean story. Internal consistency is not evidence that you're
-measuring the right thing — it's only evidence that you're measuring the
-same wrong thing reliably.
-
-If you also came to benchmarking through code rather than through a
-stats course, this is the one I'd fix first. Not because it's the
-subtlest mistake available, but because it's the one I made without any
-sense that I was making a choice at all.
+None of the underlying measurements were affected — this was always an
+explanation rather than data, and the results it was supposed to have
+rescued stand unchanged. But I spent a day chasing a bug that wasn't
+there, and I'd have gone on believing in it indefinitely if I hadn't
+eventually run the experiment that could say no.
 
 ## Data
 
 | claim | file |
 |---|---|
-| the biased run (fixed condition order) | [`r2c-prereg-n20.txt`](../results/raw/r2c-prereg-n20.txt) |
-| the same comparison after randomising order | [`r2d-randomised-order-n20.txt`](../results/raw/r2d-randomised-order-n20.txt) |
-| the two matrices that disagreed, exposing the bug | [`r2-count-attributable-n15.txt`](../results/raw/r2-count-attributable-n15.txt) |
+| the two matrices that disagreed | [`r2-count-attributable-n15.txt`](../results/raw/r2-count-attributable-n15.txt), [`r2c-prereg-n20.txt`](../results/raw/r2c-prereg-n20.txt) |
+| **the controlled test that found no ordering effect** | [`ordering-controlled-n20.txt`](../results/raw/ordering-controlled-n20.txt) |
+| the condition-subset test, also null | [`condition-subset-n20.txt`](../results/raw/condition-subset-n20.txt) |
+| the randomised run that produced the largest maximum of all | [`r2d-randomised-order-n20.txt`](../results/raw/r2d-randomised-order-n20.txt) |
 
-Files carrying the ordering bias are labelled as such in the archive
-manifest: [`MANIFEST.md`](../results/MANIFEST.md). They are kept rather
-than dropped, because the retractions they caused are part of the record.
+The controlled test was pre-registered before its data was read:
+[`PREREGISTRATION_ordering.md`](../benchmark/PREREGISTRATION_ordering.md),
+analysed by [`analyse_ordering.py`](../benchmark/analyse_ordering.py).
+Its falsification clause — what would show this post's original claim to
+be wrong — is what fired.
+
+The full retraction is [`REVISIONS.md`](../results/REVISIONS.md) revision
+13, which is the thirteenth and the one I'd read first.

@@ -154,17 +154,31 @@ likely to recur in any scheduler evaluation:
   The four baseline tiers we had specified from current `sched_ext`
   evaluation practice all vary *the scheduler*; none varies only
   *whether the signal is used*.
-- **Condition ordering biases results systematically.** Our harness ran
-  conditions in fixed order within each repetition, so carryover from
-  the preceding condition landed on the same condition every time. It
-  was large enough to reverse a conclusion, and it acts on the upper
-  tail rather than the centre: with a pathological neighbour in the
-  matrix, 6 of 15 repetitions of the same configuration exceeded
-  14,000us against 0 of 20 when it ran first from a clean state
-  (Mann-Whitney p = 0.004; CV 0.23 against 0.08), while the medians
-  differ by only 9%. That is what makes it invisible in a summary table
-  and decisive for a p99 comparison. Randomising condition order fixes
-  it, and we recommend it as default practice.
+- **An anomaly is not an explanation, and we spent a day proving it.**
+  Two matrices disagreed about the same configuration -- maxima of
+  21,664us and 14,000us -- and one of them ran a pathological ~80ms
+  condition immediately before the measured one. We attributed the
+  difference to carryover from fixed condition ordering, reported it as
+  a methodological finding, and recommended randomising order.
+
+  The two matrices differed in three ways: order, condition subset, and
+  sample size. A controlled test (`results/raw/ordering-controlled-n20.txt`,
+  pre-registered) holds everything but ordering constant, with the ~80ms
+  condition adjacent in 20 of 20 repetitions in the fixed arm. It finds
+  nothing: medians 0.98x apart, Mann-Whitney p = 0.86, and the fixed arm
+  is the *less* variable of the two. A within-arm check, where adjacency
+  was randomised and which is therefore a genuine experiment on the same
+  question, agrees (p = 0.46). The condition-subset test is null too
+  (0.99x, p = 0.55).
+
+  Across six measurements of that configuration the median varies by
+  1.09x and the maximum by 2.82x, with no relation to either variable.
+  The original evidence compared two maxima. **The finding was that we
+  had over-read a noisy statistic, and the correct lesson is about the
+  reasoning rather than the harness** (`results/REVISIONS.md`,
+  revision 13). We still randomise condition order, as insurance against
+  a real phenomenon we could not demonstrate here, and the
+  recommendation is stated at that strength rather than the original one.
 
 ### 1.3 Contributions
 
@@ -203,9 +217,14 @@ likely to recur in any scheduler evaluation:
    keys mis-attribute multithreaded victims, and no key choice avoids
    both (Section 4.2.3).
 
-4. **Two methodological findings** applicable to scheduler evaluation
-   generally: the count-blind control described above, and the
-   condition-ordering bias.
+4. **One methodological finding** applicable to scheduler evaluation
+   generally: the count-blind control described above. A second --
+   condition-ordering bias -- was claimed, recommended, and then
+   withdrawn when a controlled test found no such effect (Section 1.2,
+   revision 13). What replaces it is narrower and about reasoning rather
+   than tooling: when two runs disagree, count the ways they differ
+   before explaining why, and note that the maximum of a sample is the
+   noisiest summary available and the one the eye is drawn to.
 
 5. **A working, instrumented `sched_ext` scheduler** with swappable
    trackers, mechanisms and identity keys, plus the benchmark harnesses,

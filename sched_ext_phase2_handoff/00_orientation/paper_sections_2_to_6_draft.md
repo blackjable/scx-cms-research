@@ -1089,47 +1089,55 @@ matrix rather than on that pre-registered test, and the framing is
 simply that the count-proportional penalty dominates the count-blind one
 on both metrics.
 
-### A measurement error that invalidated four rounds
+### An explanation that did not survive being tested
 
 The harness ran conditions in a fixed order within every repetition.
 Whatever the preceding condition left behind -- runqueue state, CPU
 frequency, residue from the scheduler attach and detach path -- landed
-on the same condition every time, so carryover was systematic bias that
-additional repetitions could not average away.
+on the same condition every time, which would make carryover a
+systematic bias that additional repetitions could not average away.
 
-It was not subtle in effect. One matrix ran `none` (p99 ~80ms)
-immediately before `exact+penalty` in every repetition; a later one ran
-`exact+penalty` first from a clean state.
+Two matrices disagreed about the same configuration. One ran `none`
+(p99 ~88ms) immediately before `exact+penalty` in every repetition; the
+other did not include `none` at all. The measured maxima were 21,664us
+and 14,000us, and the two runs disagreed about whether `exact+penalty`
+separates from `flat`. We attributed that to carryover and reported it
+as a methodological finding.
 
-The effect is on the spread, not the centre, and the distinction matters
-for how to look for it:
+**It was not carryover.** The two matrices also differed in condition
+subset (four conditions against three) and sample size (15 against 20),
+and were separate runs. A controlled test (`results/raw/ordering-controlled-n20.txt`,
+pre-registered in `benchmark/PREREGISTRATION_ordering.md`) holds
+everything but ordering constant at n=20 per arm, with `none` adjacent
+in 20 of 20 repetitions in the fixed arm:
 
-| `exact+penalty` p99 | preceded by `none` (n=15) | run first (n=20) |
-|---|---|---|
-| median | 12,784us | 11,712us |
-| mean | 14,377us | 11,763us |
-| maximum | 21,664us | 14,000us |
-| repetitions above 14,000us | **6 of 15** | **0 of 20** |
-| coefficient of variation | 0.23 | 0.08 |
+| `exact+penalty` p99 | fixed | randomised | ratio |
+|---|---|---|---|
+| median | 11,808us | 12,080us | 0.98x |
+| mean | 12,219us | 12,619us | 0.97x |
+| maximum | 16,016us | 19,424us | 0.82x |
+| CV | 0.11 | 0.18 | |
 
-Mann-Whitney on the two samples gives p = 0.004, and a repetition from
-the contaminated matrix exceeds one from the clean matrix 79% of the
-time. The medians are 9% apart, so a summary table shows almost nothing;
-the two runs nonetheless disagreed about whether `exact+penalty`
-separates from `flat` at all, because that comparison lives in the part
-of the distribution ordering bias fattened.
+Mann-Whitney p = 0.86. Within the randomised arm, where adjacency was
+assigned at random, the six repetitions following `none` had median
+11,664us against 12,208us for the fourteen that did not (p = 0.46). The
+condition-subset test is null as well (0.99x, p = 0.55,
+`results/raw/condition-subset-n20.txt`).
 
-An earlier version of this paragraph quoted only the maxima, as a "55%
-difference". That is the ratio of the noisiest statistic in either
-sample, and reporting it alone repeats the error Section 4.2 warns about
-one level up.
+Across six measurements of this configuration the median varies by 1.09x
+and the maximum by 2.82x, with no relation to ordering or subset -- and
+the largest maximum, 39,488us, comes from a randomised run with `none`
+present. **The original evidence compared two maxima**, and 1.55x sits
+inside the range the maximum spans anyway.
 
-Randomising the order per repetition fixes it. Every measurement in
-rounds 1 through 2c carries the confound and is reported here only where
-it has been re-established afterwards. This is recorded rather than
-quietly corrected because fixed condition ordering is a plausible
-default in any scheduler benchmark harness, and its effect here was
-large enough to reverse a conclusion.
+What this cost, and what it is worth reporting for, is not the harness.
+Randomised ordering was adopted, costs six lines, and is retained as
+insurance against a real phenomenon we could not demonstrate here. What
+went wrong was upstream of any statistic: an anomaly appeared, one of
+its three candidate explanations came with a textbook mechanism, and
+that explanation was adopted, published and recommended without the
+one-flag experiment that could refute it. See `results/REVISIONS.md`
+revision 13.
 
 **What this section does NOT establish.**
 
@@ -1781,33 +1789,48 @@ Under high task turnover, fine-grained keys cannot see churning tasks
 and coarse keys aggregate a multithreaded victim into the heaviest
 waker on the system. No identity-key choice resolves this.
 
-**A methodological caution.** The evaluation harness ran conditions in
-fixed order within each repetition, making carryover systematic bias
-that repetitions could not average away. It was large enough to reverse
-a conclusion, and fixed ordering is a plausible default in any
-scheduler benchmark harness. Randomise condition order.
+**A methodological caution, and not the one we expected to give.** We
+reported fixed condition ordering as a systematic bias large enough to
+reverse a conclusion, and recommended randomising order. A controlled
+test found no such effect (Section 4.2, revision 13): the anomaly that
+prompted the claim was two noisy maxima compared across runs that
+differed in three ways. Randomising order remains worth doing as cheap
+insurance. The caution that survives is about the reasoning: when two
+runs disagree, count the ways they differ before explaining why, and
+remember that the maximum of a sample is both the noisiest summary
+available and the one the eye reaches for.
 
-**On what did not survive.** Twelve claims were stated during this work
-and later withdrawn; each is recorded in `results/REVISIONS.md` with the
-raw file that produced it and the raw file that overturned it. Nine were
-caused by a faulty instrument rather than a faulty hypothesis -- fixed
-condition ordering, a metric with a broken zero point, a ratio with a
-collapsing denominator, a workload model wrong by 4x, a cross-run
-comparison. Two more were mechanisms asserted without being tested and
-attached to measurements that were correct throughout (revisions 9, 10
-and 12), and one was not a measurement at all but a sentence asserting a
-literature search that never happened (revision 11).
+**On what did not survive.** Thirteen claims were stated during this
+work and later withdrawn; each is recorded in `results/REVISIONS.md`
+with the raw file that produced it and the raw file that overturned it.
+Eight were caused by a faulty instrument rather than a faulty hypothesis
+-- a metric with a broken zero point, a ratio with a collapsing
+denominator, a workload model wrong by 4x, a cross-run comparison. One
+was not a measurement at all but a sentence asserting a literature
+search that never happened (revision 11).
 
-Two are instructive beyond their content. The ~10% sketch failure rate
-(revision 4) was an *interesting* result that arrived with a plausible
-mechanism and was accepted with visibly less scrutiny than the
-disappointing results received -- it had even been predicted to be the
-finding least likely to be an ordering artefact, which is what it turned
-out to be. Asymmetric skepticism is harder to detect than insufficient
-sample size, and no amount of statistical discipline catches it. And
-revision 7 paired figures from two different runs to build the headline,
-which is the precise failure the ordering section below exists to
-describe -- knowing a failure mode does not inoculate against it.
+**Four share a single failure and it is the one worth carrying away.**
+In revisions 9, 10, 12 and 13 the instrument was sound and the numbers
+were right; what was wrong was an explanation attached to them and never
+tested. An outlier became a sketch-specific failure mode. A control that
+failed for an unrelated reason became evidence about approximation. A
+thrashing cache became a defect in BPF's LRU. Two noisy maxima became a
+systematic ordering bias -- and that one reached a paper, a blog post
+and three harness comments before anyone ran the experiment that could
+refute it. In every case the untested explanation was the more
+interesting of the two available, and in every case the test took under
+an hour.
+
+Two more are instructive beyond their content. The ~10% sketch failure
+rate (revision 4) was an *interesting* result that arrived with a
+plausible mechanism and was accepted with visibly less scrutiny than the
+disappointing results received; its disappearance was then attributed to
+ordering, an attribution revision 13 also withdraws, so why it appeared
+is now simply unknown. Asymmetric skepticism is harder to detect than
+insufficient sample size, and no amount of statistical discipline
+catches it. And revision 7 paired figures from two different runs to
+build the headline, which is the precise failure the section above
+describes -- knowing a failure mode does not inoculate against it.
 
 Two claims in earlier drafts were also narrowed after checking them
 against the data rather than against intuition: that tail-latency-only

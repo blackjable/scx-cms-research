@@ -223,14 +223,16 @@ no RAPL in the guest.
 
 ## Why this took much longer than it should have
 
-Twelve claims made and withdrawn along the way, including, briefly, the
-conclusion that the whole idea was refuted.
+Thirteen claims made and withdrawn along the way, including, briefly,
+the conclusion that the whole idea was refuted.
 
 Almost none of those failed because the hypothesis was wrong. They
-failed because an instrument was wrong — a harness that ran conditions
-in fixed order so carryover always landed on the same neighbour; a
-metric that scored a broken tracker as highly as a working one; an
-explanation I invented for a real measurement and never tested.
+failed because an instrument was wrong — a metric that scored a broken
+tracker as highly as a working one; a ratio with a collapsing
+denominator; a workload model wrong by 4x. And four failed for a
+different reason: the measurement was right and I attached an
+explanation to it that I never tested. One of those was a benchmarking
+lesson I'd been recommending to other people.
 
 The final numbers use five controls that didn't exist when I started,
 each added after something it would have caught went wrong. The raw
@@ -258,7 +260,7 @@ The equivalence test was pre-registered before the data existed:
 [`PREREGISTRATION_equivalence.md`](../benchmark/PREREGISTRATION_equivalence.md),
 analysed by [`analyse_equivalence.py`](../benchmark/analyse_equivalence.py).
 
-Twelve claims were made and withdrawn on the way to this one. Each is
+Thirteen claims were made and withdrawn on the way to this one. Each is
 recorded with the file that produced it and the file that overturned it:
 [`REVISIONS.md`](../results/REVISIONS.md). Measurement environment:
 [`ENVIRONMENT.md`](../results/ENVIRONMENT.md).

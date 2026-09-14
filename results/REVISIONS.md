@@ -514,10 +514,38 @@ data. Every result re-established under randomised ordering stands
 exactly as reported; randomised ordering simply turns out to have been
 insurance rather than a fix.
 
-**What is now unexplained:** why the two original matrices disagreed.
-Ordering is ruled out. Condition subset and ordinary run-to-run variation
-remain, and are untested rather than concluded -- which is the whole
-point of this entry.
+**What explained it, once both candidates were tested.** Condition
+subset was the other difference between the two matrices, and it is null
+too ([`condition-subset-n20.txt`](raw/condition-subset-n20.txt)): same
+parameters, randomised both times, with and without `cms_none` in the
+matrix, ratio 0.99x at p = 0.55.
+
+Six independent measurements of the same condition now exist, spanning
+both orderings and both subsets:
+
+| run | order | subset | n | median | max | CV |
+|---|---|---|---|---|---|---|
+| `r2-count-attributable-n15` | fixed | with none | 15 | 12,784 | 21,664 | 0.23 |
+| `r2c-prereg-n20` | fixed | without none | 20 | 11,712 | 14,000 | 0.08 |
+| `r2d-randomised-order-n20` | randomised | with none | 20 | 11,744 | **39,488** | 0.47 |
+| `ordering-controlled` 1a | fixed | with none | 20 | 11,808 | 16,016 | 0.11 |
+| `ordering-controlled` 1b | randomised | with none | 20 | 12,080 | 19,424 | 0.18 |
+| `condition-subset` | randomised | without none | 20 | 12,192 | 22,048 | 0.27 |
+
+**The median varies by 1.09x across every configuration. The maximum
+varies by 2.82x with no relationship to either variable** -- and the
+largest maximum of all, 39,488us, comes from a randomised run with the
+pathological condition present, which is the configuration the theory
+predicted would be cleanest.
+
+The original claim compared two *maxima*: 21,664 against 14,000, a 1.55x
+difference sitting comfortably inside the 2.82x range the maximum spans
+anyway. **The two matrices disagreed because the maximum of a sample is
+a noisy statistic and I compared two of them.** That is the whole
+explanation, and it is the same error as reporting p99 without p50
+(revision 6) and as generalising a single outlier (revision 9), applied
+this time to the summary statistic of a distribution rather than to the
+distribution itself.
 
 **Why this one is the worst.** Revisions 9, 10 and 12 were untested
 mechanisms attached to correct measurements. This is the same error a

@@ -1,4 +1,4 @@
-# Twelve claims I retracted
+# Thirteen claims I retracted
 
 I set out to test whether a Count-Min Sketch could replace exact
 per-task counters in a Linux scheduler, saving memory without hurting
@@ -7,15 +7,18 @@ scheduling quality.
 The answer turned out to be a qualified yes — 4x less memory, identical
 typical latency, a worse and noisier tail. But between forming the
 hypothesis and arriving at that, I
-announced and then withdrew twelve separate conclusions, including, at
+announced and then withdrew thirteen separate conclusions, including, at
 one point, the conclusion that the hypothesis was refuted — and, more
 than once near the end, claims I had already written up as final and
-published an explanation for.
+published an explanation for. The last one was the methodological advice
+I'd been handing to other people.
 
-None of them failed because the hypothesis was wrong. Every one failed
-because an instrument was wrong — and each instrument was wrong in a way
-that experimental design worked out decades ago and I had simply never
-encountered.
+None of them failed because the hypothesis was wrong. Most failed
+because an instrument was wrong, in ways experimental design worked out
+decades ago and I had simply never encountered. Four failed for a
+different reason that I now think is the more dangerous one: the
+instrument was fine, the numbers were right, and I attached an
+explanation to them that I never tested.
 
 That's the pattern worth writing about, and it's why I'm writing it as
 someone who didn't know rather than someone warning you. I came to this
@@ -42,8 +45,9 @@ reading it as "does tracking wakeups help."
 showed the protected task getting catastrophically mis-scheduled. I had
 a mechanism for it — hash collisions inflating the victim's count — and
 called it the most policy-relevant sketch finding I'd made. After fixing
-an unrelated benchmark bug, it was zero of twenty. It had been an
-artifact of condition ordering.
+an unrelated benchmark bug, it was zero of twenty. I attributed that to
+condition ordering; see 13, which withdraws the attribution. The rate
+still didn't replicate, but I no longer know why it appeared.
 
 **5. "Exact counting beats the sketch at every memory budget."** The
 metric was a discrimination ratio measured against a count-blind
@@ -61,8 +65,8 @@ from 15x to 4.3x.
 
 **7. "A sketch at 8 KB matches exact counting at 32 KB."** The claim
 survived. The evidence for it didn't. The two numbers came from
-*different runs* — and I'll come back to this one, because it's the
-worst of the twelve.
+*different runs* — and I'll come back to this one, because it was the
+worst of them until 13 arrived.
 
 **8. "The sketch is equivalent to exact counting at 4x less memory."**
 The memory saving held. *Equivalent* did not. I'd inferred it from
@@ -106,20 +110,33 @@ tracks overcommitment, not size. I'd asserted a mechanism I never tested,
 and only tested it when a reader asked whether the problem was BPF's or
 mine.
 
+**13. "Fixed condition ordering biased my results."** The subject of
+post 01, a methodological finding in the paper, advice I'd given other
+people, and three harness comments stating it as fact. Two matrices had
+disagreed about the same configuration — max 21,664µs against 14,000µs —
+and one of them ran a pathological 80ms condition immediately before the
+one I cared about. Carryover. Textbook, named, real, and it fit.
+
+The two matrices also differed in condition subset and sample size, and
+were run on different days. I never tested which difference mattered. A
+controlled run — same conditions, same n, only the shuffling varied, the
+80ms condition adjacent in 20 of 20 repetitions — found **nothing**:
+medians 0.98x apart, Mann-Whitney p = 0.86, and the fixed arm was the
+*less* variable of the two. The subset test was null as well.
+
+Across six runs of that configuration the median varies by 1.09x and the
+maximum by 2.82x. I had compared two maxima.
+
 ## The pattern
 
 Reading them together, the striking thing is that more data would have
 saved me from exactly one — number 2.
 
-Nine of the rest were instrument failures:
+Eight of the rest were instrument failures:
 
-- **A benchmark harness that ran conditions in fixed order**, so
-  carryover from one condition landed on the same neighbour every
-  repetition. Systematic bias that repetitions cannot average away. With
-  a pathological neighbour in the matrix, the same configuration put 6
-  of 15 repetitions above 14,000µs; run first from a clean state, 0 of
-  20 reached that at all. The medians barely moved, which is why it was
-  invisible.
+- ~~**A benchmark harness that ran conditions in fixed order.**~~
+  Withdrawn — see 13. There is no ordering effect; I compared two maxima
+  and maxima are noisy.
 - **A metric that couldn't distinguish "working" from "doing nothing"**,
   because its reference point was worse than doing nothing.
 - **A ratio whose denominator was collapsing**, so an "inflation" figure
@@ -133,31 +150,54 @@ Nine of the rest were instrument failures:
 Every one of those fixes came from adding a control or an instrument.
 None came from running more repetitions of the same measurement.
 
-**The last three are a different animal, and they're the ones I'd warn
-you about.** In 9, 10 and 12 the instrument was fine and the numbers
+**Four are a different animal, and they're the ones I'd warn you
+about.** In 9, 10, 12 and 13 the instrument was fine and the numbers
 were right. What was wrong was the story I attached to them — a sketch
-failure mode, an intrinsic cost of approximating, a broken map type —
-and in each case I picked the explanation that was more interesting than
-the mundane one that fit equally well. An outlier became a failure mode.
-A control that failed for an unrelated reason became a finding. A
-thrashing cache became a trap in BPF.
+failure mode, an intrinsic cost of approximating, a broken map type, a
+biased benchmark harness — and in each case I picked the explanation
+that was more interesting than the mundane one that fit equally well. An
+outlier became a failure mode. A control that failed for an unrelated
+reason became a finding. A thrashing cache became a trap in BPF. Two
+noisy maxima became a systematic bias.
 
 No control catches that, because nothing is malfunctioning. The only
 thing that catches it is testing the mechanism separately from the
-measurement, which in all three cases took under half an hour once I
-bothered.
+measurement, which in all four cases took well under an hour once I
+bothered. I did not bother for a year on the last one.
 
 ## The one that bothers me most
+
+Number 13, and not because it was the largest error but because of how
+long it stood and how far it travelled. It was in a paper as a finding,
+in a post as advice to strangers, and in three harness comments as plain
+fact, for long enough that I had stopped thinking of it as a claim at
+all. It was background knowledge. I was recommending it.
+
+And the test that killed it was one flag and forty minutes. I had every
+opportunity and no reason to look, because nothing about it felt
+unresolved.
+
+What makes it worse is what I did to it a few hours before testing it.
+Reviewing post 01, I decided the "55%" was sloppy — it's a ratio of two
+maxima. So I replaced it with something better: 6 of 15 repetitions
+above a threshold against 0 of 20, Mann-Whitney p = 0.004, CVs of 0.23
+and 0.08. All correct. All computed from the same two confounded runs.
+
+**Rigour applied downstream of a confound makes the confound harder to
+see.** The careful version read as more trustworthy than the sloppy one,
+and it was the same claim resting on the same broken comparison.
+
+## The one that bothered me before that
 
 Number 7, and not because it was the largest error. It was the
 smallest — the claim turned out to be right when I re-measured it
 properly.
 
-It bothers me because **post 1 of this series is entirely about why
-figures from different matrices aren't comparable.** I found that bug,
-spent hours tracing it, fixed it, understood the mechanism well enough
-to explain it to strangers — and then built my headline result by
-pairing a number from one run against a number from another.
+It bothers me because **post 1 of this series is about two matrices
+disagreeing and my drawing the wrong lesson from it.** I found that
+disagreement, spent hours tracing it, thought I'd fixed it, understood
+my explanation well enough to teach it — and then built my headline
+result by pairing a number from one run against a number from another.
 
 Nobody caught it in review. I caught it while writing up a defence of
 my own confidence, going through the numbers one more time to explain
@@ -241,9 +281,10 @@ stated in the claim, and the failure modes of both structures are
 characterised.
 
 It also produced findings I'd never have gone looking for — the
-count-blind control, the ordering bias, the difference between a
-structure that fails silently and one that fails loudly — all of which
-are useful to people who don't care about count-min sketches at all.
+count-blind control, and the difference between a structure that fails
+silently and one that fails loudly — both useful to people who don't
+care about count-min sketches at all. The third thing on that list used
+to be the ordering bias, which is now item 13.
 
 ## The one no instrument would have caught
 
@@ -278,7 +319,10 @@ protected workload alone.
 without the information. It tells you what fraction of your result is
 attributable to the signal rather than the disturbance.
 
-**Randomise condition order**, and print the seed.
+**Randomise condition order**, and print the seed — but for the right
+reason. I could never demonstrate that it mattered here (13). It costs
+six lines and insures against something real; that is enough, and it is
+a smaller claim than the one I made.
 
 **Instrument before you infer.** I spent three rounds reasoning about a
 4x discrepancy that one histogram resolved in a single run.
@@ -305,7 +349,7 @@ handful of figures quoted in this post, and where to check them:
 
 | claim | file |
 |---|---|
-| the ordering bias: 6/15 above 14,000µs vs 0/20 | [`r2-count-attributable-n15.txt`](../results/raw/r2-count-attributable-n15.txt), [`r2c-prereg-n20.txt`](../results/raw/r2c-prereg-n20.txt) |
+| the two matrices that disagreed, and the controlled test showing ordering was not why | [`r2-count-attributable-n15.txt`](../results/raw/r2-count-attributable-n15.txt), [`ordering-controlled-n20.txt`](../results/raw/ordering-controlled-n20.txt) |
 | the 6.8x, and the count-blind control that reproduced 82% of it | [`r2d-randomised-order-n20.txt`](../results/raw/r2d-randomised-order-n20.txt) |
 | the equivalence test that refuted "equivalent" (n=30) | [`equivalence-n30-prereg.txt`](../results/raw/equivalence-n30-prereg.txt) |
 | the 24x excursion, and exact counting showing the same rate (n=60) | [`excursion-rate-n60.txt`](../results/raw/excursion-rate-n60.txt) |
@@ -313,6 +357,6 @@ handful of figures quoted in this post, and where to check them:
 
 The full archive is [`results/raw/`](../results/raw/), catalogued in
 [`MANIFEST.md`](../results/MANIFEST.md), which labels which runs carry
-the ordering bias and which predate the do-nothing reference condition.
+which predate the do-nothing reference condition.
 Those runs are kept deliberately — the wrong answers are as much a part
 of the record as the right ones.
