@@ -1,0 +1,215 @@
+Verification: the headline matrix re-run on the refactored binary
+
+Same parameters, same seed (31), same guest as
+headline-single-matrix-n20.txt -- which was produced BEFORE the tracker
+axis became a registered list. If generalising the dispatch from a
+hand-written if/else changed behaviour, it shows here.
+
+  condition           p50 old  p50 new   ratio  p99 old  p99 new   ratio
+  none_ref_32k           3912     3936   1.01x    65440    77952   1.19x
+  flat_ref_32k          11040    11376   1.03x    16864    17568   1.04x
+  exact_32k              3892     3908   1.00x    10144    10064   0.99x
+  exact_8k               3908     3916   1.00x    63680    64320   1.01x
+  sketch_32k_d2          3892     3944   1.01x    10064    10576   1.05x
+  sketch_8k_d2           3924     4016   1.02x    11344    12016   1.06x
+
+NOTHING MOVED BEYOND RUN-TO-RUN NOISE.
+
+Every p50 median is within 3%. Every p99 median is within 6% except
+none_ref_32k at 1.19x, which is the noisiest condition in the matrix by a
+wide margin -- its archived p99 range is 61,376-635,904us, so a 19% move
+in its median sits well inside its own spread.
+
+For calibration: ordering-controlled-n20.txt and condition-subset-n20.txt
+give six independent measurements of one condition under deliberately
+varied setups, and its median spans 1.09x across all of them. The
+largest same-condition move here, 1.06x, is smaller than that.
+
+The two load-bearing qualitative results both reproduce:
+
+  exact at 9.6 KB is still inert -- p99 64,320us against the do-nothing
+  baseline's 77,952us, i.e. sitting on top of it, exactly as before.
+
+  the sketch at 8.3 KB still works -- p99 12,016us, a 6.5x tail
+  improvement over inaction, against exact-at-35.6KB's 10,064us. The
+  sketch/exact p99 ratio reads 1.12x before and 1.19x after, both inside
+  the 0.87-1.85 per-repetition spread already characterised in
+  REVISIONS.md revision 10.
+
+WHAT THIS DOES AND DOES NOT ESTABLISH. One run cannot prove zero change;
+it can show that nothing moved further than this workload moves on its
+own, which is what it shows. Combined with the regression suite -- where
+the null tracker applies exactly 0 penalties over 11,836 wakeups, and the
+two known concurrency bugs still fail exactly as expected rather than
+having been accidentally altered -- the refactor is behaviour-preserving
+as far as this environment can demonstrate.
+
+########## VERIFICATION: headline matrix on the refactored binary ##########
+# Same parameters and seed as results/raw/headline-single-matrix-n20.txt.
+# If the tracker-registry refactor changed behaviour, it shows here.
+2026-09-14T04:52:50+01:00
+Round 4 matrix: headline
+workload: 128 respawning churn slots, lifetime 60.0s, schbench victim (same as round 3)
+n=20, condition order randomised, seed=31
+
+  REP 0 exact_32k p50=3556 p99=18848
+  REP 0 sketch_32k_d2 p50=3620 p99=10256
+  REP 0 flat_ref_32k p50=12560 p99=44480
+  REP 0 sketch_8k_d2 p50=3716 p99=8624
+  REP 0 exact_8k p50=3740 p99=65088
+  REP 0 none_ref_32k p50=3772 p99=64192
+  ... repetition 1/20 done
+  REP 1 exact_8k p50=3796 p99=62400
+  REP 1 exact_32k p50=3812 p99=9776
+  REP 1 sketch_32k_d2 p50=3820 p99=15152
+  REP 1 flat_ref_32k p50=11184 p99=17504
+  REP 1 none_ref_32k p50=3860 p99=72832
+  REP 1 sketch_8k_d2 p50=3868 p99=9808
+  ... repetition 2/20 done
+  REP 2 exact_8k p50=2124 p99=57408
+  REP 2 none_ref_32k p50=3924 p99=80256
+  REP 2 exact_32k p50=3948 p99=21024
+  REP 2 sketch_32k_d2 p50=3948 p99=14032
+  REP 2 flat_ref_32k p50=11600 p99=20960
+  REP 2 sketch_8k_d2 p50=4020 p99=13136
+  ... repetition 3/20 done
+  REP 3 exact_32k p50=3980 p99=9616
+  REP 3 exact_8k p50=3980 p99=65920
+  REP 3 sketch_32k_d2 p50=4004 p99=9328
+  REP 3 flat_ref_32k p50=10896 p99=17760
+  REP 3 none_ref_32k p50=3964 p99=85632
+  REP 3 sketch_8k_d2 p50=4232 p99=24352
+  ... repetition 4/20 done
+  REP 4 sketch_8k_d2 p50=4012 p99=20000
+  REP 4 none_ref_32k p50=3940 p99=70784
+  REP 4 exact_32k p50=3940 p99=9488
+  REP 4 flat_ref_32k p50=12112 p99=19616
+  REP 4 exact_8k p50=3956 p99=81536
+  REP 4 sketch_32k_d2 p50=4120 p99=9520
+  ... repetition 5/20 done
+  REP 5 exact_32k p50=3996 p99=13808
+  REP 5 sketch_32k_d2 p50=3948 p99=15440
+  REP 5 flat_ref_32k p50=11824 p99=15888
+  REP 5 exact_8k p50=3972 p99=122240
+  REP 5 sketch_8k_d2 p50=4076 p99=11696
+  REP 5 none_ref_32k p50=3948 p99=64320
+  ... repetition 6/20 done
+  REP 6 sketch_32k_d2 p50=3940 p99=9392
+  REP 6 none_ref_32k p50=3956 p99=75648
+  REP 6 sketch_8k_d2 p50=5208 p99=17248
+  REP 6 exact_8k p50=3948 p99=59584
+  REP 6 exact_32k p50=4044 p99=15472
+  REP 6 flat_ref_32k p50=11184 p99=19296
+  ... repetition 7/20 done
+  REP 7 sketch_32k_d2 p50=3964 p99=9648
+  REP 7 none_ref_32k p50=3972 p99=83072
+  REP 7 exact_32k p50=3972 p99=9552
+  REP 7 exact_8k p50=3932 p99=61632
+  REP 7 sketch_8k_d2 p50=11184 p99=15184
+  REP 7 flat_ref_32k p50=11088 p99=17632
+  ... repetition 8/20 done
+  REP 8 sketch_32k_d2 p50=5976 p99=18400
+  REP 8 exact_8k p50=3932 p99=59072
+  REP 8 sketch_8k_d2 p50=3924 p99=10224
+  REP 8 exact_32k p50=3908 p99=9840
+  REP 8 flat_ref_32k p50=11568 p99=19808
+  REP 8 none_ref_32k p50=3932 p99=66944
+  ... repetition 9/20 done
+  REP 9 exact_32k p50=3908 p99=9680
+  REP 9 sketch_8k_d2 p50=4104 p99=16736
+  REP 9 sketch_32k_d2 p50=3924 p99=17824
+  REP 9 none_ref_32k p50=3940 p99=68480
+  REP 9 exact_8k p50=3948 p99=63552
+  REP 9 flat_ref_32k p50=11216 p99=16480
+  ... repetition 10/20 done
+  REP 10 none_ref_32k p50=3948 p99=114816
+  REP 10 exact_32k p50=3900 p99=11504
+  REP 10 exact_8k p50=3916 p99=59200
+  REP 10 sketch_32k_d2 p50=3916 p99=9456
+  REP 10 flat_ref_32k p50=11472 p99=16992
+  REP 10 sketch_8k_d2 p50=3916 p99=10448
+  ... repetition 11/20 done
+  REP 11 sketch_32k_d2 p50=3940 p99=14928
+  REP 11 none_ref_32k p50=3908 p99=81024
+  REP 11 exact_8k p50=3916 p99=67456
+  REP 11 sketch_8k_d2 p50=3924 p99=10832
+  REP 11 exact_32k p50=3932 p99=10160
+  REP 11 flat_ref_32k p50=11280 p99=19104
+  ... repetition 12/20 done
+  REP 12 none_ref_32k p50=35648 p99=170240
+  REP 12 exact_8k p50=3956 p99=151296
+  REP 12 flat_ref_32k p50=12464 p99=19872
+  REP 12 sketch_32k_d2 p50=4060 p99=19040
+  REP 12 sketch_8k_d2 p50=4092 p99=11120
+  REP 12 exact_32k p50=4044 p99=23968
+  ... repetition 13/20 done
+  REP 13 sketch_8k_d2 p50=10672 p99=16416
+  REP 13 none_ref_32k p50=3956 p99=81792
+  REP 13 sketch_32k_d2 p50=4568 p99=13040
+  REP 13 flat_ref_32k p50=11536 p99=16544
+  REP 13 exact_32k p50=3972 p99=9904
+  REP 13 exact_8k p50=4104 p99=120960
+  ... repetition 14/20 done
+  REP 14 sketch_32k_d2 p50=3956 p99=10224
+  REP 14 exact_8k p50=3908 p99=62144
+  REP 14 none_ref_32k p50=3884 p99=62912
+  REP 14 sketch_8k_d2 p50=6936 p99=19680
+  REP 14 flat_ref_32k p50=11504 p99=15856
+  REP 14 exact_32k p50=3892 p99=9968
+  ... repetition 15/20 done
+  REP 15 sketch_8k_d2 p50=3892 p99=9776
+  REP 15 sketch_32k_d2 p50=3876 p99=10352
+  REP 15 exact_8k p50=3892 p99=79744
+  REP 15 exact_32k p50=3884 p99=13584
+  REP 15 none_ref_32k p50=3884 p99=83328
+  REP 15 flat_ref_32k p50=10928 p99=16800
+  ... repetition 16/20 done
+  REP 16 sketch_32k_d2 p50=4012 p99=9264
+  REP 16 none_ref_32k p50=3876 p99=95616
+  REP 16 flat_ref_32k p50=10800 p99=17120
+  REP 16 exact_32k p50=3876 p99=10896
+  REP 16 exact_8k p50=3876 p99=70016
+  REP 16 sketch_8k_d2 p50=3868 p99=10032
+  ... repetition 17/20 done
+  REP 17 sketch_8k_d2 p50=3868 p99=9360
+  REP 17 exact_32k p50=3892 p99=10384
+  REP 17 sketch_32k_d2 p50=3860 p99=10800
+  REP 17 flat_ref_32k p50=11056 p99=16608
+  REP 17 exact_8k p50=3892 p99=142592
+  REP 17 none_ref_32k p50=3892 p99=61760
+  ... repetition 18/20 done
+  REP 18 exact_32k p50=3884 p99=9840
+  REP 18 sketch_8k_d2 p50=4012 p99=12336
+  REP 18 flat_ref_32k p50=11504 p99=17376
+  REP 18 sketch_32k_d2 p50=3892 p99=11472
+  REP 18 none_ref_32k p50=3948 p99=115328
+  REP 18 exact_8k p50=3892 p99=61632
+  ... repetition 19/20 done
+  REP 19 exact_32k p50=3908 p99=9392
+  REP 19 exact_8k p50=3900 p99=61120
+  REP 19 sketch_32k_d2 p50=3884 p99=10352
+  REP 19 flat_ref_32k p50=11088 p99=18080
+  REP 19 none_ref_32k p50=3908 p99=64832
+  REP 19 sketch_8k_d2 p50=5016 p99=19808
+  ... repetition 20/20 done
+
+==================================================================================
+condition             p50 med       p50 range  p99 med         p99 range  discrim
+==================================================================================
+none_ref_32k             3936      3772-35648    77952      61760-170240    2.89x
+flat_ref_32k            11376     10800-12560    17568       15856-44480    1.00x
+exact_32k                3908       3556-4044    10064        9392-23968    2.91x
+exact_8k                 3916       2124-4104    64320      57408-151296    2.91x
+sketch_32k_d2            3944       3620-5976    10576        9264-19040    2.88x
+sketch_8k_d2             4016      3716-11184    12016        8624-24352    2.83x
+
+DISCRIM = flat_ref p50 / this row's p50. It measures how well the
+tracker separates the victim from churn, with the count-blind
+penalty as the zero point. 1.0x means no discrimination at all;
+below 1.0x means worse than not discriminating.
+
+KEY COMPARISON: every sketch row vs exact_ref. If ANY sketch
+shape reaches exact's discrimination at this budget, round 3's
+refutation must be narrowed to 'this configuration' rather than
+stated about sketches generally.
+VERIFY DONE

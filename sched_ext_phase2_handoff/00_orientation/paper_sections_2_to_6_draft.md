@@ -1866,8 +1866,15 @@ platform rather than the algorithm. Conservative update must read all
 needs its own `bpf_map_lookup_elem`; and the verifier rejects a lock
 held across those calls outright with *"function calls are not allowed
 while holding a lock"*. The lock-free implementation that remains races
-observably: 1,749 never-undercount violations against a baseline of 116
-at stable 16 KB. Correct-and-slow is not available here, only
+observably, producing thousands of never-undercount violations in every
+run. The rate does not replicate -- 1,749 against a baseline of 116 at
+stable 16 KB in one run, 1,036 against 299 in another, and a neighbouring
+variant moving 197 to 1,750 -- so no rate is quoted. One violation
+suffices, since never-undercount is the guarantee that justifies choosing
+the structure. Note the baseline is itself non-zero: the plain sketch
+cannot undercount by construction, so those are the known
+increment-then-read race (Section 5), which is the noise floor this
+comparison sits on. Correct-and-slow is not available here, only
 fast-and-wrong, and a sketch that undercounts has surrendered the
 guarantee that justified choosing it.
 

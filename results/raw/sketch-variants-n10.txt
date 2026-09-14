@@ -1,0 +1,122 @@
+Sketch variants at n=10 -- a repeat of r6-sketch-variants-n3.txt
+
+Same harness (round6_sketch_variants.py), same parameters, budgets
+narrowed to the three the claims actually rest on. Run sequentially with
+nothing else on the guest.
+
+WHAT REPLICATES. The exact and sketch mean columns agree closely across
+almost every cell. Conservative update still reduces the sketch's
+overestimate at no memory cost, and hash mixing still helps a little:
+at churning 8 KB, baseline 6.02x against conservative 4.27x and 4.50x
+combined with mixing (n=3 gave 4.30x / 3.59x / 2.78x). The direction and
+the ordering hold; the magnitudes move by more than the n=3 run implied.
+
+WHAT DOES NOT REPLICATE, and it matters because the figure is quoted in
+the scheduler README, blog post 03 and paper Section 6:
+
+  never-undercount violations, stable 16 KB
+                      n=3      n=10
+    baseline          116       299
+    conservative     1749      1036
+    both              197      1750
+
+  and elsewhere: churning 16 KB "both" went 0 -> 2855, stable 8 KB
+  "both" went 882 -> 0.
+
+The violation counts jump by orders of magnitude between runs and do not
+order consistently across variants. "1,749 against a baseline of 116" is
+a single draw from a very wide distribution, not a measurement.
+
+The CONCLUSION drawn from it survives and does not depend on the
+magnitude: a lock-free conservative update races, and one violation is
+enough to prove it, since never-undercount is the guarantee that
+justifies choosing a Count-Min Sketch at all. Thousands of violations
+appear in both runs. What cannot be supported is any particular rate.
+
+Note also that the BASELINE is not zero (116, 299, and single digits
+elsewhere). The plain sketch cannot undercount by construction, so those
+are the known increment-then-read race documented in tracker.bpf.c --
+the noise floor this comparison sits on, which the n=3 run made look
+smaller and steadier than it is.
+
+SECOND NON-REPLICATION: stable 4 KB, plain_map exact mean 189.8 -> 72.5.
+Its count distribution shows why -- 90.6% of queries read zero in this
+run against 82.8% before, with far fewer entries in the 1k-10k bucket.
+A non-evicting map's mean depends entirely on which 42 keys won the race
+to fill it and how active those keys remain, which is not a stable
+property of the configuration. Consistent with lru-working-set-n5.txt,
+where the same column moved 200.4 -> 0.1 at 300 identities. A candidate
+explanation -- that system processes grab slots at attach and then go
+quiet -- is untested and recorded as a candidate, not a finding.
+
+########## EXP 3 (redo): sketch variants at n=10 ##########
+2026-09-14T03:50:40+01:00
+Round 6: sketch fixes and the map-type control
+compare mode; exact and sketch figures describe identical queries
+
+########## regime: stable ##########
+
+### 16 KB -- exact 170 entries, sketch 2x256x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline          297.2    363.0   1.22x    299   z0/9932/50176/140473/17055/0
+  hash_mix          298.4    370.0   1.23x    151   z0/18371/26536/162188/20402/0
+  conservative      297.9    353.8   1.18x   1036   z0/11036/43873/148497/26060/0
+  both              291.8    356.1   1.24x   1750   z1/25827/42136/135001/27628/0
+  plain_map         200.4    367.6   1.83x      0   z172678/1462/12584/15850/27677/0
+
+### 8 KB -- exact 85 entries, sketch 2x128x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline          159.2    411.4   2.73x      5   z0/193548/1362/12774/20986/0
+  hash_mix          185.8    433.5   2.35x      2   z0/195887/859/7581/26935/0
+  conservative      159.9    396.1   2.49x      0   z0/189377/2308/14865/18421/0
+  both              160.2    359.1   2.27x      0   z0/191174/1597/12977/20814/0
+  plain_map         193.1    419.6   2.15x      4   z184653/790/7153/9298/27832/0
+
+### 4 KB -- exact 42 entries, sketch 2x64x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline            1.4    632.0 430.33x      0   z15/225491/2332/0/0/0
+  hash_mix            1.5    578.7 383.27x      0   z6/229839/908/0/0/0
+  conservative        1.4    520.8 359.29x      0   z12/228703/1294/0/0/0
+  both                1.5    369.2 246.23x      0   z7/219126/4308/120/0/0
+  plain_map          72.5    613.7   9.38x      0   z202983/405/3352/3781/13544/0
+########## regime: churning ##########
+
+### 16 KB -- exact 170 entries, sketch 2x256x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline          109.5    246.1   2.23x      0   z0/60593/62893/18851/7655/0
+  hash_mix          103.5    239.2   2.30x      0   z0/57187/80821/21152/2649/0
+  conservative       97.4    232.3   2.38x      0   z0/64358/69002/22262/3572/0
+  both               99.9    223.1   2.22x   2855   z2/63263/75066/22862/1873/0
+  plain_map         194.2    246.3   1.27x      0   z117718/4034/1095/14648/16489/0
+
+### 8 KB -- exact 85 entries, sketch 2x128x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline           51.6    317.5   6.02x      0   z0/130563/12685/16688/0/0
+  hash_mix           56.8    290.3   5.12x      0   z0/125313/9089/16947/3751/0
+  conservative       66.0    280.2   4.27x      0   z1/133057/10981/17826/1207/0
+  both               55.3    246.2   4.50x      0   z0/134532/8813/19770/1383/0
+  plain_map         196.9    319.1   1.63x      0   z123954/1951/1101/14167/17108/0
+
+### 4 KB -- exact 42 entries, sketch 2x64x4 ###
+  variant           exact   sketch   sk/ex  under   count distribution
+  baseline            2.9    469.9 160.88x      0   z6/153794/7494/403/0/0
+  hash_mix            2.9    415.2 143.76x      0   z6/149299/7569/413/0/0
+  conservative        2.9    384.4 131.97x      0   z9/150402/7719/421/0/0
+  both                3.1    292.7  93.73x      0   z4/151330/7762/632/0/0
+  plain_map         195.4    466.9   2.41x      0   z130800/857/849/13925/17706/0
+
+HOW TO READ THIS:
+  conservative vs baseline: does conservative update reduce the
+    sketch's overestimate? If yes, the negative result applies
+    only to the standard construction.
+  hash_mix vs baseline: is the power-of-two modulo costing
+    accuracy on real data, as simulation predicted (<=13%)?
+  plain_map vs baseline (exact column): if exact stops
+    collapsing without an LRU, the collapse was the LRU
+    implementation rather than capacity.
+  under MUST be 0. Conservative update preserves
+    never-undercount only if its read-min-write is atomic;
+    a non-zero value means the spin lock is not doing its job.
+  distribution buckets: zero/1-9/10-99/100-999/1k-10k/10k+ of
+    the EXACT count seen per query.
+EXP3 DONE

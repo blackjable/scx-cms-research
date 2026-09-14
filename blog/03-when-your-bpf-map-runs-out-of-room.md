@@ -155,11 +155,16 @@ function calls are not allowed while holding a lock
 ```
 
 The lock-free version I fell back on — compare-and-swap with an
-atomic-increment fallback — races observably. In my runs it produced
-**1,749 never-undercount violations against a baseline of 116**. Two CPUs
-observing the same minimum both write `min+1`, one increment is lost, and
-the guarantee that justified choosing a Count-Min Sketch in the first
-place is gone.
+atomic-increment fallback — **races observably**. Two CPUs observing the
+same minimum both write `min+1`, one increment is lost, and the guarantee
+that justified choosing a Count-Min Sketch in the first place is gone.
+
+Thousands of violations show up in every run I've done. I'd quote a rate,
+except it doesn't replicate: the same configuration gave 1,749 violations
+in one run and 1,036 in another, and a neighbouring variant went from 197
+to 1,750. One violation is enough to prove unsoundness, so the conclusion
+doesn't need a number — but I'd have quoted one as though it were stable
+if I hadn't re-run it.
 
 Correct-and-slow isn't available; only fast-and-wrong. You could
 restructure the entire table into a single map value to get one lookup
