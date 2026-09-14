@@ -32,19 +32,26 @@ competing for 42 slots, every insert evicts something about to be needed
 again, entries are dropped between their own increments, and counts never
 accumulate. That's textbook thrashing, not a bug.
 
-Shrinking the identity population separates the two explanations:
+Shrinking the identity population separates the two explanations. Five
+runs per cell, median and range:
 
 | identities | slots | `LRU_HASH` | plain `HASH` |
 |---|---|---|---|
-| 8 | 42 | **781.2** | 796.7 |
-| 20 | 42 | **456.2** | 537.3 |
-| 100 | 42 | 2.5 | 201.7 |
-| 300 | 42 | 2.0 | 200.4 |
+| 8 | 42 | **843.8** (835–848) | 820.3 (804–856) |
+| 20 | 42 | **410.2** (385–476) | 535.4 (531–550) |
+| 100 | 42 | 2.5 (2.3–2.6) | 209.8 (206–212) |
+| 300 | 42 | 1.5 (1.5–1.7) | 0.1 (0.0–0.2) |
 
-**A 42-entry LRU works perfectly well when the working set fits.** If the
+**A 42-entry LRU works perfectly well when the working set fits** — 164x
+separation between the fitting rows and the overcommitted ones. If the
 free lists were responsible it would fail at 42 entries regardless of how
 many identities were competing. It doesn't. The collapse tracks
 *overcommitment*, not map size — which is a property of LRUs, not of BPF.
+
+I ran this at n=1 first, which was the whole problem the first time
+round, and one cell moved when I repeated it: the plain hash at 300
+identities read 200.4 once and 0.0–0.2 across five later runs. That
+changes a sentence below rather than the finding here.
 
 ### What's actually worth knowing
 
@@ -56,9 +63,16 @@ difference determines what you can still infer.
 zero, every key is equally invisible.
 
 **A plain hash locks in early arrivals.** Whichever keys got there first
-keep accumulating — mean 200 — while everything after the map filled is
+keep accumulating while everything arriving after the map filled is
 permanently invisible. In my measurements, 83% of queries returned zero
 while a minority carried counts in the thousands.
+
+How *legible* that is depends on how badly overcommitted you are. At 100
+identities against 42 slots the mean reads ~210 — the locked-in keys are
+still active, so the signature is obvious. At 300 it reads ~0.1, because
+the 42 keys it locked in are mostly no longer the ones waking. Push it
+far enough and the plain hash stops looking like itself and starts
+looking like the LRU.
 
 That difference mattered practically: it's what let me tell "the tracker
 has stopped working" apart from "the tracker is working and these tasks

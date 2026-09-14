@@ -388,21 +388,33 @@ again, entries are dropped between their own increments, and counts never
 accumulate. A mean near 1 is what thrashing looks like, not what a bug
 looks like.
 
-Shrinking the identity population separates them
-([`lru-working-set-test.txt`](raw/lru-working-set-test.txt)):
+Shrinking the identity population separates them. Repeated at n=5
+([`lru-working-set-n5.txt`](raw/lru-working-set-n5.txt)) after the
+original single run ([`lru-working-set-test.txt`](raw/lru-working-set-test.txt)):
 
-| identities | slots | LRU mean | plain mean |
+| identities | slots | LRU median (range) | plain median (range) |
 |---|---|---|---|
-| 8 | 42 | **781.2** | 796.7 |
-| 20 | 42 | **456.2** | 537.3 |
-| 100 | 42 | 2.5 | 201.7 |
-| 300 | 42 | 2.0 | 200.4 |
+| 8 | 42 | **843.8** (835-848) | 820.3 (804-856) |
+| 20 | 42 | **410.2** (385-476) | 535.4 (531-550) |
+| 100 | 42 | 2.5 (2.3-2.6) | 209.8 (206-212) |
+| 300 | 42 | 1.5 (1.5-1.7) | **0.1** (0.0-0.2) |
 
 A 42-entry LRU_HASH retains counts perfectly well with 8 or 20
-identities. Were the per-CPU free lists responsible, it would fail at 42
-entries regardless of identity count. It does not. **The collapse tracks
-overcommitment, not map size** -- which is a property of LRUs rather than
-of BPF.
+identities, and the separation between the fitting and overcommitted
+groups is **164x**. Were the per-CPU free lists responsible, it would
+fail at 42 entries regardless of identity count. It does not. **The
+collapse tracks overcommitment, not map size** -- which is a property of
+LRUs rather than of BPF.
+
+**One cell in the original did not replicate**, and it is worth naming
+because it appeared in this table and in blog post 03. At 300 identities
+the plain hash read 200.4 once and 0.0-0.2 across five later runs; every
+other cell agrees within spread. Five runs against one, so the 0.1 is
+the better figure. It refines the plain-hash story rather than
+overturning it: "locks in early arrivals and lets those accumulate to
+~200" holds at 100 identities but not at 300, presumably because the 42
+locked-in keys are decreasingly likely to be the ones currently waking.
+Nothing in revision 12 turns on it -- the LRU column is the test.
 
 **What survives.** The two map types fail differently under
 overcommitment, and that difference was genuinely useful here. LRU

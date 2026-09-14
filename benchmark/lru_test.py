@@ -55,4 +55,11 @@ for slots, entries in [(8, 128), (8, 42), (20, 128), (20, 42), (100, 42), (300, 
     lru = measure(scx, entries, slots, plain=False)
     pln = measure(scx, entries, slots, plain=True)
     fits = "fits" if slots + 10 < entries else "OVER capacity"
+    # Guard added after a run was lost to a TypeError here: measure()
+    # returns None when the scheduler log carries no compare line at all,
+    # which happens if the attach failed. Losing one cell should not cost
+    # the whole run. No measurement logic is changed.
+    if lru is None or pln is None:
+        print(f"{slots:>11}{entries:>7}{'FAILED':>10}{'FAILED':>12}   {fits}")
+        continue
     print(f"{slots:>11}{entries:>7}{lru:>10.1f}{pln:>12.1f}   {fits}")

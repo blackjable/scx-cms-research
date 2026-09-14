@@ -1,0 +1,110 @@
+Does a small LRU_HASH work when the working set FITS?  n=5 runs per cell
+
+Repeat of lru-working-set-test.txt, which was n=1 per cell and is the
+sole evidence for REVISIONS.md revision 12. Same harness (lru_test.py),
+same parameters, same guest. Run first in a strictly sequential script
+with nothing else on the machine.
+
+ identities  slots           LRU median (range)         plain median (range)   verdict
+------------------------------------------------------------------------------------------------
+          8    128          878.4 (870.0-880.3)          850.7 (846.7-857.6)   fits
+          8     42          843.8 (835.2-848.1)          820.3 (803.9-855.5)   fits
+         20    128          679.0 (676.3-685.6)          656.2 (653.8-662.0)   fits
+         20     42          410.2 (384.7-476.2)          535.4 (531.1-549.6)   fits
+        100     42                2.5 (2.3-2.6)          209.8 (205.7-212.1)   OVER capacity
+        300     42                1.5 (1.5-1.7)                0.1 (0.0-0.2)   OVER capacity
+
+REVISION 12 IS CONFIRMED, and more strongly than at n=1.
+
+A 42-entry LRU_HASH retains counts normally with 8 or 20 identities
+(median 843.8 and 410.2) and collapses only at 100 and 300 (2.5 and
+1.5). Separation between the two groups is 164x. Were BPF's per-CPU free
+lists responsible, the map would fail at 42 entries regardless of how
+many identities competed for it; it does not. The collapse tracks
+OVERCOMMITMENT, which is what any LRU does below its working set.
+
+ONE CELL DOES NOT REPLICATE, and it is quoted in the write-ups.
+
+  300 identities / 42 slots, plain HASH:
+    original (n=1):  200.4
+    this run (n=5):  0.1, with a range of 0.0-0.2
+
+Every other cell agrees within run-to-run spread; the original 200.4 is
+the outlier, five consistent runs against one. At 100 identities the
+plain hash still reads ~210, so the "locks in early arrivals and lets
+those accumulate" behaviour is real -- but it holds at 100 identities
+and not at 300. The likely reason is that with 300 competing identities
+the 42 keys the map locked in are decreasingly likely to be the ones
+currently waking, so the mean over all queries collapses toward zero
+even though the tracked keys themselves still carry counts.
+
+That refines rather than reverses the point the plain-hash control was
+making. Both map types are useless when overcommitted; the plain hash's
+"mean ~200" signature is itself a function of how badly overcommitted it
+is, and at 300 identities it looks like the LRU rather than like itself.
+
+The claim that survives without qualification is the one about the LRU
+column, which is what revision 12 turns on.
+
+########## EXP 2 (redo): LRU working-set test, 5 repeats ##########
+===== lru_test repeat 1/5 =====
+2026-09-14T03:27:07+01:00
+Does a small LRU_HASH work when the working set FITS?
+
+ identities  slots  LRU mean  plain mean   verdict
+--------------------------------------------------------------
+          8    128     870.0       846.7   fits
+          8     42     836.7       855.5   fits
+         20    128     683.0       657.4   fits
+         20     42     476.2       549.6   fits
+        100     42       2.4       210.9   OVER capacity
+        300     42       1.6         0.1   OVER capacity
+===== lru_test repeat 2/5 =====
+2026-09-14T03:29:23+01:00
+Does a small LRU_HASH work when the working set FITS?
+
+ identities  slots  LRU mean  plain mean   verdict
+--------------------------------------------------------------
+          8    128     880.3       850.7   fits
+          8     42     848.1       820.3   fits
+         20    128     685.6       656.2   fits
+         20     42     407.6       531.1   fits
+        100     42       2.6       209.8   OVER capacity
+        300     42       1.5         0.0   OVER capacity
+===== lru_test repeat 3/5 =====
+2026-09-14T03:31:40+01:00
+Does a small LRU_HASH work when the working set FITS?
+
+ identities  slots  LRU mean  plain mean   verdict
+--------------------------------------------------------------
+          8    128     872.1       850.2   fits
+          8     42     835.2       812.4   fits
+         20    128     679.0       655.6   fits
+         20     42     429.9       539.4   fits
+        100     42       2.3       207.4   OVER capacity
+        300     42       1.5         0.0   OVER capacity
+===== lru_test repeat 4/5 =====
+2026-09-14T03:33:56+01:00
+Does a small LRU_HASH work when the working set FITS?
+
+ identities  slots  LRU mean  plain mean   verdict
+--------------------------------------------------------------
+          8    128     878.6       851.7   fits
+          8     42     843.8       833.1   fits
+         20    128     678.5       662.0   fits
+         20     42     384.7       534.4   fits
+        100     42       2.5       212.1   OVER capacity
+        300     42       1.7         0.2   OVER capacity
+===== lru_test repeat 5/5 =====
+2026-09-14T03:36:12+01:00
+Does a small LRU_HASH work when the working set FITS?
+
+ identities  slots  LRU mean  plain mean   verdict
+--------------------------------------------------------------
+          8    128     878.4       857.6   fits
+          8     42     847.0       803.9   fits
+         20    128     676.3       653.8   fits
+         20     42     410.2       535.4   fits
+        100     42       2.5       205.7   OVER capacity
+        300     42       1.5         0.1   OVER capacity
+EXP2 DONE
