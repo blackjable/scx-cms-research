@@ -3,12 +3,10 @@
 Every BPF scheduler that keeps per-task state eventually faces the same
 question: what happens when there are more tasks than you budgeted for?
 
-I ended up measuring this by accident, while testing something else. What
-I found first was a trap in a map type that sched_ext programs use
-constantly — except it wasn't a trap, it was me inventing a mechanism for
-a measurement I hadn't finished thinking about, and that story is in here
-too because it's the more useful half. What survived is a way of thinking
-about bounded state that I now find more useful than any accuracy figure.
+I ended up measuring this by accident, while testing something else. The
+answer turned out to be less about BPF than I first thought, and more
+about a way of thinking about bounded state that I now find more useful
+than any accuracy figure.
 
 ## Finding 1: two map types, two different kinds of useless
 
@@ -23,9 +21,7 @@ reported **189.8**.
 
 I wrote that up as a finding about BPF: that the per-CPU free lists
 underlying `LRU_HASH` make a small map smaller than its own bookkeeping,
-so it stops behaving like an LRU. It's a good story. **It's also wrong,
-and a twenty-minute test would have caught it — which I ran only after a
-reader asked whether the problem was BPF's or mine.**
+so it stops behaving like an LRU. **It's wrong.**
 
 A correct LRU *also* reports ~1 in that situation. With 330 identities
 competing for 42 slots, every insert evicts something about to be needed
@@ -48,10 +44,9 @@ free lists were responsible it would fail at 42 entries regardless of how
 many identities were competing. It doesn't. The collapse tracks
 *overcommitment*, not map size — which is a property of LRUs, not of BPF.
 
-I ran this at n=1 first, which was the whole problem the first time
-round, and one cell moved when I repeated it: the plain hash at 300
-identities read 200.4 once and 0.0–0.2 across five later runs. That
-changes a sentence below rather than the finding here.
+(One cell moved between the first run and these five: the plain hash at
+300 identities read 200.4 once and 0.0–0.2 afterwards. It changes a
+sentence below, not the finding here.)
 
 ### What's actually worth knowing
 
@@ -104,56 +99,20 @@ mechanism doesn't stop acting. It acts confidently on garbage, and
 applies the penalty meant for background churn to the task you were
 trying to protect.
 
-The plain hash, incidentally, has a third mode: first-come-first-served.
-Once full, inserts fail, so the keys that arrived early keep accumulating
-counts forever while everything that arrives later is invisible. In my
-measurements 83% of queries returned zero while a locked-in minority
-carried counts in the thousands.
-
 ### A third mode I thought I'd found, and hadn't
 
-I originally added a third failure mode here, and then measured it
-properly and had to take it out. The retraction is worth keeping
-because the mistake is easy to make.
+I originally listed a third failure mode here: one run in thirty where a
+sketch performing normally returned a victim p99 of 240,384µs, twenty-four
+times its own median, with its median untouched. Rare, severe, invisible
+to typical-case monitoring.
 
-In one repetition out of thirty, a sketch that was otherwise performing
-identically to exact counting returned a victim p99 of **240,384µs** —
-twenty-four times its own median — with its median completely normal. It
-looked like a distinct failure mode: rare, severe, and invisible to any
-typical-case monitoring.
+A dedicated run at 60 repetitions per condition killed it. **Exact
+counting produces the same excursions at the same rate** — 1/60 against
+1/60 — and the 24x never recurred across 360 further measurements. The
+excursions belong to this environment, not to approximation. Details in
+[`REVISIONS.md`](../results/REVISIONS.md) revision 9.
 
-I attributed it to the sketch because it affected only that one
-condition in that repetition, and reasoned that an environmental
-disturbance would have hit several.
-
-**That reasoning is wrong.** Conditions run *sequentially*, one after
-another. A host hiccup lasting a few seconds therefore hits exactly one
-condition — the signature I treated as exonerating is precisely what an
-environmental disturbance produces.
-
-A dedicated run, 60 repetitions per condition, settled it:
-
-| condition | excursions (>3x baseline median) | worst |
-|---|---|---|
-| **exact counting** | **1/60** | **4.0x** |
-| sketch, depth 2 | 1/60 | 3.0x |
-| sketch, depth 4 | 3/60 | 5.7x |
-| sketch, depth 8 | 1/60 | 3.6x |
-| sketch @ 8 KB | 1/60 | 2.3x |
-
-**Exact counting has them at the same rate.** The 24x never recurred
-across 360 further measurements. Whatever produces these excursions —
-this VM, this workload, the host migrating a vCPU mid-run — belongs to
-the environment, not to approximation.
-
-So there are two failure modes, not three. I'd have published a
-confident and wrong third one on the strength of a single outlier and a
-check that tested the wrong thing.
-
-Worth noting the check *was* specified in advance, which is usually the
-defence against this. Pre-registration guarantees you didn't pick the
-test to fit the data. It does not guarantee the test measures what you
-claim.
+So there are two failure modes, not three.
 
 ### Why this framing is more useful than accuracy
 

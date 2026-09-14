@@ -159,42 +159,35 @@ There was no bug.
 ## The part I'd want you to take
 
 Not "randomise your condition order" — though you should, it's six lines
-and it protects against something real that I merely failed to
-demonstrate. The useful part is what went wrong in my head.
+and it insures against something real that I merely failed to
+demonstrate. The useful part is upstream of any statistic.
 
 **I had an anomaly and I reached for the explanation that came with a
-mechanism.** Carryover is real, it's textbook, it has a name, it fit the
-data, and it made me the kind of person who finds subtle bugs. The
-competing explanation — *maxima are noisy* — is boring, explains the
-data just as well, and makes me the kind of person who over-read two
-numbers. I did not weigh them. I noticed the first one and stopped.
+mechanism.** Carryover is real, textbook, named, and it fit the data.
+The competing explanation — *maxima are noisy* — is boring, fits the
+data just as well, and makes me someone who over-read two numbers. I
+didn't weigh them. I noticed the first and stopped.
 
-**Then I made it worse in the most reassuring way available.** Reviewing
-this post, I decided "55%" was sloppy — it's a ratio of two maxima, the
-noisiest statistic in either sample. So I replaced it with something
-more rigorous: 6 of 15 repetitions above 14,000µs against 0 of 20,
-Mann-Whitney p = 0.004, coefficients of variation 0.23 and 0.08. All
-correctly computed. All from **the same two confounded runs.**
+**Making the statistic more careful did not help.** Reviewing this post
+I decided "55%" was sloppy, so I replaced it with 6 of 15 repetitions
+above a threshold against 0 of 20, Mann-Whitney p = 0.004, CVs of 0.23
+and 0.08. All correctly computed, all from the same two confounded runs.
+Rigour applied downstream of a confound makes the confound harder to
+see, not easier — the careful version reads as more trustworthy while
+resting on exactly the same broken comparison.
 
-I improved the statistic and left the design alone, and the careful
-version read as far more trustworthy than the sloppy one it replaced.
-That is the trap I'd most want to hand on: rigour applied downstream of
-a confound makes the confound harder to see, not easier.
-
-**The check that would have caught it, at any point, was cheap.** Not a
-better statistic — the same measurement with one thing varied. It took
-forty minutes. I had a year of reasons not to bother, and all of them
-amounted to already believing the answer.
+**The check that would have caught it was one flag and forty minutes.**
+Not a better statistic: the same measurement with one thing varied.
 
 ## What to check in your own harness
 
 **Does the condition order vary?** Randomise it anyway. I couldn't
-demonstrate the effect on one workload on one machine, which is not the
+demonstrate the effect on one workload on one machine, which isn't the
 same as showing it never happens, and the fix is too cheap to argue
 about.
 
-**Are you comparing maxima?** A maximum is the single noisiest summary
-of a sample, and it's what your eye goes to when two runs disagree.
+**Are you comparing maxima?** A maximum is the noisiest summary of a
+sample and it's exactly what your eye goes to when two runs disagree.
 Mine ranged 14,000–39,488µs across runs whose medians sat inside 9%.
 
 **When two runs disagree, count the ways they differ before explaining
@@ -203,23 +196,9 @@ candidate. Mine had three and I noticed one.
 
 **Can you test the explanation?** Not the measurement — the
 *explanation*. If it has a mechanism, the mechanism makes a prediction,
-and the prediction is usually one flag and one afternoon away from being
-checked. A plausible causal story is a reason to run one more experiment,
-not a reason to stop.
-
-## The uncomfortable part
-
-I recommended this to other people. It was in a paper draft as a
-methodological finding, in a post as advice, and in three harness
-comments as established fact, for long enough that I'd stopped thinking
-of it as a finding at all and started treating it as background
-knowledge.
-
-None of the underlying measurements were affected — this was always an
-explanation rather than data, and the results it was supposed to have
-rescued stand unchanged. But I spent a day chasing a bug that wasn't
-there, and I'd have gone on believing in it indefinitely if I hadn't
-eventually run the experiment that could say no.
+and the prediction is usually one flag away from being checked. A
+plausible causal story is a reason to run one more experiment, not a
+reason to stop.
 
 ## Data
 

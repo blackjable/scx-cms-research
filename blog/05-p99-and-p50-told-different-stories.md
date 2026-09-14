@@ -46,9 +46,7 @@ My first instinct was a satisfying general claim: *tail-latency-only
 evaluation rewards blunt instruments, because degrading everything
 uniformly also compresses the tail.*
 
-It sounds right. It's the kind of thing that would make a good talk
-slide. It was also the first interesting-sounding generalisation I'd
-reached in this project, and I was pleased with it. Then I checked it
+It sounds right, and it would make a good talk slide. Then I checked it
 against my own data and it didn't hold up.
 
 I went back through every comparison I'd run and asked: would p99 alone
@@ -61,13 +59,9 @@ have given the *wrong ranking*?
 | one run at n=15 | *inconclusive* — ranges overlapped | not wrong, just silent |
 
 **In no run did p99 alone produce a clearly wrong ranking.** It produced
-an *inconclusive* one, once. That's a much smaller claim than the one I
-was about to make, and the difference matters: "this metric is
-misleading" and "this metric is sometimes insufficient" call for
-different responses.
-
-I'd built a general principle out of a hypothetical, and my own results
-contradicted it. That was uncomfortable enough to be worth writing down.
+an *inconclusive* one, once. That's a much smaller claim, and the
+difference matters: "this metric is misleading" and "this metric is
+sometimes insufficient" call for different responses.
 
 ## What p50 is actually for
 

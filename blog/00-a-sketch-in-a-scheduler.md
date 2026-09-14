@@ -223,24 +223,44 @@ no RAPL in the guest.
 
 ## Why this took much longer than it should have
 
-Thirteen claims made and withdrawn along the way, including, briefly,
-the conclusion that the whole idea was refuted.
+Thirteen claims made and withdrawn, including, briefly, the conclusion
+that the whole idea was refuted.
 
-Almost none of those failed because the hypothesis was wrong. They
-failed because an instrument was wrong — a metric that scored a broken
-tracker as highly as a working one; a ratio with a collapsing
-denominator; a workload model wrong by 4x. And four failed for a
-different reason: the measurement was right and I attached an
-explanation to it that I never tested. One of those was a benchmarking
-lesson I'd been recommending to other people.
+Almost none failed because the hypothesis was wrong. Most failed because
+an instrument was wrong — a metric that scored a broken tracker as
+highly as a working one, a ratio with a collapsing denominator, a
+workload model wrong by 4x. Four failed differently and worse: the
+measurement was right and I attached an explanation to it that I never
+tested. One of those was a benchmarking lesson I'd been recommending to
+other people, and it took a controlled run to find out there was no
+effect to explain.
 
-The final numbers use five controls that didn't exist when I started,
-each added after something it would have caught went wrong. The raw
-output for every run, including the ones that produced the wrong
-answers, is archived alongside the code.
+Each one is recorded with the file that produced it and the file that
+overturned it, in [`REVISIONS.md`](../results/REVISIONS.md).
 
-I've written the failures up separately, because they turned out to be
-more generally useful than the result.
+### If I were starting again
+
+**Put a do-nothing condition in every matrix.** Without it you cannot
+tell a working mechanism from a stopped one — both leave your protected
+workload alone.
+
+**Put a blunt control in every matrix** — the same intervention applied
+without the information. It tells you what fraction of your result is
+the signal and what fraction is the disturbance. Mine was forty lines
+and cost me 82% of a headline.
+
+**Instrument before you infer.** I spent three rounds reasoning about a
+4x discrepancy that one histogram settled in a single run.
+
+**Write down what would falsify each claim, before the run.** The two
+times I did this, it fired.
+
+**When two runs disagree, count the ways they differ before explaining
+why.** If it's more than one, you have a candidate, not an explanation.
+
+None of that is novel. Most of it is a century old and I'd met none of
+it. The fixes are all small — a do-nothing condition is one line — so
+the cost isn't in applying them, it's in not knowing they exist.
 
 ## Data
 

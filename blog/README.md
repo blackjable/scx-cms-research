@@ -1,24 +1,18 @@
 # Blog series: a Count-Min Sketch in a Linux scheduler
 
-Eight posts. Post 00 is the result; the rest are what it took to trust
+Seven posts. Post 00 is the result; the rest are what it took to trust
 it.
 
 I came to this knowing how to write a scheduler and nothing about how to
-measure one. That turned out to be the harder half: thirteen claims made
-and withdrawn, most of them because an instrument was wrong rather than
-because the idea was. Each fix — a control condition, a do-nothing
-reference, an equivalence test — is standard practice somewhere else and
-was new to me.
-
-Four of the thirteen were a different failure, and the more interesting
-one: the measurement was correct and I attached an explanation to it
-that I never tested. The last of those was the benchmarking advice in
-post 01, which I had to withdraw after running the experiment that could
-say no.
+measure one, and that turned out to be the harder half. Thirteen claims
+were made and withdrawn along the way — most because an instrument was
+wrong, four because the measurement was right and I attached an
+explanation to it that I never tested. Each fix is standard practice
+somewhere else and was new to me.
 
 So these are written from the position of someone who didn't know, for
 anyone else who came to benchmarking through code rather than through a
-statistics course. The mistakes are the content.
+statistics course.
 
 | # | post | stands alone? |
 |---|---|---|
@@ -28,10 +22,14 @@ statistics course. The mistakes are the content.
 | 03 | [What happens when your BPF map runs out of room](03-when-your-bpf-map-runs-out-of-room.md) | yes — any BPF author |
 | 04 | [Your per-task tracking assumes identities hold still](04-identities-that-wont-hold-still.md) | yes — behaviour-tracking schedulers |
 | 05 | [p99 told me one story, p50 told me another](05-p99-and-p50-told-different-stories.md) | yes — anyone reporting latency |
-| 06 | [Thirteen claims I retracted](06-the-claims-i-retracted.md) | yes |
-| 07 | [Overlapping ranges are not equivalence](07-overlapping-ranges-are-not-equivalence.md) | yes — anyone comparing systems |
+| 06 | [Overlapping ranges are not equivalence](06-overlapping-ranges-are-not-equivalence.md) | yes — anyone comparing systems |
 
-Posts 01–05 and 07 don't require caring about count-min sketches.
+Posts 01–06 don't require caring about count-min sketches.
+
+The full list of retractions, each tied to the file that produced it and
+the file that overturned it, is
+[`REVISIONS.md`](../results/REVISIONS.md) rather than a post of its own.
+It is a record, not a narrative.
 
 ## Data
 

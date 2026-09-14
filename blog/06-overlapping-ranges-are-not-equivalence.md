@@ -93,35 +93,29 @@ inside. So it isn't "the sketch is worse." It's "the sketch matches on
 typical latency and loses on the tail," which is a specific, actionable
 thing to know.
 
-**The matched-memory control is the diagnostic** — and it taught me
-something only after I'd misread it once.
+**The matched-memory control is the diagnostic.** Sketch at 32 KB
+against exact at 32 KB — same budget, no memory saving involved — comes
+out indistinguishable: median ratios of **1.03x and 1.04x** across two
+independent runs. Give the sketch the same memory and it performs the
+same. So the tail cost is what you pay for using less memory, not an
+intrinsic tax on approximating, and that's a trade you can actually
+evaluate.
 
-Sketch at 32 KB versus exact at 32 KB — same budget, no memory saving
-involved — also failed the equivalence test. I concluded the tail
-penalty was intrinsic to approximation rather than a cost of the memory
-saving, and wrote that up.
+It took me a while to read that control correctly. It *failed* its
+equivalence test on the first run, and a failing control feels like a
+finding, so I treated it as one and concluded the penalty was intrinsic.
+It had failed because of a single 240,384µs observation that a later
+60-repetition run showed to be environmental
+([`REVISIONS.md`](../results/REVISIONS.md) revisions 9 and 10).
 
-It was wrong, and one data point caused it. That comparison's mean was
-dragged by a single 240,384µs outlier, which a later run at 60
-repetitions per condition showed to be environmental — exact counting
-produces such excursions at the same rate, and it never recurred.
+Two lessons:
 
-With the outlier understood, the matched-memory medians agree across
-two independent runs at **1.03x and 1.04x**. Give the sketch the same
-memory as exact counting and it performs the same. The tail cost is
-what you pay for using less memory, exactly as I'd assumed before the
-control appeared to overturn it.
+**A control that fails is not automatically informative.** Find out
+*why* before you build on it.
 
-Two lessons, and the second is the one I'd underrate:
-
-**A control that fails is not automatically informative.** Mine failed
-for a reason that had nothing to do with the comparison, and I built an
-explanation on it because a failing control feels like a finding.
-
-**An equivalence test is still a mean-based test.** TOST told me
-correctly that I could not claim equivalence. It did not tell me that
-one observation in thirty was doing the work, and I did not look until a
-later run forced me to.
+**An equivalence test is still a mean-based test.** TOST correctly told
+me I couldn't claim equivalence. It did not tell me one observation in
+thirty was doing the work.
 
 ## Why this is worth the trouble
 
@@ -147,21 +141,10 @@ margin down first.
   repetitions is usually free and enormously more powerful than
   comparing summary statistics.
 - **Test a control you expect to be equivalent** — and when it fails,
-  find out *why* before you believe it. Mine failed, and the failure was
-  the least informative result in the study dressed up as the most.
-
-The last one is the one I'd most want to pass on, and not in the form I
-first wrote it. I added the matched-memory control for completeness,
-expecting a boring confirmation. It failed, and I treated the failure as
-a finding — because a control that fails feels like a finding, in a way
-a control that passes never does.
-
-It had failed because of one environmental outlier. The explanation I
-built on it was wrong, and I had it backwards for a day: I'd decided the
-tail cost was intrinsic to approximating, when it is simply what you pay
-for using a quarter of the memory. A failing control is a question, not
-an answer. Mine was asking about the host, and I heard it asking about
-the sketch.
+  find out *why* before you build on it. A failing control feels like a
+  finding in a way a passing one never does, which is exactly when to be
+  careful. Mine was asking a question about the host and I heard it
+  asking about the sketch.
 
 ## Data
 
