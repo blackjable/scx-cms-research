@@ -1,35 +1,64 @@
 # Can a Count-Min Sketch replace exact per-task counters in a Linux scheduler?
 
-A `sched_ext` (BPF) scheduler tracks how often each task wakes and
-penalises frequent wakers, so a latency-sensitive task gets CPU sooner.
-The memory for that tracking grows with the number of distinct tasks the
-machine has seen. This asks whether a fixed-size probabilistic counter
-can replace it.
+A scheduler that adapts to how tasks behave has to remember something
+about each task. `sched_ext` makes that easy — a BPF scheduler can keep a
+hash table keyed on pid and consult it from the scheduling callbacks. The
+catch is that the memory grows with the number of distinct tasks the
+machine has seen, which on a busy system with short-lived processes is
+neither small nor predictable.
 
-**Answer: a qualified yes — roughly a quarter of the memory, identical
-typical latency, a worse and noisier tail.**
+Bounding that cost is a solved problem elsewhere in systems software.
+Count-Min Sketches give fixed-size approximate counting and are routine in
+network telemetry, query planners and stream processing. Applying one
+inside a scheduler is an obvious idea, and as far as I could determine
+nobody had tried it.
 
-| condition | memory | p50 | p99 |
-|---|---|---|---|
-| do nothing | — | 3,912µs | 65,440µs |
-| count-blind penalty | 35.6 KB | 11,040µs | 16,864µs |
-| **exact counters** | **35.6 KB** | **3,892µs** | **10,144µs** |
-| exact counters | 9.6 KB | 3,908µs | 63,680µs |
-| **Count-Min Sketch** | **8.3 KB** | **3,924µs** | **11,344µs** |
+So I built one: [`scx_cms`](https://github.com/blackjable/scx-cms) tracks
+per-task wakeup frequency using **either** exact counters **or** a
+Count-Min Sketch — selectable at load time, with the policy, window,
+identity key and adjustment identical between them — and penalises
+frequent wakers so a latency-sensitive task gets CPU sooner.
 
-n=20, one interleaved matrix, randomised condition order
-([raw output](results/raw/headline-single-matrix-n20.txt)).
+## What was measured
 
-Exact counting at 9.6 KB has *stopped working* — its tail sits on the
-do-nothing baseline. The sketch at a smaller budget still works. That gap
-is the result.
+A `schbench` victim against 128 background tasks that wake 200 times a
+second while using little CPU each. That shape is deliberate: a task that
+burns CPU is already deprioritised by ordinary fairness, so the
+information a scheduler *cannot* already see is "wakes constantly but is
+cheap". Tail latency (p99) of the victim is the outcome.
 
-Equivalence was tested rather than assumed, with the margin declared
-before the run: median latency **is** equivalent (90% CI [0.974, 1.060]),
-tail latency is **not** ([1.114, 1.394]). And the mean hides the shape —
-across two runs the sketch was *better* than exact counting in 37% and
-40% of repetitions, and more than 50% worse in 30% and 33%. What less
-memory buys is a coin weighted slightly against you, not a steady tax.
+Then shrink the memory budget for the tracking and see which structure
+breaks first.
+
+| tracker | tracking memory | victim p99 |
+|---|---|---|
+| exact counters | 35.6 KB | 10,144µs |
+| exact counters | 9.6 KB | 63,680µs — **stopped working** |
+| **Count-Min Sketch** | **8.3 KB** | **11,344µs** |
+
+Exact counting at 9.6 KB has not degraded, it has *stopped*: its tail sits
+on top of the do-nothing baseline of 65,440µs. The map can no longer hold
+the live identity set, so lookups miss, counts read as zero, and the
+mechanism quietly stops acting. The sketch at a smaller budget still
+works. **That gap is the result.**
+
+## The cost
+
+Not free, and not a steady tax. Equivalence was tested rather than
+assumed, with the margin declared before the run: median latency **is**
+equivalent (90% CI [0.974, 1.060]), tail latency is **not**
+([1.114, 1.394]).
+
+The mean hides the shape. Across two independent runs the sketch was
+*better* than exact counting in 37% and 40% of repetitions, and more than
+50% worse in 30% and 33%. What less memory buys is a coin weighted
+slightly against you.
+
+At *matched* memory the two are indistinguishable, so that tail cost is
+the price of the saving rather than something inherent to approximating.
+
+Full table including the controls that make the above meaningful:
+[`blog/00`](blog/00-a-sketch-in-a-scheduler.md).
 
 ---
 
