@@ -108,7 +108,7 @@ Relevant if scheduler work touches concurrency internals:
 ## Suggested first concrete steps
 
 1. Clone `github.com/sched-ext/scx`.
-2. Read and fully understand `scx_simple.bpf.c` (use Claude Code to annotate
+2. Read and fully understand `scx_simple.bpf.c` (annotate
    it against `struct sched_ext_ops` callback semantics).
 3. Set up `virtme_ng` for a fast build/test loop.
 4. Join sched_ext Slack + attend an office hours session to find currently

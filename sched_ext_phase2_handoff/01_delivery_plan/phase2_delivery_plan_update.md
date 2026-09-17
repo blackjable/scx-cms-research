@@ -4,7 +4,7 @@ This supersedes/supplements the original setup docs
 (`sched_ext_contribution_context.md`, `sched_ext_embedded_research.md`,
 `macos-sched-ext-setup/`) with concrete design decisions and
 requirements that only became clear during Phase 1's Python research.
-Load this alongside those files in Claude Code — it doesn't replace
+Read this alongside those files — it doesn't replace
 them, it tells you what changed.
 
 ## 1. Design decisions to port directly (already validated in Python)

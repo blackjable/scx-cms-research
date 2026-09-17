@@ -1,41 +1,31 @@
 # START HERE — Phase 2 Handoff Manifest
 
-Point Claude Code at this folder. This file tells it what everything
-else is and what order to read it in. Nothing outside this folder is
+Start here. This file explains what everything else is and what order
+to read it in. Nothing outside this folder is
 needed; nothing inside it is obsolete filler — every file here earned
 its place through the Phase 1 research process.
 
-## Suggested first prompt to Claude Code
+## Suggested reading order
 
-> "Read 00_orientation/paper_sections_2_to_6_draft.md in full, then
-> 01_delivery_plan/phase2_delivery_plan_update.md. Summarize the
-> current state and the next concrete action per the delivery plan's
-> 'suggested order of operations' section, before writing any code."
+Read `00_orientation/paper_sections_2_to_6_draft.md` in full, then
+`01_delivery_plan/phase2_delivery_plan_update.md`, and establish the
+current state and the next concrete action before writing any code.
 
-This forces a comprehension check before any action — cheap insurance
-against acting on stale or partial assumptions, which caused real
-problems earlier in this project (see the paper's audit sections).
-
-**Not sure Claude Code is actually set up and pointed at this folder
-yet?** See `00_orientation/SETUP_CLAUDE_CODE.md` first — installation,
-VS Code extension, and (the step that's easy to miss) how to actually
-open this specific folder so Claude Code can see everything in it.
+That ordering is deliberate: acting on stale or partial assumptions
+caused real problems earlier in this project (see the paper's audit
+sections, and `results/REVISIONS.md`).
 
 ## Folder-by-folder guide
 
 ### `00_orientation/` — read first, in this order
 
-1. `SETUP_CLAUDE_CODE.md` — how to actually get Claude Code installed
-   and pointed at THIS folder (the one thing this bundle was missing
-   until it was pointed out). Skip if Claude Code is already open on
-   this folder.
-2. `sched_ext_contribution_context.md` — why this project exists at
+1. `sched_ext_contribution_context.md` — why this project exists at
    all: general sched_ext contribution background, dev environment
    basics.
-3. `sched_ext_embedded_research.md` — why resource-constrained/mobile
+2. `sched_ext_embedded_research.md` — why resource-constrained/mobile
    scheduling specifically: LPC 2026 citations, the real gaps this
    targets, why they're real (not assumed).
-4. `paper_sections_2_to_6_draft.md` — **the primary reference for
+3. `paper_sections_2_to_6_draft.md` — **the primary reference for
    everything**. Every design decision, number, bug found and fixed,
    and piece of reasoning from Phase 1 lives here, organized by
    section (2 = approach, 3 = methodology, 4 = results/findings,

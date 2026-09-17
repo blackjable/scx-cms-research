@@ -1889,7 +1889,7 @@ once the LPC 2026 talks are public.
 
 ## Build checklist (everything marked `[NEEDS:` above, consolidated)
 
-For quick reference when working through this in Claude Code:
+For quick reference when working through this:
 
 1. [x] ~~Cite Cormode & Muthukrishnan CMS paper + formal error bounds (2.1)~~ DONE
 2. [x] ~~Task identity key: PID vs TGID vs comm~~ **DECIDED: PID or
